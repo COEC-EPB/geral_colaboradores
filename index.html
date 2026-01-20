@@ -111,14 +111,14 @@
   // 🔐 PROTEÇÃO DA PÁGINA
   // ============================
   if (localStorage.getItem("logado") !== "true") {
-    window.location.href = "login.html";
+    window.location.href = "https://coec-epb.github.io/login_inspecoes/";
   }
 
   const API = "https://inspecoes.pedro-fillype.workers.dev";
 
   function logout() {
     localStorage.removeItem("logado");
-    window.location.href = "login.html";
+    window.location.href = "https://coec-epb.github.io/login_inspecoes/";
   }
 
   // ============================
