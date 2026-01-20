@@ -2,248 +2,103 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Sistema de Inspeções</title>
+<title>Inspeções</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* 🔐 LOGIN */
-  .login-container {
-    max-width: 350px;
-    margin: 100px auto;
-    background: #fff;
-    padding: 30px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    border-radius: 6px;
-  }
-
-  .login-container h2 {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .login-container input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 12px;
-    font-size: 14px;
-  }
-
-  .login-container button {
-    width: 100%;
-    padding: 10px;
-    background: #0097CE;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    font-size: 15px;
-  }
-
-  .login-container button:hover {
-    background: #007ba6;
-  }
-
-  .erro {
-    color: red;
-    text-align: center;
-    margin-top: 10px;
-  }
-
-  /* 📋 SISTEMA */
-  .sistema {
-    display: none;
-    padding: 20px;
-  }
-
-  h1 {
-    text-align: center;
-  }
-
-  .logout {
-    text-align: right;
-    margin-bottom: 10px;
-  }
-
-  .logout button {
-    padding: 6px 12px;
-    background: #d9534f;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-  }
-
-  .filtros {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-  }
-
-  .filtros input,
-  .filtros select {
-    padding: 8px;
-    font-size: 14px;
-    min-width: 180px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,.1);
-  }
-
-  th, td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-  }
-
-  th {
-    background: #0097CE;
-    color: #fff;
-  }
-
-  tr:hover {
-    background: #f1f1f1;
-  }
+body { font-family: Arial; background:#f4f6f8; padding:20px }
+table { width:100%; background:#fff; border-collapse:collapse }
+th,td { padding:8px; border-bottom:1px solid #ddd }
+th { background:#0097CE; color:#fff }
+input[type="date"] { width:100% }
+.topo { display:flex; justify-content:space-between; margin-bottom:15px }
 </style>
 </head>
+
 <body>
 
-<!-- 🔐 LOGIN -->
-<div class="login-container" id="login">
-  <h2>Acesso ao Sistema</h2>
-  <input type="text" id="usuario" placeholder="Usuário">
-  <input type="password" id="senha" placeholder="Senha">
-  <button onclick="login()">Entrar</button>
-  <div class="erro" id="erroLogin"></div>
+<div class="topo">
+  <input type="file" id="excel">
+  <button onclick="logout()">Sair</button>
 </div>
 
-<!-- 📋 SISTEMA -->
-<div class="sistema" id="sistema">
-
-  <div class="logout">
-    <button onclick="logout()">Sair</button>
-  </div>
-
-  <h1>Colaboradores</h1>
-
-  <div class="filtros">
-    <input type="text" id="filtroMatricula" placeholder="Filtrar matrícula">
-    <input type="text" id="filtroNome" placeholder="Filtrar nome">
-    <select id="filtroBase">
-      <option value="">Todas as bases</option>
-    </select>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Matrícula</th>
-        <th>Nome</th>
-        <th>Base</th>
-        <th>Última Inspeção</th>
-      </tr>
-    </thead>
-    <tbody id="tabela-corpo"></tbody>
-  </table>
-</div>
+<table>
+<thead>
+<tr>
+  <th>Matrícula</th>
+  <th>Nome</th>
+  <th>Base</th>
+  <th>Última Inspeção</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
 
 <script>
-  // 🔐 CREDENCIAIS (pode alterar)
-  const USER = "admin";
-  const PASS = "1234";
+if (!localStorage.token) location.href = "login.html";
 
-  function login() {
-    const u = document.getElementById("usuario").value;
-    const s = document.getElementById("senha").value;
+function logout() {
+  localStorage.removeItem("token");
+  location.href = "login.html";
+}
 
-    if (u === USER && s === PASS) {
-      sessionStorage.setItem("logado", "true");
-      mostrarSistema();
-    } else {
-      document.getElementById("erroLogin").textContent =
-        "Usuário ou senha inválidos";
-    }
-  }
+async function carregar() {
+  const res = await fetch("/inspecoes", {
+    headers: { Authorization: localStorage.token }
+  });
+  const dados = await res.json();
 
-  function logout() {
-    sessionStorage.removeItem("logado");
-    location.reload();
-  }
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
 
-  function mostrarSistema() {
-    document.getElementById("login").style.display = "none";
-    document.getElementById("sistema").style.display = "block";
-  }
+  dados.forEach(d => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.matricula}</td>
+      <td>${d.nome}</td>
+      <td>${d.base}</td>
+      <td>
+        <input type="date" value="${d.ultima_inspecao || ""}"
+          onchange="salvar('${d.matricula}', this.value)">
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-  if (sessionStorage.getItem("logado") === "true") {
-    mostrarSistema();
-  }
+async function salvar(matricula, data) {
+  await fetch("/inspecoes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: localStorage.token
+    },
+    body: JSON.stringify({ matricula, ultima_inspecao: data })
+  });
+}
 
-  // 📋 DADOS
-  const colaboradoresRaw = [
-    "matricula:3093553,nome:'ABMAEL JOSE FERREIRA';base:CABEDELO",
-    "matricula:3091079,nome:'ADAELSON DOS SANTOS NASCIMENTO';base:SAPÉ"
-  ];
+document.getElementById("excel").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(ws);
 
-  const colaboradores = colaboradoresRaw.map(linha => {
-    const partes = linha.split(/[,;]/);
-    const obj = { ultimaInspecao: "" };
-
-    partes.forEach(p => {
-      let [k, v] = p.split(":");
-      if (!k) return;
-      obj[k.trim()] = v ? v.replace(/'/g,"").trim() : "";
-    });
-
-    return obj;
+  await fetch("/upload-excel", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: localStorage.token
+    },
+    body: JSON.stringify(json)
   });
 
-  const tbody = document.getElementById("tabela-corpo");
-  const filtroMatricula = document.getElementById("filtroMatricula");
-  const filtroNome = document.getElementById("filtroNome");
-  const filtroBase = document.getElementById("filtroBase");
+  carregar();
+});
 
-  [...new Set(colaboradores.map(c => c.base).filter(Boolean))]
-    .forEach(b => {
-      const o = document.createElement("option");
-      o.value = b;
-      o.textContent = b;
-      filtroBase.appendChild(o);
-    });
-
-  function render() {
-    tbody.innerHTML = "";
-    colaboradores
-      .filter(c =>
-        (!filtroMatricula.value || (c.matricula||"").includes(filtroMatricula.value)) &&
-        (!filtroNome.value || (c.nome||"").toLowerCase().includes(filtroNome.value.toLowerCase())) &&
-        (!filtroBase.value || c.base === filtroBase.value)
-      )
-      .forEach(c => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${c.matricula || ""}</td>
-            <td>${c.nome || ""}</td>
-            <td>${c.base || ""}</td>
-            <td>${c.ultimaInspecao || "-"}</td>
-          </tr>`;
-      });
-  }
-
-  filtroMatricula.oninput = render;
-  filtroNome.oninput = render;
-  filtroBase.onchange = render;
-
-  render();
+carregar();
 </script>
-
 </body>
 </html>
