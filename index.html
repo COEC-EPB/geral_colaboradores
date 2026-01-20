@@ -1,104 +1,206 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Lista de Colaboradores</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Sistema de Inspeções</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      padding: 20px;
-    }
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 0;
+  }
 
-    h1 {
-      text-align: center;
-    }
+  /* 🔐 LOGIN */
+  .login-container {
+    max-width: 350px;
+    margin: 100px auto;
+    background: #fff;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    border-radius: 6px;
+  }
 
-    .filtros {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
+  .login-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
 
-    .filtros input,
-    .filtros select {
-      padding: 8px;
-      font-size: 14px;
-      min-width: 180px;
-    }
+  .login-container input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,.1);
-    }
+  .login-container button {
+    width: 100%;
+    padding: 10px;
+    background: #0097CE;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+  }
 
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
+  .login-container button:hover {
+    background: #007ba6;
+  }
 
-    th {
-      background: #0097CE;
-      color: #fff;
-    }
+  .erro {
+    color: red;
+    text-align: center;
+    margin-top: 10px;
+  }
 
-    tr:hover {
-      background: #f1f1f1;
-    }
-  </style>
+  /* 📋 SISTEMA */
+  .sistema {
+    display: none;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  .logout {
+    text-align: right;
+    margin-bottom: 10px;
+  }
+
+  .logout button {
+    padding: 6px 12px;
+    background: #d9534f;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+  }
+
+  .filtros {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .filtros input,
+  .filtros select {
+    padding: 8px;
+    font-size: 14px;
+    min-width: 180px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.1);
+  }
+
+  th, td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  th {
+    background: #0097CE;
+    color: #fff;
+  }
+
+  tr:hover {
+    background: #f1f1f1;
+  }
+</style>
 </head>
 <body>
 
-<h1>Colaboradores</h1>
-
-<div class="filtros">
-  <input type="text" id="filtroMatricula" placeholder="Filtrar por matrícula">
-  <input type="text" id="filtroNome" placeholder="Filtrar por nome">
-  <select id="filtroBase">
-    <option value="">Todas as bases</option>
-  </select>
+<!-- 🔐 LOGIN -->
+<div class="login-container" id="login">
+  <h2>Acesso ao Sistema</h2>
+  <input type="text" id="usuario" placeholder="Usuário">
+  <input type="password" id="senha" placeholder="Senha">
+  <button onclick="login()">Entrar</button>
+  <div class="erro" id="erroLogin"></div>
 </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Matrícula</th>
-      <th>Nome</th>
-      <th>Base</th>
-      <th>Última Inspeção</th>
-    </tr>
-  </thead>
-  <tbody id="tabela-corpo"></tbody>
-</table>
+<!-- 📋 SISTEMA -->
+<div class="sistema" id="sistema">
+
+  <div class="logout">
+    <button onclick="logout()">Sair</button>
+  </div>
+
+  <h1>Colaboradores</h1>
+
+  <div class="filtros">
+    <input type="text" id="filtroMatricula" placeholder="Filtrar matrícula">
+    <input type="text" id="filtroNome" placeholder="Filtrar nome">
+    <select id="filtroBase">
+      <option value="">Todas as bases</option>
+    </select>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Matrícula</th>
+        <th>Nome</th>
+        <th>Base</th>
+        <th>Última Inspeção</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-corpo"></tbody>
+  </table>
+</div>
 
 <script>
-  const colaboradoresRaw = [
-    // 👉 mantém exatamente sua lista aqui
-    "matricula:3093553,nome:'ABMAEL JOSE FERREIRA';base:CABEDELO",
-    "matricula:3091079,nome:'ADAELSON DOS SANTOS NASCIMENTO';base:SAPÉ",
-    "matricula:3091547,nome:'ADEILSON DE FARIAS PEREIRA';base:ITABAIANA"
+  // 🔐 CREDENCIAIS (pode alterar)
+  const USER = "admin";
+  const PASS = "1234";
 
+  function login() {
+    const u = document.getElementById("usuario").value;
+    const s = document.getElementById("senha").value;
+
+    if (u === USER && s === PASS) {
+      sessionStorage.setItem("logado", "true");
+      mostrarSistema();
+    } else {
+      document.getElementById("erroLogin").textContent =
+        "Usuário ou senha inválidos";
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem("logado");
+    location.reload();
+  }
+
+  function mostrarSistema() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("sistema").style.display = "block";
+  }
+
+  if (sessionStorage.getItem("logado") === "true") {
+    mostrarSistema();
+  }
+
+  // 📋 DADOS
+  const colaboradoresRaw = [
+    "matricula:3093553,nome:'ABMAEL JOSE FERREIRA';base:CABEDELO",
+    "matricula:3091079,nome:'ADAELSON DOS SANTOS NASCIMENTO';base:SAPÉ"
   ];
 
-  // 🔹 Converte string em objeto
   const colaboradores = colaboradoresRaw.map(linha => {
     const partes = linha.split(/[,;]/);
     const obj = { ultimaInspecao: "" };
 
     partes.forEach(p => {
-      let [chave, valor] = p.split(":");
-      if (!chave) return;
-
-      chave = chave.trim();
-      valor = valor ? valor.replace(/'/g, "").trim() : "";
-
-      obj[chave] = valor;
+      let [k, v] = p.split(":");
+      if (!k) return;
+      obj[k.trim()] = v ? v.replace(/'/g,"").trim() : "";
     });
 
     return obj;
@@ -109,46 +211,38 @@
   const filtroNome = document.getElementById("filtroNome");
   const filtroBase = document.getElementById("filtroBase");
 
-  // 🔹 Preenche select de bases
   [...new Set(colaboradores.map(c => c.base).filter(Boolean))]
-    .sort()
-    .forEach(base => {
-      const opt = document.createElement("option");
-      opt.value = base;
-      opt.textContent = base;
-      filtroBase.appendChild(opt);
+    .forEach(b => {
+      const o = document.createElement("option");
+      o.value = b;
+      o.textContent = b;
+      filtroBase.appendChild(o);
     });
 
-  function renderTabela() {
+  function render() {
     tbody.innerHTML = "";
-
-    const mat = filtroMatricula.value.toLowerCase();
-    const nome = filtroNome.value.toLowerCase();
-    const base = filtroBase.value;
-
     colaboradores
       .filter(c =>
-        (!mat || (c.matricula || "").toLowerCase().includes(mat)) &&
-        (!nome || (c.nome || "").toLowerCase().includes(nome)) &&
-        (!base || c.base === base)
+        (!filtroMatricula.value || (c.matricula||"").includes(filtroMatricula.value)) &&
+        (!filtroNome.value || (c.nome||"").toLowerCase().includes(filtroNome.value.toLowerCase())) &&
+        (!filtroBase.value || c.base === filtroBase.value)
       )
       .forEach(c => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${c.matricula || ""}</td>
-          <td>${c.nome || ""}</td>
-          <td>${c.base || ""}</td>
-          <td>${c.ultimaInspecao || "-"}</td>
-        `;
-        tbody.appendChild(tr);
+        tbody.innerHTML += `
+          <tr>
+            <td>${c.matricula || ""}</td>
+            <td>${c.nome || ""}</td>
+            <td>${c.base || ""}</td>
+            <td>${c.ultimaInspecao || "-"}</td>
+          </tr>`;
       });
   }
 
-  filtroMatricula.addEventListener("input", renderTabela);
-  filtroNome.addEventListener("input", renderTabela);
-  filtroBase.addEventListener("change", renderTabela);
+  filtroMatricula.oninput = render;
+  filtroNome.oninput = render;
+  filtroBase.onchange = render;
 
-  renderTabela();
+  render();
 </script>
 
 </body>
