@@ -5,7 +5,7 @@
   <title>Inspeções</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Biblioteca para leitura de Excel -->
+  <!-- Leitura de Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -25,6 +25,7 @@
 
     h2 {
       margin: 0;
+      color: #0097CE;
     }
 
     button {
@@ -55,8 +56,8 @@
     th, td {
       padding: 10px;
       border-bottom: 1px solid #ddd;
-      text-align: left;
       font-size: 14px;
+      text-align: left;
     }
 
     th {
@@ -106,62 +107,67 @@
 </table>
 
 <script>
+  // ============================
+  // 🔐 PROTEÇÃO DA PÁGINA
+  // ============================
   if (localStorage.getItem("logado") !== "true") {
     window.location.href = "login.html";
   }
-  
- function logout() {
-  localStorage.removeItem("logado");
-  window.location.href = "https://coec-epb.github.io/login_inspecoes/";
-}
 
-  // 📄 Carregar dados
-  async function carregarInspecoes() {
-    const res = await fetch("/inspecoes", {
-      headers: {
-        Authorization: localStorage.token
-      }
-    });
-    const API = "https://inspecoes.pedro-fillype.workers.dev";
-    const res = await fetch(`${API}/inspecoes`);
+  const API = "https://inspecoes.pedro-fillype.workers.dev";
 
-    if (!res.ok) {
-      alert("Sessão expirada. Faça login novamente.");
-      logout();
-      return;
-    }
-
-    const dados = await res.json();
-    const tbody = document.getElementById("tbody");
-    tbody.innerHTML = "";
-
-    dados.forEach(item => {
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${item.matricula}</td>
-        <td>${item.nome}</td>
-        <td>${item.base}</td>
-        <td>
-          <input
-            type="date"
-            value="${item.ultima_inspecao || ""}"
-            onchange="salvarInspecao('${item.matricula}', this.value)"
-          >
-        </td>
-      `;
-
-      tbody.appendChild(tr);
-    });
+  function logout() {
+    localStorage.removeItem("logado");
+    window.location.href = "login.html";
   }
 
-  // 💾 Salvar alteração
+  // ============================
+  // 📋 CARREGAR INSPEÇÕES
+  // ============================
+  async function carregarInspecoes() {
+    try {
+      const res = await fetch(`${API}/inspecoes`);
+
+      if (!res.ok) {
+        alert("Erro ao carregar dados.");
+        return;
+      }
+
+      const dados = await res.json();
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = "";
+
+      dados.forEach(item => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${item.matricula}</td>
+          <td>${item.nome}</td>
+          <td>${item.base}</td>
+          <td>
+            <input
+              type="date"
+              value="${item.ultima_inspecao || ""}"
+              onchange="salvarInspecao('${item.matricula}', this.value)"
+            >
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      alert("Erro de conexão com o servidor.");
+    }
+  }
+
+  // ============================
+  // 💾 SALVAR DATA DE INSPEÇÃO
+  // ============================
   async function salvarInspecao(matricula, data) {
-    await fetch("/inspecoes", {
+    await fetch(`${API}/inspecoes`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: localStorage.token
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         matricula,
@@ -170,7 +176,9 @@
     });
   }
 
-  // 📥 Upload Excel
+  // ============================
+  // 📥 UPLOAD EXCEL
+  // ============================
   document.getElementById("excel").addEventListener("change", async e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -180,11 +188,10 @@
     const ws = wb.Sheets[wb.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json(ws);
 
-    await fetch("/upload-excel", {
+    await fetch(`${API}/salvar`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: localStorage.token
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(json)
     });
@@ -192,7 +199,9 @@
     carregarInspecoes();
   });
 
-  // 🚀 Inicialização
+  // ============================
+  // 🚀 INICIALIZA
+  // ============================
   carregarInspecoes();
 </script>
 
