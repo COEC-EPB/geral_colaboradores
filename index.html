@@ -272,34 +272,88 @@
     }
   }
 
-  // 💾 Atualizar inspeção
-  async function salvarInspecao(matricula, data) {
-    await fetch(`${API}/inspecoes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ matricula, ultima_inspecao: data })
-    });
+  function excelDateToISO(value) {
+  if (typeof value === "number") {
+    const d = new Date((value - 25569) * 86400 * 1000);
+    return d.toISOString().split("T")[0];
   }
+  return value || null;
+}
 
-document.getElementById("excel").addEventListener("change", async (e) => {
+function normalizarLinha(l) {
+  return {
+    numero: l["Número"]?.toString().trim() || null,
+    numero_plano: l["Número do plano"] || null,
+    localidade: l["Localidade"] || null,
+    area: l["Área"] || null,
+    equipe_avaliada: l["Equipe Avaliada"] || null,
+    contratada: l["Contratada"] || null,
+    lider: l["Líder"] || null,
+    data_inspecao: excelDateToISO(l["Data da inspeção"]),
+    descricao: l["Descrição"] || null,
+    observacao: l["Observação"] || null,
+    fator_gerador: l["Fator Gerador"] || null,
+    status: l["Status"] || null,
+    auditorias: l["Auditorias"] || null,
+    auditores: l["Auditores"] || null,
+    auditados: l["Auditados"] || null,
+    cadastrante: l["Cadastrante"] || null,
+    conformidades: Number(l["Conformidades"] || 0),
+    nao_conforme: Number(l["Não conforme"] || 0),
+    nao_aplicavel: Number(l["Não aplicável"] || 0),
+    acoes: l["Ações"] || null,
+    ultima_acao_prevista: excelDateToISO(l["Última ação prevista"]),
+    tipo_area: l["Tipo de Área"] || null,
+    responsavel_area: l["Responsável pela área"] || null,
+    colaborador_1: l["COLABORADOR 1"] || null,
+    colaborador_2: l["COLABORADOR 2"] || null,
+    auditor_1: l["AUDITOR 1"] || null,
+    auditor_2: l["AUDITOR 2"] || null,
+    auditor_3: l["AUDITOR 3"] || null
+  };
+}
+
+function chunkArray(arr, size) {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+document.getElementById("excel").addEventListener("change", async e => {
   const file = e.target.files[0];
   const data = await file.arrayBuffer();
 
-  const workbook = XLSX.read(data);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const json = XLSX.utils.sheet_to_json(sheet);
+  const wb = XLSX.read(data);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
 
-  const resp = await fetch("https://inspecoes.pedro-fillype.workers.dev/importar-excel", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(json)
-  });
+  const normalizado = raw
+    .map(normalizarLinha)
+    .filter(l => l.numero); // ignora linhas vazias
 
-  const res = await resp.json();
-  alert(`Importados: ${res.registros}`);
+  const chunks = chunkArray(normalizado, 50);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const resp = await fetch(`${API}/importar-excel`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(chunks[i])
 });
-  // 🚀 Init
+
+if (!resp.ok) {
+  const err = await resp.text();
+  setStatus(`Erro no lote ${i+1}: ${err}`, "error");
+  return;
+}
+
+    setStatus(`Importando ${Math.min((i+1)*50, normalizado.length)} / ${normalizado.length}`, "success");
+  }
+
+  setStatus("Importação concluída ✔", "success");
   carregarInspecoes();
+});
 </script>
 
 </body>
