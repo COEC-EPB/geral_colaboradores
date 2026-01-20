@@ -178,26 +178,35 @@
 
   // ============================
   // 📥 UPLOAD EXCEL
-  // ============================
   document.getElementById("excel").addEventListener("change", async e => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer);
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(ws);
+  const buffer = await file.arrayBuffer();
+  const wb = XLSX.read(buffer);
+  const ws = wb.Sheets[wb.SheetNames[0]];
 
-    await fetch(`${API}/salvar`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(json)
-    });
+  // Lê linha a linha usando o cabeçalho
+  const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
 
-    carregarInspecoes();
+  const res = await fetch(`${API}/importar-excel`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(json)
   });
+
+  if (!res.ok) {
+    alert("Erro ao importar Excel");
+    return;
+  }
+
+  alert("Excel importado com sucesso!");
+  carregarInspecoes();
+});
+
+  
 
   // ============================
   // 🚀 INICIALIZA
