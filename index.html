@@ -262,13 +262,6 @@
           <td>${item.auditor_1}</td>
           <td>${item.auditor_2}</td>
           <td>${item.auditor_3}</td>
-          <td>
-            <input
-              type="date"
-              value="${item.ultima_inspecao ?? ""}"
-              onchange="salvarInspecao('${item.matricula}', this.value)"
-            >
-          </td>
         `;
         tbody.appendChild(tr);
       });
