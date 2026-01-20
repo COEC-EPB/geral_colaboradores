@@ -110,15 +110,10 @@
     window.location.href = "login.html";
   }
   
-  // 🔐 Proteção
-  if (!localStorage.token) {
-    window.location.href = "/";
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    window.location.href = "/";
-  }
+ function logout() {
+  localStorage.removeItem("logado");
+  window.location.href = "https://coec-epb.github.io/login_inspecoes/";
+}
 
   // 📄 Carregar dados
   async function carregarInspecoes() {
@@ -127,6 +122,8 @@
         Authorization: localStorage.token
       }
     });
+    const API = "https://inspecoes.pedro-fillype.workers.dev";
+    const res = await fetch(`${API}/inspecoes`);
 
     if (!res.ok) {
       alert("Sessão expirada. Faça login novamente.");
