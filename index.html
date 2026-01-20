@@ -2,113 +2,197 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Inspeções</title>
+  <title>Inspeções</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Biblioteca para leitura de Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f4f6f8;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      padding: 20px;
       margin: 0;
     }
 
-    .box {
-      background: #ffffff;
-      padding: 30px;
-      width: 320px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      border-radius: 6px;
-    }
-
-    h2 {
-      text-align: center;
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 20px;
     }
 
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 14px;
+    h2 {
+      margin: 0;
     }
 
     button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 15px;
+      padding: 8px 14px;
       background: #0097CE;
       color: #fff;
       border: none;
-      font-size: 15px;
-      cursor: pointer;
       border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
     }
 
     button:hover {
       background: #007fb0;
     }
 
-    #erro {
-      margin-top: 10px;
-      color: red;
-      text-align: center;
+    input[type="file"] {
       font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      background: #fff;
+      border-collapse: collapse;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #0097CE;
+      color: #fff;
+    }
+
+    tr:hover {
+      background: #f1f1f1;
+    }
+
+    input[type="date"] {
+      width: 100%;
+      padding: 4px;
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
   </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h2>Login</h2>
+<header>
+  <h2>Controle de Inspeções</h2>
 
-  <input id="usuario" type="text" placeholder="Usuário">
-  <input id="senha" type="password" placeholder="Senha">
+  <div class="top-actions">
+    <input type="file" id="excel">
+    <button onclick="logout()">Sair</button>
+  </div>
+</header>
 
-  <button onclick="login()">Entrar</button>
-
-  <div id="erro"></div>
-</div>
+<table>
+  <thead>
+    <tr>
+      <th>Matrícula</th>
+      <th>Nome</th>
+      <th>Base</th>
+      <th>Última Inspeção</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
 
 <script>
-async function login() {
-  const usuario = document.getElementById("usuario").value.trim();
-  const senha = document.getElementById("senha").value.trim();
-  const erro = document.getElementById("erro");
-
-  erro.innerText = "";
-
-  if (!usuario || !senha) {
-    erro.innerText = "Informe usuário e senha";
-    return;
+  // 🔐 Proteção
+  if (!localStorage.token) {
+    window.location.href = "/";
   }
 
-  try {
-    const res = await fetch("/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ usuario, senha })
+  function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "/";
+  }
+
+  // 📄 Carregar dados
+  async function carregarInspecoes() {
+    const res = await fetch("/inspecoes", {
+      headers: {
+        Authorization: localStorage.token
+      }
     });
 
     if (!res.ok) {
-      erro.innerText = "Usuário ou senha inválidos";
+      alert("Sessão expirada. Faça login novamente.");
+      logout();
       return;
     }
 
-    const data = await res.json();
-    localStorage.token = data.token;
+    const dados = await res.json();
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = "";
 
-    // redireciona para a aplicação
-    window.location.href = "/app";
+    dados.forEach(item => {
+      const tr = document.createElement("tr");
 
-  } catch (e) {
-    erro.innerText = "Erro ao conectar com o servidor";
+      tr.innerHTML = `
+        <td>${item.matricula}</td>
+        <td>${item.nome}</td>
+        <td>${item.base}</td>
+        <td>
+          <input
+            type="date"
+            value="${item.ultima_inspecao || ""}"
+            onchange="salvarInspecao('${item.matricula}', this.value)"
+          >
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    });
   }
-}
+
+  // 💾 Salvar alteração
+  async function salvarInspecao(matricula, data) {
+    await fetch("/inspecoes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: localStorage.token
+      },
+      body: JSON.stringify({
+        matricula,
+        ultima_inspecao: data
+      })
+    });
+  }
+
+  // 📥 Upload Excel
+  document.getElementById("excel").addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws);
+
+    await fetch("/upload-excel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: localStorage.token
+      },
+      body: JSON.stringify(json)
+    });
+
+    carregarInspecoes();
+  });
+
+  // 🚀 Inicialização
+  carregarInspecoes();
 </script>
 
 </body>
