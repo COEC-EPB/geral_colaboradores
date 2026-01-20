@@ -151,7 +151,8 @@
   <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
 
   <div class="top-actions">
-    <input type="file" id="excel" accept=".xlsx,.xls">
+    <input type="file" id="excel" accept=".xlsx" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <button onclick="logout()">
       <i class="bi bi-box-arrow-right"></i> Sair
     </button>
@@ -287,32 +288,24 @@
     });
   }
 
-  // 📥 Importar Excel
-  document.getElementById("excel").addEventListener("change", async e => {
-    const file = e.target.files[0];
-    if (!file) return;
+  <script>
+document.getElementById("excel").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  const data = await file.arrayBuffer();
 
-    setStatus("Importando Excel...");
-    const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer);
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+  const workbook = XLSX.read(data);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(sheet);
 
-    const res = await fetch(`${API}/importar-excel`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(json)
-    });
-
-    if (!res.ok) {
-      setStatus("Erro ao importar Excel.", "error");
-      return;
-    }
-
-    setStatus("Excel importado com sucesso!", "success");
-    carregarInspecoes();
+  const resp = await fetch("https://inspecoes.pedro-fillype.workers.dev/importar-excel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(json)
   });
 
+  const res = await resp.json();
+  alert(`Importados: ${res.registros}`);
+});
   // 🚀 Init
   carregarInspecoes();
 </script>
