@@ -2,83 +2,145 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Inspeções</title>
+  <title>Controle de Inspeções</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Leitura de Excel -->
+  <!-- XLSX -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
+  <!-- Ícones -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
   <style>
+    :root {
+      --primary: #0097CE;
+      --primary-dark: #007fb0;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #333;
+      --border: #e0e0e0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      padding: 20px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
       margin: 0;
+      padding: 0;
+      color: var(--text);
     }
 
     header {
+      background: var(--card);
+      padding: 16px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
-    h2 {
+    header h2 {
       margin: 0;
-      color: #0097CE;
-    }
-
-    button {
-      padding: 8px 14px;
-      background: #0097CE;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    button:hover {
-      background: #007fb0;
-    }
-
-    input[type="file"] {
-      font-size: 14px;
-    }
-
-    table {
-      width: 100%;
-      background: #fff;
-      border-collapse: collapse;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      font-size: 14px;
-      text-align: left;
-    }
-
-    th {
-      background: #0097CE;
-      color: #fff;
-    }
-
-    tr:hover {
-      background: #f1f1f1;
-    }
-
-    input[type="date"] {
-      width: 100%;
-      padding: 4px;
-      font-size: 13px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .top-actions {
       display: flex;
-      gap: 10px;
       align-items: center;
+      gap: 12px;
+    }
+
+    input[type="file"] {
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    button {
+      padding: 8px 14px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+    }
+
+    main {
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: #f9fbfc;
+    }
+
+    input[type="date"] {
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .status {
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .status.success {
+      color: green;
+    }
+
+    .status.error {
+      color: red;
+    }
+
+    @media (max-width: 768px) {
+      th, td {
+        font-size: 13px;
+      }
     }
   </style>
 </head>
@@ -86,52 +148,59 @@
 <body>
 
 <header>
-  <h2>Controle de Inspeções</h2>
+  <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
 
   <div class="top-actions">
-    <input type="file" id="excel">
-    <button onclick="logout()">Sair</button>
+    <input type="file" id="excel" accept=".xlsx,.xls">
+    <button onclick="logout()">
+      <i class="bi bi-box-arrow-right"></i> Sair
+    </button>
   </div>
 </header>
 
-<table>
-  <thead>
-    <tr>
-      <th>Matrícula</th>
-      <th>Nome</th>
-      <th>Base</th>
-      <th>Última Inspeção</th>
-    </tr>
-  </thead>
-  <tbody id="tbody"></tbody>
-</table>
+<main>
+  <div class="status" id="status"></div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Matrícula</th>
+          <th>Nome</th>
+          <th>Base</th>
+          <th>Última Inspeção</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
 
 <script>
-  // ============================
-  // 🔐 PROTEÇÃO DA PÁGINA
-  // ============================
+  // 🔐 Proteção
   if (localStorage.getItem("logado") !== "true") {
     window.location.href = "https://coec-epb.github.io/login_inspecoes/";
   }
 
   const API = "https://inspecoes.pedro-fillype.workers.dev";
+  const statusEl = document.getElementById("status");
+
+  function setStatus(msg, type = "") {
+    statusEl.textContent = msg;
+    statusEl.className = `status ${type}`;
+  }
 
   function logout() {
     localStorage.removeItem("logado");
     window.location.href = "https://coec-epb.github.io/login_inspecoes/";
   }
 
-  // ============================
-  // 📋 CARREGAR INSPEÇÕES
-  // ============================
+  // 📋 Carregar inspeções
   async function carregarInspecoes() {
+    setStatus("Carregando inspeções...");
     try {
       const res = await fetch(`${API}/inspecoes`);
-
-      if (!res.ok) {
-        alert("Erro ao carregar dados.");
-        return;
-      }
+      if (!res.ok) throw new Error();
 
       const dados = await res.json();
       const tbody = document.getElementById("tbody");
@@ -139,78 +208,63 @@
 
       dados.forEach(item => {
         const tr = document.createElement("tr");
-
         tr.innerHTML = `
-          <td>${item.matricula}</td>
-          <td>${item.nome}</td>
-          <td>${item.base}</td>
+          <td>${item.matricula ?? ""}</td>
+          <td>${item.nome ?? ""}</td>
+          <td>${item.base ?? ""}</td>
           <td>
             <input
               type="date"
-              value="${item.ultima_inspecao || ""}"
+              value="${item.ultima_inspecao ?? ""}"
               onchange="salvarInspecao('${item.matricula}', this.value)"
             >
           </td>
         `;
-
         tbody.appendChild(tr);
       });
-    } catch (e) {
-      alert("Erro de conexão com o servidor.");
+
+      setStatus(`Total de registros: ${dados.length}`, "success");
+    } catch {
+      setStatus("Erro ao carregar dados.", "error");
     }
   }
 
-  // ============================
-  // 💾 SALVAR DATA DE INSPEÇÃO
-  // ============================
+  // 💾 Atualizar inspeção
   async function salvarInspecao(matricula, data) {
     await fetch(`${API}/inspecoes`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        matricula,
-        ultima_inspecao: data
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matricula, ultima_inspecao: data })
     });
   }
 
-  // ============================
-  // 📥 UPLOAD EXCEL
+  // 📥 Importar Excel
   document.getElementById("excel").addEventListener("change", async e => {
-  const file = e.target.files[0];
-  if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer);
-  const ws = wb.Sheets[wb.SheetNames[0]];
+    setStatus("Importando Excel...");
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
 
-  // Lê linha a linha usando o cabeçalho
-  const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    const res = await fetch(`${API}/importar-excel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(json)
+    });
 
-  const res = await fetch(`${API}/importar-excel`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(json)
+    if (!res.ok) {
+      setStatus("Erro ao importar Excel.", "error");
+      return;
+    }
+
+    setStatus("Excel importado com sucesso!", "success");
+    carregarInspecoes();
   });
 
-  if (!res.ok) {
-    alert("Erro ao importar Excel");
-    return;
-  }
-
-  alert("Excel importado com sucesso!");
-  carregarInspecoes();
-});
-
-  
-
-  // ============================
-  // 🚀 INICIALIZA
-  // ============================
+  // 🚀 Init
   carregarInspecoes();
 </script>
 
