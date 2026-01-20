@@ -233,9 +233,34 @@
       dados.forEach(item => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${item.matricula ?? ""}</td>
-          <td>${item.nome ?? ""}</td>
-          <td>${item.base ?? ""}</td>
+          <td>${item.numero}</td>
+          <td>${item.numero_plano}</td>
+          <td>${item.localidade}</td>
+          <td>${item.area}</td>
+          <td>${item.equipe_avaliada}</td>
+          <td>${item.contratada}</td>
+          <td>${item.lider}</td>
+          <td>${item.data_inspecao}</td>
+          <td>${item.descricao}</td>
+          <td>${item.observacao}</td>
+          <td>${item.fator_gerador}</td>
+          <td>${item.status}</td>
+          <td>${item.auditorias}</td>
+          <td>${item.auditores}</td>
+          <td>${item.auditados}</td>
+          <td>${item.cadastrante}</td>
+          <td>${item.conformidades}</td>
+          <td>${item.nao_conforme}</td>
+          <td>${item.nao_aplicavel}</td>
+          <td>${item.acoes}</td>
+          <td>${item.ultima_acao_prevista}</td>
+          <td>${item.tipo_area}</td>
+          <td>${item.responsavel_area}</td>
+          <td>${item.colaborador_1}</td>
+          <td>${item.colaborador_2}</td>
+          <td>${item.auditor_1}</td>
+          <td>${item.auditor_2}</td>
+          <td>${item.auditor_3}</td>
           <td>
             <input
               type="date"
