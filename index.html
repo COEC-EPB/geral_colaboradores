@@ -157,15 +157,12 @@
 <header>
   <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
 
-  <div class="top-actions">
   <div class="top-actions" id="areaAdmin">
-  <input type="file" id="excel" accept=".xlsx" />
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <button onclick="logout()">
-    <i class="bi bi-box-arrow-right"></i> Sair
-  </button>
-</div>
-    
+    <input type="file" id="excel" accept=".xlsx" />
+    <button onclick="logout()">
+      <i class="bi bi-box-arrow-right"></i> Sair
+    </button>
+  </div>
 </header>
 
 <main>
@@ -242,12 +239,13 @@ if (localStorage.getItem("logado") !== "true") {
   /* ===============================
    🔑 CONTROLE DE PERFIL
 ================================ */
-const perfil = localStorage.getItem("perfil");
+const perfil = localStorage.getItem("perfil") || "user";
 const areaAdmin = document.getElementById("areaAdmin");
 
+// Se não for admin, remove o input Excel
 if (perfil !== "admin") {
-  // Esconde importação de Excel
-  areaAdmin.querySelector("#excel")?.remove();
+  const el = document.getElementById("excel");
+  if (el) el.remove();
 }
 
 /* ===============================
@@ -408,45 +406,48 @@ function chunkArray(arr, size) {
   return chunks;
 }
 
-document.getElementById("excel").addEventListener("change", async e => {
-  const file = e.target.files[0];
-  if (!file) return;
+const excelInput = document.getElementById("excel");
+if (excelInput && perfil === "admin") {
+  excelInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  setStatus("Lendo Excel...");
+    setStatus("Lendo Excel...");
 
-  const data = await file.arrayBuffer();
-  const wb = XLSX.read(data);
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
 
-  const normalizado = raw
-    .map(normalizarLinha)
-    .filter(l => l.numero);
+    const normalizado = raw.map(normalizarLinha).filter(l => l.numero);
+    const chunks = chunkArray(normalizado, 50);
 
-  const chunks = chunkArray(normalizado, 50);
+    for (let i = 0; i < chunks.length; i++) {
+      const resp = await fetch(`${API}/importar-excel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-perfil": perfil
+        },
+        body: JSON.stringify(chunks[i])
+      });
 
-  for (let i = 0; i < chunks.length; i++) {
-    const resp = await fetch(`${API}/importar-excel`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(chunks[i])
-    });
+      if (!resp.ok) {
+        const err = await resp.text();
+        setStatus(`Erro no lote ${i + 1}: ${err}`, "error");
+        return;
+      }
 
-    if (!resp.ok) {
-      const err = await resp.text();
-      setStatus(`Erro no lote ${i + 1}: ${err}`, "error");
-      return;
+      setStatus(
+        `Importando ${Math.min((i + 1) * 50, normalizado.length)} / ${normalizado.length}`,
+        "success"
+      );
     }
 
-    setStatus(
-      `Importando ${Math.min((i + 1) * 50, normalizado.length)} / ${normalizado.length}`,
-      "success"
-    );
-  }
-
-  setStatus("Importação concluída ✔", "success");
-  carregarInspecoes();
-});
+    setStatus("Importação concluída ✔", "success");
+    carregarInspecoes();
+  });
+}
 
 /* ===============================
    🚀 INICIAR
