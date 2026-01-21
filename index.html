@@ -318,6 +318,60 @@
     </div>
   </div>
 
+  <!-- 📊 Estatísticas -->
+<div class="card" style="margin-bottom:16px; padding:16px;">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h3 style="margin:0; color:var(--primary);">Estatísticas</h3>
+      <div style="font-size:13px; color:#666; margin-top:4px;">
+        Inspeções por mês + total do ano e soma de não conformes
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Ano</div>
+        <input id="statsAno" type="number" style="padding:8px; border:1px solid var(--border); border-radius:8px; width:110px;">
+      </div>
+
+      <!-- só admin vê -->
+      <div id="boxStatsLider" style="display:none;">
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
+        <input id="statsLider" type="text" placeholder="Digite o líder" style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+      </div>
+
+      <button type="button" onclick="carregarStatsMensal()">
+        <i class="bi bi-graph-up"></i> Atualizar
+      </button>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:14px;">
+    <div style="padding:10px 12px; background:#f7fbfd; border:1px solid var(--border); border-radius:10px;">
+      <div style="font-size:12px; color:#666;">Total do ano</div>
+      <div id="kpiTotalAno" style="font-size:22px; font-weight:700;">0</div>
+    </div>
+
+    <div style="padding:10px 12px; background:#f7fbfd; border:1px solid var(--border); border-radius:10px;">
+      <div style="font-size:12px; color:#666;">Soma não conformes</div>
+      <div id="kpiNaoConformes" style="font-size:22px; font-weight:700;">0</div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px; overflow:auto;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead style="background:#eef7fb; color:#333;">
+        <tr>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Mês</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Não conformes</th>
+        </tr>
+      </thead>
+      <tbody id="statsTbody"></tbody>
+    </table>
+  </div>
+</div>
+
 </main>
 
 <script>
@@ -594,10 +648,90 @@ async function salvarMedida() {
   document.getElementById("mdDescricao").value = "";
   setStatus("Medida registrada com sucesso ✔", "success");
 }
+  function authHeaders() {
+  const token = localStorage.getItem("token") || "";
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  };
+}
+
+function nomeMes(mm) {
+  const map = {
+    "01":"Jan","02":"Fev","03":"Mar","04":"Abr","05":"Mai","06":"Jun",
+    "07":"Jul","08":"Ago","09":"Set","10":"Out","11":"Nov","12":"Dez"
+  };
+  return map[mm] || mm;
+}
+
+async function carregarStatsMensal() {
+  try {
+    const anoEl = document.getElementById("statsAno");
+    const liderEl = document.getElementById("statsLider");
+    const boxLider = document.getElementById("boxStatsLider");
+
+    // defaults
+    if (!anoEl.value) anoEl.value = new Date().getFullYear();
+
+    const ano = String(anoEl.value);
+    const perfil = localStorage.getItem("perfil") || "user";
+
+    // admin pode filtrar por líder
+    const lider = (perfil === "admin" && liderEl) ? (liderEl.value || "").trim() : "";
+
+    const qs = new URLSearchParams({ ano });
+    if (lider) qs.set("lider", lider);
+
+    const res = await fetch(`${API}/stats-mensal?${qs.toString()}`, {
+      method: "GET",
+      headers: authHeaders()
+    });
+
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch {}
+
+    if (!res.ok) {
+      setStatus(`Erro ao carregar estatísticas: ${text}`, "error");
+      return;
+    }
+
+    document.getElementById("kpiTotalAno").textContent = data.total_ano ?? 0;
+    document.getElementById("kpiNaoConformes").textContent = data.soma_nao_conforme_ano ?? 0;
+
+    const tbody = document.getElementById("statsTbody");
+    tbody.innerHTML = "";
+
+    (data.por_mes || []).forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${nomeMes(r.mes)}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.total}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.soma_nao_conforme}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    setStatus("Estatísticas atualizadas ✔", "success");
+  } catch (e) {
+    setStatus("Erro ao carregar estatísticas.", "error");
+  }
+}
+
+// Mostra o campo líder só para admin
+(function initStatsUI(){
+  const perfil = localStorage.getItem("perfil") || "user";
+  const box = document.getElementById("boxStatsLider");
+  if (box && perfil === "admin") box.style.display = "block";
+
+  const anoEl = document.getElementById("statsAno");
+  if (anoEl) anoEl.value = new Date().getFullYear();
+})();
 
 /* ===============================
    INIT
 ================================ */
+carregarStatsMensal();  
 carregarInspecoes();
 </script>
 
