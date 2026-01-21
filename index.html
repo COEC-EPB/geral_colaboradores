@@ -408,8 +408,9 @@
     </div>
   </div>
 
-  <!-- 📊 Estatísticas -->
-<div class="card" style="margin-bottom:16px; padding:16px;">
+ <!-- 📊 Estatísticas -->
+<div class="card" style="margin-top:16px; margin-bottom:16px; padding:16px;">
+  <!-- Cabeçalho -->
   <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
     <div>
       <h3 style="margin:0; color:var(--primary);">Estatísticas</h3>
@@ -417,30 +418,19 @@
         Inspeções por mês + total do ano e soma de não conformes
       </div>
     </div>
-    
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
       <div>
         <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Ano</div>
-        <input id="statsAno" type="number" style="padding:8px; border:1px solid var(--border); border-radius:8px; width:110px;">
+        <input id="statsAno" type="number"
+          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:110px;">
       </div>
-      
-</div>
-    <div class="chart-wrap">
-  <div class="chart" id="statsChart">
-    <div class="y-label">Mês</div>
-    <!-- colunas entram via JS -->
-  </div>
-
-  <div class="legend">
-    <span><span class="dot inspecoes"></span>Inspeções</span>
-    <span><span class="dot naoConforme"></span>Não conformes</span>
-  </div>
 
       <!-- só admin vê -->
       <div id="boxStatsLider" style="display:none;">
         <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
-        <input id="statsLider" type="text" placeholder="Digite o líder" style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+        <input id="statsLider" type="text" placeholder="Digite o líder"
+          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
       </div>
 
       <button type="button" onclick="carregarStatsMensal()">
@@ -449,6 +439,20 @@
     </div>
   </div>
 
+  <!-- Gráfico (fora do cabeçalho, pra não quebrar o layout) -->
+  <div class="chart-wrap">
+    <div class="chart" id="statsChart">
+      <div class="y-label">Mês</div>
+      <!-- colunas entram via JS -->
+    </div>
+
+    <div class="legend">
+      <span><span class="dot inspecoes"></span>Inspeções</span>
+      <span><span class="dot naoConforme"></span>Não conformes</span>
+    </div>
+  </div>
+
+  <!-- KPIs -->
   <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:14px;">
     <div style="padding:10px 12px; background:#f7fbfd; border:1px solid var(--border); border-radius:10px;">
       <div style="font-size:12px; color:#666;">Total do ano</div>
@@ -461,6 +465,7 @@
     </div>
   </div>
 
+  <!-- Tabela mensal -->
   <div style="margin-top:14px; overflow:auto;">
     <table style="width:100%; border-collapse:collapse;">
       <thead style="background:#eef7fb; color:#333;">
@@ -474,6 +479,7 @@
     </table>
   </div>
 </div>
+
 
 </main>
 
