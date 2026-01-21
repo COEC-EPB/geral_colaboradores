@@ -21,9 +21,7 @@
       --border: #e0e0e0;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: "Segoe UI", Arial, sans-serif;
@@ -43,6 +41,8 @@
       position: sticky;
       top: 0;
       z-index: 10;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     header h2 {
@@ -51,48 +51,77 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      font-size: 18px;
     }
 
     .top-actions {
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
-    input[type="file"] {
-      padding: 6px;
+    input[type="file"], input[type="text"], input[type="date"] {
+      padding: 8px 10px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       background: #fff;
+      font-size: 14px;
+      outline: none;
     }
 
     button {
-      padding: 8px 14px;
+      padding: 9px 14px;
       background: var(--primary);
       color: #fff;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      white-space: nowrap;
     }
 
-    button:hover {
-      background: var(--primary-dark);
+    button:hover { background: var(--primary-dark); }
+
+    button.secondary {
+      background: #eee;
+      color: #333;
+    }
+    button.secondary:hover { background: #e5e5e5; }
+
+    main { padding: 24px; }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    main {
-      padding: 24px;
+    .status {
+      font-size: 14px;
+      color: #555;
+      margin: 0;
+      flex: 1;
+      min-width: 240px;
     }
+    .status.success { color: #137333; }
+    .status.error { color: #b3261e; }
 
     .card {
       background: var(--card);
-      border-radius: 10px;
+      border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,.08);
       overflow: hidden;
     }
+
+    .card.pad { padding: 16px; }
+
+    .table-wrap { overflow-x: auto; }
 
     table {
       width: 100%;
@@ -110,41 +139,67 @@
       border-bottom: 1px solid var(--border);
       text-align: left;
       white-space: nowrap;
+      vertical-align: top;
     }
 
-    tbody tr:hover {
-      background: #f9fbfc;
+    tbody tr:hover { background: #f9fbfc; }
+
+    /* Modal */
+    #modalMedida {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 9999;
     }
 
-    input[type="date"] {
-      padding: 4px 6px;
-      border-radius: 4px;
-      border: 1px solid var(--border);
+    .modal-box {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-head h3 {
+      margin: 0;
+      color: var(--primary);
+      font-size: 16px;
+    }
+
+    label {
+      font-weight: 600;
       font-size: 13px;
+      display: block;
+      margin-bottom: 6px;
     }
 
-    .status {
-      margin-bottom: 12px;
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      resize: vertical;
+      font-family: inherit;
       font-size: 14px;
-      color: #555;
+      outline: none;
     }
 
-    .status.success {
-      color: green;
+    .hint {
+      font-size: 12px;
+      color: #777;
+      margin-top: 6px;
     }
-
-    .status.error {
-      color: red;
-    }
-
-    @media (max-width: 768px) {
-      th, td {
-        font-size: 13px;
-      }
-    }
-    .card {
-  overflow-x: auto;
-}
   </style>
 </head>
 
@@ -162,64 +217,61 @@
 </header>
 
 <main>
-  <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-  <input type="text" id="filtroLider" placeholder="Filtrar por Líder">
 
-  <input type="text" id="filtroLocalidade" placeholder="Filtrar por Localidade">
+  <div class="row">
+    <input type="text" id="filtroLider" placeholder="Filtrar por Líder">
+    <input type="text" id="filtroLocalidade" placeholder="Filtrar por Localidade">
+    <input type="date" id="filtroData">
 
-  <input type="date" id="filtroData">
-  
-  <button onclick="aplicarFiltros()">
-    <i class="bi bi-funnel"></i> Filtrar
-  </button>
+    <button onclick="aplicarFiltros()"><i class="bi bi-funnel"></i> Filtrar</button>
+    <button class="secondary" onclick="limparFiltros()"><i class="bi bi-x-circle"></i> Limpar</button>
 
-  <button onclick="limparFiltros()">
-    <i class="bi bi-x-circle"></i> Limpar
-  </button>
-  <div class="status" id="status"></div>
+    <div class="status" id="status"></div>
+  </div>
 
-  <div class="card" style="overflow-x:auto;">
+  <div class="card table-wrap">
     <table>
       <thead>
         <tr>
-    <th>Número</th>
-    <th>Nº do Plano</th>
-    <th>Localidade</th>
-    <th>Área</th>
-    <th>Equipe Avaliada</th>
-    <th>Contratada</th>
-    <th>Líder</th>
-    <th>Data da Inspeção</th>
-    <th>Descrição</th>
-    <th>Observação</th>
-    <th>Fator Gerador</th>
-    <th>Status</th>
-    <th>Auditorias</th>
-    <th>Auditores</th>
-    <th>Auditados</th>
-    <th>Cadastrante</th>
-    <th>Conformidades</th>
-    <th>Não Conforme</th>
-    <th>Não Aplicável</th>
-    <th>Ações</th>
-    <th>Última Ação Prevista</th>
-    <th>Tipo de Área</th>
-    <th>Responsável pela Área</th>
-    <th>Colaborador 1</th>
-    <th>Colaborador 2</th>
-    <th>Auditor 1</th>
-    <th>Auditor 2</th>
-    <th>Auditor 3</th>
-  </tr>
+          <th>Número</th>
+          <th>Nº do Plano</th>
+          <th>Localidade</th>
+          <th>Área</th>
+          <th>Equipe Avaliada</th>
+          <th>Contratada</th>
+          <th>Líder</th>
+          <th>Data da Inspeção</th>
+          <th>Descrição</th>
+          <th>Observação</th>
+          <th>Fator Gerador</th>
+          <th>Status</th>
+          <th>Auditorias</th>
+          <th>Auditores</th>
+          <th>Auditados</th>
+          <th>Cadastrante</th>
+          <th>Conformidades</th>
+          <th>Não Conforme</th>
+          <th>Não Aplicável</th>
+          <th>Ações</th>
+          <th>Última Ação Prevista</th>
+          <th>Tipo de Área</th>
+          <th>Responsável pela Área</th>
+          <th>Colaborador 1</th>
+          <th>Colaborador 2</th>
+          <th>Auditor 1</th>
+          <th>Auditor 2</th>
+          <th>Auditor 3</th>
+        </tr>
       </thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
-      <!-- ✅ Card Medida Disciplinar -->
-  <div class="card" style="margin-top:16px; padding:16px;">
+
+  <!-- ✅ Card Medida Disciplinar -->
+  <div class="card pad" style="margin-top:16px;">
     <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
       <div>
-        <h3 style="margin:0; color:var(--primary);">Medida disciplinar?</h3>
+        <h3 style="margin:0; color:var(--primary); font-size:16px;">Medida disciplinar?</h3>
         <div style="font-size:13px; color:#666; margin-top:4px;">
           Registre uma medida vinculada ao <b>Número</b> da inspeção.
         </div>
@@ -232,54 +284,35 @@
   </div>
 
   <!-- ✅ Modal -->
-  <div id="modalMedida" style="
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
-    align-items:center; justify-content:center; padding:16px; z-index:9999;
-  ">
-    <div style="
-      width:min(520px, 100%); background:#fff; border-radius:12px; padding:16px;
-      box-shadow:0 12px 40px rgba(0,0,0,.2);
-    ">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-        <h3 style="margin:0; color:var(--primary);">Registrar medida disciplinar</h3>
-        <button type="button" onclick="fecharModalMedida()" style="background:#eee; color:#333;">
+  <div id="modalMedida">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>Registrar medida disciplinar</h3>
+        <button type="button" class="secondary" onclick="fecharModalMedida()">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
 
       <div style="display:grid; gap:12px; margin-top:12px;">
         <div>
-          <label style="font-weight:600; font-size:13px;">Número da inspeção</label>
-          <input id="mdNumero" type="text" placeholder="Ex: 12345" style="
-            width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;
-          ">
-          <div style="font-size:12px; color:#777; margin-top:4px;">
-            Dica: use o mesmo valor da coluna <b>Número</b>.
-          </div>
+          <label>Número da inspeção</label>
+          <input id="mdNumero" type="text" placeholder="Ex: 12345" style="width:100%;">
+          <div class="hint">Dica: use o mesmo valor da coluna <b>Número</b>.</div>
         </div>
 
         <div>
-          <label style="font-weight:600; font-size:13px;">Data</label>
-          <input id="mdData" type="date" style="
-            width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;
-          ">
+          <label>Data</label>
+          <input id="mdData" type="date" style="width:100%;">
         </div>
 
         <div>
-          <label style="font-weight:600; font-size:13px;">Qual foi a medida?</label>
-          <textarea id="mdDescricao" rows="4" placeholder="Descreva a medida..." style="
-            width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; resize:vertical;
-            font-family:inherit;
-          "></textarea>
+          <label>Qual foi a medida?</label>
+          <textarea id="mdDescricao" rows="4" placeholder="Descreva a medida..."></textarea>
         </div>
 
         <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
-          <button type="button" onclick="fecharModalMedida()" style="background:#eee; color:#333;">
-            Cancelar
-          </button>
-          <button type="button" onclick="salvarMedida()">
-            <i class="bi bi-check2-circle"></i> Salvar medida
-          </button>
+          <button type="button" class="secondary" onclick="fecharModalMedida()">Cancelar</button>
+          <button type="button" onclick="salvarMedida()"><i class="bi bi-check2-circle"></i> Salvar medida</button>
         </div>
       </div>
     </div>
@@ -289,33 +322,30 @@
 
 <script>
 /* ===============================
-   VARIÁVEIS GLOBAIS
+   CONFIG / SESSÃO
 ================================ */
-let dadosGlobais = [];
-
 const API = "https://inspecoes.pedro-fillype.workers.dev";
 const statusEl = document.getElementById("status");
+let dadosGlobais = [];
 
-/* ===============================
-   🔐 PROTEÇÃO LOGIN
-================================ */
 if (localStorage.getItem("logado") !== "true") {
   window.location.href = "https://coec-epb.github.io/login_inspecoes/";
 }
-  /* ===============================
-   🔑 CONTROLE DE PERFIL
-================================ */
-const perfil = localStorage.getItem("perfil") || "user";
-const areaAdmin = document.getElementById("areaAdmin");
 
-// Se não for admin, remove o input Excel
+const perfil = localStorage.getItem("perfil") || "user";
+const token = localStorage.getItem("token") || "";
+
+/* Se não tiver token, desloga */
+if (!token) logout();
+
+/* remove excel se não for admin */
 if (perfil !== "admin") {
   const el = document.getElementById("excel");
   if (el) el.remove();
 }
 
 /* ===============================
-   UTILITÁRIOS
+   HELPERS
 ================================ */
 function setStatus(msg, type = "") {
   statusEl.textContent = msg;
@@ -324,7 +354,21 @@ function setStatus(msg, type = "") {
 
 function logout() {
   localStorage.removeItem("logado");
+  localStorage.removeItem("token");
+  localStorage.removeItem("perfil");
+  localStorage.removeItem("lider");
   window.location.href = "https://coec-epb.github.io/login_inspecoes/";
+}
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      "Authorization": `Bearer ${token}`
+    }
+  });
+  return res;
 }
 
 function excelDateToISO(value) {
@@ -336,24 +380,7 @@ function excelDateToISO(value) {
 }
 
 /* ===============================
-   📋 CARREGAR INSPEÇÕES
-================================ */
-async function carregarInspecoes() {
-  setStatus("Carregando inspeções...");
-  try {
-    const res = await fetch(`${API}/inspecoes`);
-    if (!res.ok) throw new Error();
-
-    dadosGlobais = await res.json();
-    renderTabela(dadosGlobais);
-
-  } catch (e) {
-    setStatus("Erro ao carregar dados.", "error");
-  }
-}
-
-/* ===============================
-   🧾 RENDER TABELA
+   TABELA
 ================================ */
 function renderTabela(dados) {
   const tbody = document.getElementById("tbody");
@@ -398,23 +425,34 @@ function renderTabela(dados) {
 }
 
 /* ===============================
-   🔍 FILTROS
+   CARREGAR INSPEÇÕES (do Worker)
+================================ */
+async function carregarInspecoes() {
+  setStatus("Carregando inspeções...");
+  try {
+    const res = await apiFetch(`/inspecoes`);
+    if (res.status === 401) return logout();
+    if (!res.ok) throw new Error(await res.text());
+
+    dadosGlobais = await res.json();
+    renderTabela(dadosGlobais);
+  } catch (e) {
+    setStatus("Erro ao carregar dados.", "error");
+  }
+}
+
+/* ===============================
+   FILTROS (client-side)
 ================================ */
 function aplicarFiltros() {
-  const lider = document.getElementById("filtroLider").value.toLowerCase();
-  const localidade = document.getElementById("filtroLocalidade").value.toLowerCase();
+  const lider = document.getElementById("filtroLider").value.toLowerCase().trim();
+  const localidade = document.getElementById("filtroLocalidade").value.toLowerCase().trim();
   const data = document.getElementById("filtroData").value;
 
   const filtrado = dadosGlobais.filter(item => {
-    const okLider =
-      !lider || (item.lider && item.lider.toLowerCase().includes(lider));
-
-    const okLocalidade =
-      !localidade || (item.localidade && item.localidade.toLowerCase().includes(localidade));
-
-    const okData =
-      !data || (item.data_inspecao && item.data_inspecao.startsWith(data));
-
+    const okLider = !lider || (item.lider && item.lider.toLowerCase().includes(lider));
+    const okLocalidade = !localidade || (item.localidade && item.localidade.toLowerCase().includes(localidade));
+    const okData = !data || (item.data_inspecao && String(item.data_inspecao).startsWith(data));
     return okLider && okLocalidade && okData;
   });
 
@@ -429,7 +467,7 @@ function limparFiltros() {
 }
 
 /* ===============================
-   📥 IMPORTAR EXCEL
+   IMPORTAR EXCEL (somente admin)
 ================================ */
 function normalizarLinha(l) {
   return {
@@ -466,9 +504,7 @@ function normalizarLinha(l) {
 
 function chunkArray(arr, size) {
   const chunks = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
+  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
   return chunks;
 }
 
@@ -489,14 +525,13 @@ if (excelInput && perfil === "admin") {
     const chunks = chunkArray(normalizado, 50);
 
     for (let i = 0; i < chunks.length; i++) {
-      const resp = await fetch(`${API}/importar-excel`, {
+      const resp = await apiFetch(`/importar-excel`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-perfil": perfil
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(chunks[i])
       });
+
+      if (resp.status === 401) return logout();
 
       if (!resp.ok) {
         const err = await resp.text();
@@ -514,10 +549,12 @@ if (excelInput && perfil === "admin") {
     carregarInspecoes();
   });
 }
-  function abrirModalMedida() {
-  document.getElementById("modalMedida").style.display = "flex";
 
-  // preenche data de hoje por padrão
+/* ===============================
+   MEDIDAS DISCIPLINARES
+================================ */
+function abrirModalMedida() {
+  document.getElementById("modalMedida").style.display = "flex";
   const hoje = new Date().toISOString().split("T")[0];
   const mdData = document.getElementById("mdData");
   if (!mdData.value) mdData.value = hoje;
@@ -532,29 +569,19 @@ async function salvarMedida() {
   const data = document.getElementById("mdData").value;
   const descricao = document.getElementById("mdDescricao").value.trim();
 
-  if (!numero) {
-    setStatus("Informe o Número da inspeção.", "error");
-    return;
-  }
-  if (!data) {
-    setStatus("Informe a data da medida.", "error");
-    return;
-  }
-  if (!descricao) {
-    setStatus("Descreva qual foi a medida.", "error");
-    return;
-  }
+  if (!numero) return setStatus("Informe o Número da inspeção.", "error");
+  if (!data) return setStatus("Informe a data da medida.", "error");
+  if (!descricao) return setStatus("Descreva qual foi a medida.", "error");
 
   setStatus("Salvando medida disciplinar...", "success");
 
-  const resp = await fetch(`${API}/medidas`, {
+  const resp = await apiFetch(`/medidas`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-perfil": perfil // admin ou user (pode deixar ambos registrarem, ou travar no worker)
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ numero, data, descricao })
   });
+
+  if (resp.status === 401) return logout();
 
   if (!resp.ok) {
     const err = await resp.text();
@@ -565,12 +592,11 @@ async function salvarMedida() {
   fecharModalMedida();
   document.getElementById("mdNumero").value = "";
   document.getElementById("mdDescricao").value = "";
-
   setStatus("Medida registrada com sucesso ✔", "success");
 }
 
 /* ===============================
-   🚀 INICIAR
+   INIT
 ================================ */
 carregarInspecoes();
 </script>
