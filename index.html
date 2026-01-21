@@ -145,10 +145,6 @@
     .card {
   overflow-x: auto;
 }
-    headers: {
-  "Content-Type": "application/json",
-  "x-perfil": "admin"
-}
   </style>
 </head>
 
@@ -219,6 +215,76 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+      <!-- ✅ Card Medida Disciplinar -->
+  <div class="card" style="margin-top:16px; padding:16px;">
+    <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+      <div>
+        <h3 style="margin:0; color:var(--primary);">Medida disciplinar?</h3>
+        <div style="font-size:13px; color:#666; margin-top:4px;">
+          Registre uma medida vinculada ao <b>Número</b> da inspeção.
+        </div>
+      </div>
+
+      <button type="button" onclick="abrirModalMedida()">
+        <i class="bi bi-exclamation-triangle"></i> Adicionar medida
+      </button>
+    </div>
+  </div>
+
+  <!-- ✅ Modal -->
+  <div id="modalMedida" style="
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+    align-items:center; justify-content:center; padding:16px; z-index:9999;
+  ">
+    <div style="
+      width:min(520px, 100%); background:#fff; border-radius:12px; padding:16px;
+      box-shadow:0 12px 40px rgba(0,0,0,.2);
+    ">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+        <h3 style="margin:0; color:var(--primary);">Registrar medida disciplinar</h3>
+        <button type="button" onclick="fecharModalMedida()" style="background:#eee; color:#333;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div style="display:grid; gap:12px; margin-top:12px;">
+        <div>
+          <label style="font-weight:600; font-size:13px;">Número da inspeção</label>
+          <input id="mdNumero" type="text" placeholder="Ex: 12345" style="
+            width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;
+          ">
+          <div style="font-size:12px; color:#777; margin-top:4px;">
+            Dica: use o mesmo valor da coluna <b>Número</b>.
+          </div>
+        </div>
+
+        <div>
+          <label style="font-weight:600; font-size:13px;">Data</label>
+          <input id="mdData" type="date" style="
+            width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;
+          ">
+        </div>
+
+        <div>
+          <label style="font-weight:600; font-size:13px;">Qual foi a medida?</label>
+          <textarea id="mdDescricao" rows="4" placeholder="Descreva a medida..." style="
+            width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; resize:vertical;
+            font-family:inherit;
+          "></textarea>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+          <button type="button" onclick="fecharModalMedida()" style="background:#eee; color:#333;">
+            Cancelar
+          </button>
+          <button type="button" onclick="salvarMedida()">
+            <i class="bi bi-check2-circle"></i> Salvar medida
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -447,6 +513,60 @@ if (excelInput && perfil === "admin") {
     setStatus("Importação concluída ✔", "success");
     carregarInspecoes();
   });
+}
+  function abrirModalMedida() {
+  document.getElementById("modalMedida").style.display = "flex";
+
+  // preenche data de hoje por padrão
+  const hoje = new Date().toISOString().split("T")[0];
+  const mdData = document.getElementById("mdData");
+  if (!mdData.value) mdData.value = hoje;
+}
+
+function fecharModalMedida() {
+  document.getElementById("modalMedida").style.display = "none";
+}
+
+async function salvarMedida() {
+  const numero = document.getElementById("mdNumero").value.trim();
+  const data = document.getElementById("mdData").value;
+  const descricao = document.getElementById("mdDescricao").value.trim();
+
+  if (!numero) {
+    setStatus("Informe o Número da inspeção.", "error");
+    return;
+  }
+  if (!data) {
+    setStatus("Informe a data da medida.", "error");
+    return;
+  }
+  if (!descricao) {
+    setStatus("Descreva qual foi a medida.", "error");
+    return;
+  }
+
+  setStatus("Salvando medida disciplinar...", "success");
+
+  const resp = await fetch(`${API}/medidas`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-perfil": perfil // admin ou user (pode deixar ambos registrarem, ou travar no worker)
+    },
+    body: JSON.stringify({ numero, data, descricao })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    setStatus(`Erro ao salvar medida: ${err}`, "error");
+    return;
+  }
+
+  fecharModalMedida();
+  document.getElementById("mdNumero").value = "";
+  document.getElementById("mdDescricao").value = "";
+
+  setStatus("Medida registrada com sucesso ✔", "success");
 }
 
 /* ===============================
