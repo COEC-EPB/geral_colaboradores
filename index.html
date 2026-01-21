@@ -200,7 +200,6 @@
       color: #777;
       margin-top: 6px;
     }
-    <style>
   .chart-wrap { margin-top: 14px; overflow-x: auto; }
   .chart {
     display: grid;
@@ -292,7 +291,6 @@
   .dot.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
 </style>
 
-  </style>
 </head>
 
 <body>
@@ -419,13 +417,16 @@
         Inspeções por mês + total do ano e soma de não conformes
       </div>
     </div>
+    
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
       <div>
         <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Ano</div>
         <input id="statsAno" type="number" style="padding:8px; border:1px solid var(--border); border-radius:8px; width:110px;">
       </div>
-      <div class="chart-wrap">
+      
+</div>
+    <div class="chart-wrap">
   <div class="chart" id="statsChart">
     <div class="y-label">Mês</div>
     <!-- colunas entram via JS -->
@@ -435,7 +436,6 @@
     <span><span class="dot inspecoes"></span>Inspeções</span>
     <span><span class="dot naoConforme"></span>Não conformes</span>
   </div>
-</div>
 
       <!-- só admin vê -->
       <div id="boxStatsLider" style="display:none;">
@@ -771,15 +771,11 @@ async function carregarStatsMensal() {
   try {
     const anoEl = document.getElementById("statsAno");
     const liderEl = document.getElementById("statsLider");
-    const boxLider = document.getElementById("boxStatsLider");
 
-    // defaults
     if (!anoEl.value) anoEl.value = new Date().getFullYear();
 
     const ano = String(anoEl.value);
     const perfil = localStorage.getItem("perfil") || "user";
-
-    // admin pode filtrar por líder
     const lider = (perfil === "admin" && liderEl) ? (liderEl.value || "").trim() : "";
 
     const qs = new URLSearchParams({ ano });
@@ -815,11 +811,13 @@ async function carregarStatsMensal() {
       tbody.appendChild(tr);
     });
 
+    // ✅ gráfico aqui dentro
+    renderChart(data.por_mes || []);
+
     setStatus("Estatísticas atualizadas ✔", "success");
   } catch (e) {
     setStatus("Erro ao carregar estatísticas.", "error");
   }
-  renderChart(data.por_mes || []);
 }
   function renderChart(porMes) {
   const chart = document.getElementById("statsChart");
