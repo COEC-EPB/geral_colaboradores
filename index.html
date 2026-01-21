@@ -595,15 +595,22 @@ async function carregarInspecoes() {
   setStatus("Carregando inspeções...");
   try {
     const res = await apiFetch(`/inspecoes`);
-    if (res.status === 401) return logout();
-    if (!res.ok) throw new Error(await res.text());
 
-    dadosGlobais = await res.json();
+    const text = await res.text(); // <-- pega o corpo
+    console.log("STATUS /inspecoes:", res.status);
+    console.log("BODY /inspecoes:", text);
+
+    if (res.status === 401) return logout();
+    if (!res.ok) throw new Error(text);
+
+    dadosGlobais = JSON.parse(text);
     renderTabela(dadosGlobais);
   } catch (e) {
     setStatus("Erro ao carregar dados.", "error");
+    console.error(e);
   }
 }
+
 
 /* ===============================
    FILTROS (client-side)
