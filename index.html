@@ -142,6 +142,9 @@
         font-size: 13px;
       }
     }
+    .card {
+  overflow-x: auto;
+}
   </style>
 </head>
 
@@ -160,9 +163,23 @@
 </header>
 
 <main>
+  <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+  <input type="text" id="filtroLider" placeholder="Filtrar por Líder">
+
+  <input type="text" id="filtroLocalidade" placeholder="Filtrar por Localidade">
+
+  <input type="date" id="filtroData">
+  
+  <button onclick="aplicarFiltros()">
+    <i class="bi bi-funnel"></i> Filtrar
+  </button>
+
+  <button onclick="limparFiltros()">
+    <i class="bi bi-x-circle"></i> Limpar
+  </button>
   <div class="status" id="status"></div>
 
-  <div class="card">
+  <div class="card" style="overflow-x:auto;">
     <table>
       <thead>
         <tr>
@@ -202,77 +219,35 @@
 </main>
 
 <script>
-  // 🔐 Proteção
-  if (localStorage.getItem("logado") !== "true") {
-    window.location.href = "https://coec-epb.github.io/login_inspecoes/";
-  }
+/* ===============================
+   VARIÁVEIS GLOBAIS
+================================ */
+let dadosGlobais = [];
 
-  const API = "https://inspecoes.pedro-fillype.workers.dev";
-  const statusEl = document.getElementById("status");
+const API = "https://inspecoes.pedro-fillype.workers.dev";
+const statusEl = document.getElementById("status");
 
-  function setStatus(msg, type = "") {
-    statusEl.textContent = msg;
-    statusEl.className = `status ${type}`;
-  }
+/* ===============================
+   🔐 PROTEÇÃO LOGIN
+================================ */
+if (localStorage.getItem("logado") !== "true") {
+  window.location.href = "https://coec-epb.github.io/login_inspecoes/";
+}
 
-  function logout() {
-    localStorage.removeItem("logado");
-    window.location.href = "https://coec-epb.github.io/login_inspecoes/";
-  }
+/* ===============================
+   UTILITÁRIOS
+================================ */
+function setStatus(msg, type = "") {
+  statusEl.textContent = msg;
+  statusEl.className = `status ${type}`;
+}
 
-  // 📋 Carregar inspeções
-  async function carregarInspecoes() {
-    setStatus("Carregando inspeções...");
-    try {
-      const res = await fetch(`${API}/inspecoes`);
-      if (!res.ok) throw new Error();
+function logout() {
+  localStorage.removeItem("logado");
+  window.location.href = "https://coec-epb.github.io/login_inspecoes/";
+}
 
-      const dados = await res.json();
-      const tbody = document.getElementById("tbody");
-      tbody.innerHTML = "";
-
-      dados.forEach(item => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${item.numero}</td>
-          <td>${item.numero_plano}</td>
-          <td>${item.localidade}</td>
-          <td>${item.area}</td>
-          <td>${item.equipe_avaliada}</td>
-          <td>${item.contratada}</td>
-          <td>${item.lider}</td>
-          <td>${item.data_inspecao}</td>
-          <td>${item.descricao}</td>
-          <td>${item.observacao}</td>
-          <td>${item.fator_gerador}</td>
-          <td>${item.status}</td>
-          <td>${item.auditorias}</td>
-          <td>${item.auditores}</td>
-          <td>${item.auditados}</td>
-          <td>${item.cadastrante}</td>
-          <td>${item.conformidades}</td>
-          <td>${item.nao_conforme}</td>
-          <td>${item.nao_aplicavel}</td>
-          <td>${item.acoes}</td>
-          <td>${item.ultima_acao_prevista}</td>
-          <td>${item.tipo_area}</td>
-          <td>${item.responsavel_area}</td>
-          <td>${item.colaborador_1}</td>
-          <td>${item.colaborador_2}</td>
-          <td>${item.auditor_1}</td>
-          <td>${item.auditor_2}</td>
-          <td>${item.auditor_3}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      setStatus(`Total de registros: ${dados.length}`, "success");
-    } catch {
-      setStatus("Erro ao carregar dados.", "error");
-    }
-  }
-
-  function excelDateToISO(value) {
+function excelDateToISO(value) {
   if (typeof value === "number") {
     const d = new Date((value - 25569) * 86400 * 1000);
     return d.toISOString().split("T")[0];
@@ -280,6 +255,102 @@
   return value || null;
 }
 
+/* ===============================
+   📋 CARREGAR INSPEÇÕES
+================================ */
+async function carregarInspecoes() {
+  setStatus("Carregando inspeções...");
+  try {
+    const res = await fetch(`${API}/inspecoes`);
+    if (!res.ok) throw new Error();
+
+    dadosGlobais = await res.json();
+    renderTabela(dadosGlobais);
+
+  } catch (e) {
+    setStatus("Erro ao carregar dados.", "error");
+  }
+}
+
+/* ===============================
+   🧾 RENDER TABELA
+================================ */
+function renderTabela(dados) {
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  dados.forEach(item => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.numero ?? ""}</td>
+      <td>${item.numero_plano ?? ""}</td>
+      <td>${item.localidade ?? ""}</td>
+      <td>${item.area ?? ""}</td>
+      <td>${item.equipe_avaliada ?? ""}</td>
+      <td>${item.contratada ?? ""}</td>
+      <td>${item.lider ?? ""}</td>
+      <td>${item.data_inspecao ?? ""}</td>
+      <td>${item.descricao ?? ""}</td>
+      <td>${item.observacao ?? ""}</td>
+      <td>${item.fator_gerador ?? ""}</td>
+      <td>${item.status ?? ""}</td>
+      <td>${item.auditorias ?? ""}</td>
+      <td>${item.auditores ?? ""}</td>
+      <td>${item.auditados ?? ""}</td>
+      <td>${item.cadastrante ?? ""}</td>
+      <td>${item.conformidades ?? 0}</td>
+      <td>${item.nao_conforme ?? 0}</td>
+      <td>${item.nao_aplicavel ?? 0}</td>
+      <td>${item.acoes ?? ""}</td>
+      <td>${item.ultima_acao_prevista ?? ""}</td>
+      <td>${item.tipo_area ?? ""}</td>
+      <td>${item.responsavel_area ?? ""}</td>
+      <td>${item.colaborador_1 ?? ""}</td>
+      <td>${item.colaborador_2 ?? ""}</td>
+      <td>${item.auditor_1 ?? ""}</td>
+      <td>${item.auditor_2 ?? ""}</td>
+      <td>${item.auditor_3 ?? ""}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  setStatus(`Registros exibidos: ${dados.length}`, "success");
+}
+
+/* ===============================
+   🔍 FILTROS
+================================ */
+function aplicarFiltros() {
+  const lider = document.getElementById("filtroLider").value.toLowerCase();
+  const localidade = document.getElementById("filtroLocalidade").value.toLowerCase();
+  const data = document.getElementById("filtroData").value;
+
+  const filtrado = dadosGlobais.filter(item => {
+    const okLider =
+      !lider || (item.lider && item.lider.toLowerCase().includes(lider));
+
+    const okLocalidade =
+      !localidade || (item.localidade && item.localidade.toLowerCase().includes(localidade));
+
+    const okData =
+      !data || (item.data_inspecao && item.data_inspecao.startsWith(data));
+
+    return okLider && okLocalidade && okData;
+  });
+
+  renderTabela(filtrado);
+}
+
+function limparFiltros() {
+  document.getElementById("filtroLider").value = "";
+  document.getElementById("filtroLocalidade").value = "";
+  document.getElementById("filtroData").value = "";
+  renderTabela(dadosGlobais);
+}
+
+/* ===============================
+   📥 IMPORTAR EXCEL
+================================ */
 function normalizarLinha(l) {
   return {
     numero: l["Número"]?.toString().trim() || null,
@@ -323,37 +394,48 @@ function chunkArray(arr, size) {
 
 document.getElementById("excel").addEventListener("change", async e => {
   const file = e.target.files[0];
-  const data = await file.arrayBuffer();
+  if (!file) return;
 
+  setStatus("Lendo Excel...");
+
+  const data = await file.arrayBuffer();
   const wb = XLSX.read(data);
   const ws = wb.Sheets[wb.SheetNames[0]];
   const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
 
   const normalizado = raw
     .map(normalizarLinha)
-    .filter(l => l.numero); // ignora linhas vazias
+    .filter(l => l.numero);
 
   const chunks = chunkArray(normalizado, 50);
 
   for (let i = 0; i < chunks.length; i++) {
     const resp = await fetch(`${API}/importar-excel`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(chunks[i])
-});
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(chunks[i])
+    });
 
-if (!resp.ok) {
-  const err = await resp.text();
-  setStatus(`Erro no lote ${i+1}: ${err}`, "error");
-  return;
-}
+    if (!resp.ok) {
+      const err = await resp.text();
+      setStatus(`Erro no lote ${i + 1}: ${err}`, "error");
+      return;
+    }
 
-    setStatus(`Importando ${Math.min((i+1)*50, normalizado.length)} / ${normalizado.length}`, "success");
+    setStatus(
+      `Importando ${Math.min((i + 1) * 50, normalizado.length)} / ${normalizado.length}`,
+      "success"
+    );
   }
 
   setStatus("Importação concluída ✔", "success");
   carregarInspecoes();
 });
+
+/* ===============================
+   🚀 INICIAR
+================================ */
+carregarInspecoes();
 </script>
 
 </body>
