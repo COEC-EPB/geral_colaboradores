@@ -511,6 +511,7 @@
           <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Base</th>
           <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Polo</th>
           <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Última auditoria</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções por colaborador</th>
           <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Qtd dias sem auditoria</th>
         </tr>
       </thead>
@@ -960,6 +961,7 @@ async function carregarRanking() {
         <td style="padding:10px; border-bottom:1px solid var(--border);">${r.polo ?? ""}</td>
         <td style="padding:10px; border-bottom:1px solid var(--border);">${formatarDataBR(r.ultima_auditoria)}</td>
         <td style="padding:10px; border-bottom:1px solid var(--border);">${r.dias_desde ?? "-"}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.qtd_ano ?? 0}</td>
       `;
       tbody.appendChild(tr);
     });
