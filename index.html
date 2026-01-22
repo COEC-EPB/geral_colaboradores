@@ -959,8 +959,8 @@ async function carregarRanking() {
         <td style="padding:10px; border-bottom:1px solid var(--border);">${r.colaborador ?? ""}</td>
         <td style="padding:10px; border-bottom:1px solid var(--border);">${r.base ?? ""}</td>
         <td style="padding:10px; border-bottom:1px solid var(--border);">${r.polo ?? ""}</td>
-        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.qtd_ano ?? 0}</td>
         <td style="padding:10px; border-bottom:1px solid var(--border);">${formatarDataBR(r.ultima_auditoria)}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.qtd_ano ?? 0}</td>
         <td style="padding:10px; border-bottom:1px solid var(--border);">${r.dias_desde ?? "-"}</td>
       `;
       tbody.appendChild(tr);
