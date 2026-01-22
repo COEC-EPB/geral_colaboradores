@@ -480,6 +480,45 @@
   </div>
 </div>
 
+  <div class="card" style="margin-top:16px; padding:16px;">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h3 style="margin:0; color:var(--primary);">Ranking - Próximos a auditar</h3>
+      <div style="font-size:13px; color:#666; margin-top:4px;">
+        Ordenado do mais tempo sem auditoria (ou nunca auditado) → primeiro
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div id="boxRankingLider" style="display:none;">
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
+        <input id="rankingLider" type="text" placeholder="Digite o líder"
+          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+      </div>
+
+      <button type="button" onclick="carregarRanking()">
+        <i class="bi bi-list-ol"></i> Atualizar ranking
+      </button>
+    </div>
+  </div>
+
+  <div style="margin-top:12px; overflow:auto;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead style="background:#eef7fb; color:#333;">
+        <tr>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Rank</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Colaborador</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Base</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Polo</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Última auditoria</th>
+          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Dias desde</th>
+        </tr>
+      </thead>
+      <tbody id="rankingTbody"></tbody>
+    </table>
+  </div>
+</div>
+
 
 </main>
 
@@ -876,11 +915,76 @@ async function carregarStatsMensal() {
   if (anoEl) anoEl.value = new Date().getFullYear();
 })();
 
+  function formatarDataBR(iso) {
+  if (!iso) return "Nunca";
+  // iso: YYYY-MM-DD
+  const [y, m, d] = String(iso).split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+async function carregarRanking() {
+  try {
+    const perfil = localStorage.getItem("perfil") || "user";
+    const liderEl = document.getElementById("rankingLider");
+
+    const qs = new URLSearchParams();
+    if (perfil === "admin" && liderEl && liderEl.value.trim()) {
+      qs.set("lider", liderEl.value.trim());
+    }
+
+    const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
+      method: "GET",
+      headers: authHeaders()
+    });
+
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch {}
+
+    if (!res.ok) {
+      setStatus(`Erro ao carregar ranking: ${text}`, "error");
+      return;
+    }
+
+    const rows = data.results || [];
+    const tbody = document.getElementById("rankingTbody");
+    tbody.innerHTML = "";
+
+    rows.forEach((r, idx) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${idx + 1}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.colaborador ?? ""}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.base ?? ""}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.polo ?? ""}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${formatarDataBR(r.ultima_auditoria)}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.dias_desde ?? "-"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    setStatus(`Ranking carregado: ${rows.length} colaboradores`, "success");
+  } catch (e) {
+    console.error(e);
+    setStatus("Erro ao carregar ranking.", "error");
+  }
+}
+
+// mostra campo líder no ranking só para admin
+(function initRankingUI(){
+  const perfil = localStorage.getItem("perfil") || "user";
+  const box = document.getElementById("boxRankingLider");
+  if (box && perfil === "admin") box.style.display = "block";
+})();
+
 /* ===============================
    INIT
 ================================ */
 carregarStatsMensal();  
 carregarInspecoes();
+  carregarRanking();
+
 </script>
 
 </body>
