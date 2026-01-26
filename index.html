@@ -61,7 +61,7 @@
       flex-wrap: wrap;
     }
 
-    input[type="file"], input[type="text"], input[type="date"] {
+    input[type="file"], input[type="text"], input[type="date"], input[type="number"] {
       padding: 8px 10px;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -200,97 +200,123 @@
       color: #777;
       margin-top: 6px;
     }
-  .chart-wrap { margin-top: 14px; overflow-x: auto; }
-  .chart {
-    display: grid;
-    grid-template-columns: 54px repeat(12, 1fr);
-    gap: 10px;
-    min-width: 680px;
-    align-items: end;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: #fff;
-  }
 
-  .chart .y-label {
-    font-size: 12px;
-    color: #666;
-    align-self: center;
-  }
+    /* Chart */
+    .chart-wrap { margin-top: 14px; overflow-x: auto; }
+    .chart {
+      display: grid;
+      grid-template-columns: 54px repeat(12, 1fr);
+      gap: 10px;
+      min-width: 680px;
+      align-items: end;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+    }
 
-  .chart-col {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-    justify-content: end;
-    padding: 6px 0;
-  }
+    .chart .y-label {
+      font-size: 12px;
+      color: #666;
+      align-self: center;
+    }
 
-  .bars {
-    width: 100%;
-    height: 160px;
-    display: flex;
-    gap: 6px;
-    align-items: flex-end;
-    justify-content: center;
-  }
+    .chart-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      justify-content: end;
+      padding: 6px 0;
+    }
 
-  .bar {
-    width: 18px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    position: relative;
-    cursor: default;
-  }
+    .bars {
+      width: 100%;
+      height: 160px;
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      justify-content: center;
+    }
 
-  .bar.inspecoes { background: rgba(0,151,206,.25); border-color: rgba(0,151,206,.35); }
-  .bar.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
+    .bar {
+      width: 18px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      position: relative;
+      cursor: default;
+    }
 
-  .bar:hover::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: calc(100% + 8px);   /* ✅ embaixo */
-  left: 50%;
-  transform: translateX(-50%);
-  background: #111;
-  color: #fff;
-  font-size: 12px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  white-space: nowrap;
-  z-index: 9999;          /* ✅ mais alto */
-}
+    .bar.inspecoes { background: rgba(0,151,206,.25); border-color: rgba(0,151,206,.35); }
+    .bar.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
 
-  .month {
-    font-size: 12px;
-    color: #555;
-  }
+    .bar:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: #fff;
+      font-size: 12px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      white-space: nowrap;
+      z-index: 9999;
+    }
 
-  .legend {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 10px;
-    font-size: 13px;
-    color: #555;
-  }
+    .month {
+      font-size: 12px;
+      color: #555;
+    }
 
-  .dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 4px;
-    display: inline-block;
-    border: 1px solid var(--border);
-    margin-right: 6px;
-    vertical-align: middle;
-  }
-  .dot.inspecoes { background: rgba(0,151,206,.25); border-color: rgba(0,151,206,.35); }
-  .dot.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
-</style>
+    .legend {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #555;
+    }
 
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      display: inline-block;
+      border: 1px solid var(--border);
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot.inspecoes { background: rgba(0,151,206,.25); border-color: rgba(0,151,206,.35); }
+    .dot.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
+
+    /* ✅ Link vermelho "VER MEDIDA" */
+    .medida-link{
+      margin-left: 10px;
+      color: #b3261e;
+      font-weight: 700;
+      font-size: 12px;
+      text-decoration: none;
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .medida-link:hover{ text-decoration: underline; }
+
+    /* ✅ Modal VER MEDIDAS */
+    #modalVerMedidas{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:9999;
+    }
+  </style>
 </head>
 
 <body>
@@ -373,7 +399,7 @@
     </div>
   </div>
 
-  <!-- ✅ Modal -->
+  <!-- ✅ Modal adicionar medida -->
   <div id="modalMedida">
     <div class="modal-box">
       <div class="modal-head">
@@ -408,118 +434,126 @@
     </div>
   </div>
 
- <!-- 📊 Estatísticas -->
-<div class="card" style="margin-top:16px; margin-bottom:16px; padding:16px;">
-  <!-- Cabeçalho -->
-  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
-    <div>
-      <h3 style="margin:0; color:var(--primary);">Estatísticas</h3>
-      <div style="font-size:13px; color:#666; margin-top:4px;">
-        Inspeções por mês + total do ano e soma de não conformes
+  <!-- ✅ Modal VER MEDIDAS -->
+  <div id="modalVerMedidas">
+    <div class="modal-box" style="width:min(720px, 100%);">
+      <div class="modal-head">
+        <h3 id="vmTitulo">Medidas</h3>
+        <button type="button" class="secondary" onclick="fecharModalVerMedidas()">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
-    </div>
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div id="vmBody" style="margin-top:12px; display:grid; gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- 📊 Estatísticas -->
+  <div class="card" style="margin-top:16px; margin-bottom:16px; padding:16px;">
+    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
       <div>
-        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Ano</div>
-        <input id="statsAno" type="number"
-          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:110px;">
+        <h3 style="margin:0; color:var(--primary);">Estatísticas</h3>
+        <div style="font-size:13px; color:#666; margin-top:4px;">
+          Inspeções por mês + total do ano e soma de não conformes
+        </div>
       </div>
 
-      <!-- só admin vê -->
-      <div id="boxStatsLider" style="display:none;">
-        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
-        <input id="statsLider" type="text" placeholder="Digite o líder"
-          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div>
+          <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Ano</div>
+          <input id="statsAno" type="number"
+            style="padding:8px; border:1px solid var(--border); border-radius:8px; width:110px;">
+        </div>
+
+        <div id="boxStatsLider" style="display:none;">
+          <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
+          <input id="statsLider" type="text" placeholder="Digite o líder"
+            style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+        </div>
+
+        <button type="button" onclick="carregarStatsMensal()">
+          <i class="bi bi-graph-up"></i> Atualizar
+        </button>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart" id="statsChart">
+        <div class="y-label">Mês</div>
       </div>
 
-      <button type="button" onclick="carregarStatsMensal()">
-        <i class="bi bi-graph-up"></i> Atualizar
-      </button>
+      <div class="legend">
+        <span><span class="dot inspecoes"></span>Inspeções</span>
+        <span><span class="dot naoConforme"></span>Não conformes</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:14px;">
+      <div style="padding:10px 12px; background:#f7fbfd; border:1px solid var(--border); border-radius:10px;">
+        <div style="font-size:12px; color:#666;">Total do ano</div>
+        <div id="kpiTotalAno" style="font-size:22px; font-weight:700;">0</div>
+      </div>
+
+      <div style="padding:10px 12px; background:#f7fbfd; border:1px solid var(--border); border-radius:10px;">
+        <div style="font-size:12px; color:#666;">Soma não conformes</div>
+        <div id="kpiNaoConformes" style="font-size:22px; font-weight:700;">0</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; overflow:auto;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead style="background:#eef7fb; color:#333;">
+          <tr>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Mês</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Não conformes</th>
+          </tr>
+        </thead>
+        <tbody id="statsTbody"></tbody>
+      </table>
     </div>
   </div>
 
-  <!-- Gráfico (fora do cabeçalho, pra não quebrar o layout) -->
-  <div class="chart-wrap">
-    <div class="chart" id="statsChart">
-      <div class="y-label">Mês</div>
-      <!-- colunas entram via JS -->
-    </div>
-
-    <div class="legend">
-      <span><span class="dot inspecoes"></span>Inspeções</span>
-      <span><span class="dot naoConforme"></span>Não conformes</span>
-    </div>
-  </div>
-
-  <!-- KPIs -->
-  <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:14px;">
-    <div style="padding:10px 12px; background:#f7fbfd; border:1px solid var(--border); border-radius:10px;">
-      <div style="font-size:12px; color:#666;">Total do ano</div>
-      <div id="kpiTotalAno" style="font-size:22px; font-weight:700;">0</div>
-    </div>
-
-    <div style="padding:10px 12px; background:#f7fbfd; border:1px solid var(--border); border-radius:10px;">
-      <div style="font-size:12px; color:#666;">Soma não conformes</div>
-      <div id="kpiNaoConformes" style="font-size:22px; font-weight:700;">0</div>
-    </div>
-  </div>
-
-  <!-- Tabela mensal -->
-  <div style="margin-top:14px; overflow:auto;">
-    <table style="width:100%; border-collapse:collapse;">
-      <thead style="background:#eef7fb; color:#333;">
-        <tr>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Mês</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Não conformes</th>
-        </tr>
-      </thead>
-      <tbody id="statsTbody"></tbody>
-    </table>
-  </div>
-</div>
-
+  <!-- Ranking -->
   <div class="card" style="margin-top:16px; padding:16px;">
-  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
-    <div>
-      <h3 style="margin:0; color:var(--primary);">Ranking - Próximos a auditar</h3>
-      <div style="font-size:13px; color:#666; margin-top:4px;">
-        Ordenado do mais tempo sem auditoria (ou nunca auditado) → primeiro
+    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <h3 style="margin:0; color:var(--primary);">Ranking - Próximos a auditar</h3>
+        <div style="font-size:13px; color:#666; margin-top:4px;">
+          Ordenado do mais tempo sem auditoria (ou nunca auditado) → primeiro
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div id="boxRankingLider" style="display:none;">
+          <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
+          <input id="rankingLider" type="text" placeholder="Digite o líder"
+            style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+        </div>
+
+        <button type="button" onclick="carregarRanking()">
+          <i class="bi bi-list-ol"></i> Atualizar ranking
+        </button>
       </div>
     </div>
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-      <div id="boxRankingLider" style="display:none;">
-        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
-        <input id="rankingLider" type="text" placeholder="Digite o líder"
-          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
-      </div>
-
-      <button type="button" onclick="carregarRanking()">
-        <i class="bi bi-list-ol"></i> Atualizar ranking
-      </button>
+    <div style="margin-top:12px; overflow:auto;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead style="background:#eef7fb; color:#333;">
+          <tr>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Rank</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Colaborador</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Base</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Polo</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Última auditoria</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções por colaborador em 2026</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Qtd dias sem auditoria</th>
+          </tr>
+        </thead>
+        <tbody id="rankingTbody"></tbody>
+      </table>
     </div>
   </div>
-
-  <div style="margin-top:12px; overflow:auto;">
-    <table style="width:100%; border-collapse:collapse;">
-      <thead style="background:#eef7fb; color:#333;">
-        <tr>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Rank</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Colaborador</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Base</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Polo</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Última auditoria</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções por colaborador em 2026</th>
-          <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Qtd dias sem auditoria</th>
-        </tr>
-      </thead>
-      <tbody id="rankingTbody"></tbody>
-    </table>
-  </div>
-</div>
-
 
 </main>
 
@@ -530,6 +564,9 @@
 const API = "https://inspecoes.pedro-fillype.workers.dev";
 const statusEl = document.getElementById("status");
 let dadosGlobais = [];
+
+// cache de medidas -> numero => []
+window.medidasPorNumero = {};
 
 if (localStorage.getItem("logado") !== "true") {
   window.location.href = "https://coec-epb.github.io/login_inspecoes/";
@@ -574,6 +611,13 @@ async function apiFetch(path, options = {}) {
   return res;
 }
 
+function authHeaders() {
+  const token = localStorage.getItem("token") || "";
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  };
+}
 
 function excelDateToISO(value) {
   if (typeof value === "number") {
@@ -583,17 +627,128 @@ function excelDateToISO(value) {
   return value || null;
 }
 
+function formatarDataBR(iso) {
+  if (!iso) return "Sem auditoria em 2025/2026";
+  const [y, m, d] = String(iso).split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+function formatarDataBR2(iso) {
+  if (!iso) return "-";
+  const [y, m, d] = String(iso).split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
 /* ===============================
-   TABELA
+   MEDIDAS: CACHE + MODAL VER
+================================ */
+async function carregarMedidasCache() {
+  const res = await apiFetch(`/medidas`);
+  if (res.status === 401) return logout();
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+
+  const rows = JSON.parse(text) || [];
+
+  const map = {};
+  for (const r of rows) {
+    const numero = String(r.numero ?? "").trim();
+    if (!numero) continue;
+    if (!map[numero]) map[numero] = [];
+    map[numero].push(r);
+  }
+
+  Object.keys(map).forEach((k) => {
+    map[k].sort((a,b) => String(b.data||"").localeCompare(String(a.data||"")));
+  });
+
+  window.medidasPorNumero = map;
+}
+
+function abrirModalVerMedidas(numero) {
+  const modal = document.getElementById("modalVerMedidas");
+  const titulo = document.getElementById("vmTitulo");
+  const body = document.getElementById("vmBody");
+
+  const medidas = (window.medidasPorNumero && window.medidasPorNumero[numero])
+    ? window.medidasPorNumero[numero]
+    : [];
+
+  titulo.textContent = `Medidas da inspeção: ${numero}`;
+  body.innerHTML = "";
+
+  if (!medidas.length) {
+    body.innerHTML = `<div style="color:#666;">Nenhuma medida encontrada.</div>`;
+  } else {
+    medidas.forEach((m) => {
+      const card = document.createElement("div");
+      card.style.border = "1px solid var(--border)";
+      card.style.borderRadius = "12px";
+      card.style.padding = "12px";
+      card.style.background = "#fff";
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <div style="font-weight:700; color:#b3261e;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Medida
+          </div>
+          <div style="color:#555; font-size:13px;">
+            <b>Data:</b> ${formatarDataBR2(m.data)}
+          </div>
+        </div>
+        <div style="margin-top:8px; white-space:pre-wrap; color:#333;">${m.descricao ?? ""}</div>
+        <div style="margin-top:8px; font-size:12px; color:#777;">
+          <b>Criado por:</b> ${m.criado_por ?? "-"}
+        </div>
+      `;
+      body.appendChild(card);
+    });
+  }
+
+  modal.style.display = "flex";
+}
+
+function fecharModalVerMedidas() {
+  document.getElementById("modalVerMedidas").style.display = "none";
+}
+
+// clique no link vermelho (delegação)
+document.addEventListener("click", (e) => {
+  const a = e.target.closest(".medida-link");
+  if (!a) return;
+  e.preventDefault();
+  const numero = a.getAttribute("data-numero");
+  if (numero) abrirModalVerMedidas(numero);
+});
+
+/* ===============================
+   TABELA INSPEÇÕES
 ================================ */
 function renderTabela(dados) {
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
   dados.forEach(item => {
+    const numero = String(item.numero ?? "").trim();
+    const medidas = (window.medidasPorNumero && window.medidasPorNumero[numero]) ? window.medidasPorNumero[numero] : [];
+    const temMedida = medidas.length > 0;
+
+    const badgeMedida = temMedida
+      ? `<a href="#" class="medida-link" data-numero="${numero}">
+           <i class="bi bi-exclamation-triangle-fill"></i>
+           VER MEDIDA${medidas.length > 1 ? `S (${medidas.length})` : ""}
+         </a>`
+      : "";
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${item.numero ?? ""}</td>
+      <td>
+        ${numero}
+        ${badgeMedida}
+      </td>
       <td>${item.numero_plano ?? ""}</td>
       <td>${item.localidade ?? ""}</td>
       <td>${item.area ?? ""}</td>
@@ -629,14 +784,14 @@ function renderTabela(dados) {
 }
 
 /* ===============================
-   CARREGAR INSPEÇÕES (do Worker)
+   CARREGAR INSPEÇÕES
 ================================ */
 async function carregarInspecoes() {
   setStatus("Carregando inspeções...");
   try {
     const res = await apiFetch(`/inspecoes`);
+    const text = await res.text();
 
-    const text = await res.text(); // <-- pega o corpo
     console.log("STATUS /inspecoes:", res.status);
     console.log("BODY /inspecoes:", text);
 
@@ -651,9 +806,8 @@ async function carregarInspecoes() {
   }
 }
 
-
 /* ===============================
-   FILTROS (client-side)
+   FILTROS
 ================================ */
 function aplicarFiltros() {
   const lider = document.getElementById("filtroLider").value.toLowerCase().trim();
@@ -757,7 +911,10 @@ if (excelInput && perfil === "admin") {
     }
 
     setStatus("Importação concluída ✔", "success");
-    carregarInspecoes();
+
+    // recarrega tudo
+    await carregarMedidasCache();
+    await carregarInspecoes();
   });
 }
 
@@ -803,16 +960,17 @@ async function salvarMedida() {
   fecharModalMedida();
   document.getElementById("mdNumero").value = "";
   document.getElementById("mdDescricao").value = "";
+
+  // ✅ atualiza o cache e redesenha a tabela (pra aparecer o link vermelho)
+  await carregarMedidasCache();
+  renderTabela(dadosGlobais);
+
   setStatus("Medida registrada com sucesso ✔", "success");
 }
-  function authHeaders() {
-  const token = localStorage.getItem("token") || "";
-  return {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`
-  };
-}
 
+/* ===============================
+   STATS MENSAL
+================================ */
 function nomeMes(mm) {
   const map = {
     "01":"Jan","02":"Fev","03":"Mar","04":"Abr","05":"Mai","06":"Jun",
@@ -865,7 +1023,6 @@ async function carregarStatsMensal() {
       tbody.appendChild(tr);
     });
 
-    // ✅ gráfico aqui dentro
     renderChart(data.por_mes || []);
 
     setStatus("Estatísticas atualizadas ✔", "success");
@@ -873,11 +1030,11 @@ async function carregarStatsMensal() {
     setStatus("Erro ao carregar estatísticas.", "error");
   }
 }
-  function renderChart(porMes) {
+
+function renderChart(porMes) {
   const chart = document.getElementById("statsChart");
   if (!chart) return;
 
-  // limpa mantendo o label inicial
   chart.innerHTML = `<div class="y-label">Mês</div>`;
 
   const maxInspecoes = Math.max(1, ...porMes.map(x => Number(x.total || 0)));
@@ -906,24 +1063,9 @@ async function carregarStatsMensal() {
   });
 }
 
-// Mostra o campo líder só para admin
-(function initStatsUI(){
-  const perfil = localStorage.getItem("perfil") || "user";
-  const box = document.getElementById("boxStatsLider");
-  if (box && perfil === "admin") box.style.display = "block";
-
-  const anoEl = document.getElementById("statsAno");
-  if (anoEl) anoEl.value = new Date().getFullYear();
-})();
-
-  function formatarDataBR(iso) {
-  if (!iso) return "Sem auditoria em 2025/2026";
-  // iso: YYYY-MM-DD
-  const [y, m, d] = String(iso).split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}/${m}/${y}`;
-}
-
+/* ===============================
+   RANKING
+================================ */
 async function carregarRanking() {
   try {
     const perfil = localStorage.getItem("perfil") || "user";
@@ -973,7 +1115,18 @@ async function carregarRanking() {
   }
 }
 
-// mostra campo líder no ranking só para admin
+/* ===============================
+   UI INIT (admin fields)
+================================ */
+(function initStatsUI(){
+  const perfil = localStorage.getItem("perfil") || "user";
+  const box = document.getElementById("boxStatsLider");
+  if (box && perfil === "admin") box.style.display = "block";
+
+  const anoEl = document.getElementById("statsAno");
+  if (anoEl) anoEl.value = new Date().getFullYear();
+})();
+
 (function initRankingUI(){
   const perfil = localStorage.getItem("perfil") || "user";
   const box = document.getElementById("boxRankingLider");
@@ -983,10 +1136,15 @@ async function carregarRanking() {
 /* ===============================
    INIT
 ================================ */
-carregarStatsMensal();  
-carregarInspecoes();
-  carregarRanking();
+(async function init(){
+  carregarStatsMensal();
 
+  // ✅ importante: carrega medidas antes (pra renderizar o link vermelho)
+  await carregarMedidasCache();
+  await carregarInspecoes();
+
+  carregarRanking();
+})();
 </script>
 
 </body>
