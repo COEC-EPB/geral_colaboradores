@@ -289,6 +289,19 @@
   }
   .dot.inspecoes { background: rgba(0,151,206,.25); border-color: rgba(0,151,206,.35); }
   .dot.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
+    .medida-link{
+  margin-left: 10px;
+  color: #b3261e;
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: none;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.medida-link:hover{
+  text-decoration: underline;
+}
 </style>
 
 </head>
@@ -382,6 +395,19 @@
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
+      <!-- ✅ Modal VER MEDIDAS -->
+<div id="modalVerMedidas" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
+  <div class="modal-box" style="width:min(720px, 100%);">
+    <div class="modal-head">
+      <h3 id="vmTitulo">Medidas</h3>
+      <button type="button" class="secondary" onclick="fecharModalVerMedidas()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div id="vmBody" style="margin-top:12px; display:grid; gap:10px;"></div>
+  </div>
+</div>
 
       <div style="display:grid; gap:12px; margin-top:12px;">
         <div>
@@ -591,9 +617,23 @@ function renderTabela(dados) {
   tbody.innerHTML = "";
 
   dados.forEach(item => {
+    const numero = String(item.numero ?? "").trim();
+    const medidas = (window.medidasPorNumero && window.medidasPorNumero[numero]) ? window.medidasPorNumero[numero] : [];
+    const temMedida = medidas.length > 0;
+
+    const badgeMedida = temMedida
+      ? `<a href="#" class="medida-link" data-numero="${numero}">
+           <i class="bi bi-exclamation-triangle-fill"></i>
+           VER MEDIDA${medidas.length > 1 ? `S (${medidas.length})` : ""}
+         </a>`
+      : "";
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${item.numero ?? ""}</td>
+      <td>
+        ${numero}
+        ${badgeMedida}
+      </td>
       <td>${item.numero_plano ?? ""}</td>
       <td>${item.localidade ?? ""}</td>
       <td>${item.area ?? ""}</td>
@@ -980,13 +1020,116 @@ async function carregarRanking() {
   if (box && perfil === "admin") box.style.display = "block";
 })();
 
+  window.medidasPorNumero = {};
+
+function formatarDataBR2(iso) {
+  if (!iso) return "-";
+  const [y,m,d] = String(iso).split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+async function carregarMedidasCache() {
+  // puxa todas as medidas que o usuário tem acesso (admin vê tudo; user vê do líder dele)
+  const res = await apiFetch(`/medidas`);
+  if (res.status === 401) return logout();
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+
+  const rows = JSON.parse(text) || [];
+
+  const map = {};
+  for (const r of rows) {
+    const numero = String(r.numero ?? "").trim();
+    if (!numero) continue;
+    if (!map[numero]) map[numero] = [];
+    map[numero].push(r);
+  }
+
+  // ordena as medidas por data desc
+  Object.keys(map).forEach((k) => {
+    map[k].sort((a,b) => String(b.data||"").localeCompare(String(a.data||"")));
+  });
+
+  window.medidasPorNumero = map;
+}
+
+function abrirModalVerMedidas(numero) {
+  const modal = document.getElementById("modalVerMedidas");
+  const titulo = document.getElementById("vmTitulo");
+  const body = document.getElementById("vmBody");
+
+  const medidas = (window.medidasPorNumero && window.medidasPorNumero[numero]) ? window.medidasPorNumero[numero] : [];
+
+  titulo.textContent = `Medidas da inspeção: ${numero}`;
+  body.innerHTML = "";
+
+  if (!medidas.length) {
+    body.innerHTML = `<div style="color:#666;">Nenhuma medida encontrada.</div>`;
+  } else {
+    medidas.forEach((m) => {
+      const card = document.createElement("div");
+      card.style.border = "1px solid var(--border)";
+      card.style.borderRadius = "12px";
+      card.style.padding = "12px";
+      card.style.background = "#fff";
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <div style="font-weight:700; color:#b3261e;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Medida
+          </div>
+          <div style="color:#555; font-size:13px;">
+            <b>Data:</b> ${formatarDataBR2(m.data)}
+          </div>
+        </div>
+        <div style="margin-top:8px; white-space:pre-wrap; color:#333;">${m.descricao ?? ""}</div>
+        <div style="margin-top:8px; font-size:12px; color:#777;">
+          <b>Criado por:</b> ${m.criado_por ?? "-"}
+        </div>
+      `;
+      body.appendChild(card);
+    });
+  }
+
+  modal.style.display = "flex";
+}
+
+function fecharModalVerMedidas() {
+  document.getElementById("modalVerMedidas").style.display = "none";
+}
+
+// clique no link vermelho (delegação)
+document.addEventListener("click", (e) => {
+  const a = e.target.closest(".medida-link");
+  if (!a) return;
+  e.preventDefault();
+  const numero = a.getAttribute("data-numero");
+  if (numero) abrirModalVerMedidas(numero);
+});
+
+  fecharModalMedida();
+document.getElementById("mdNumero").value = "";
+document.getElementById("mdDescricao").value = "";
+
+// ✅ atualiza o cache e redesenha a tabela (pra aparecer o link vermelho)
+await carregarMedidasCache();
+renderTabela(dadosGlobais);
+
+setStatus("Medida registrada com sucesso ✔", "success");
+
 /* ===============================
    INIT
 ================================ */
-carregarStatsMensal();  
-carregarInspecoes();
-  carregarRanking();
+(async function init(){
+  carregarStatsMensal();
 
+  await carregarMedidasCache(); // ✅ primeiro
+  await carregarInspecoes();    // ✅ depois (já renderiza com link)
+  carregarRanking();
+})();
+init()
 </script>
 
 </body>
