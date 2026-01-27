@@ -1248,9 +1248,8 @@ if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula))
     return;
   }
 
-  await carregarMedidasCache();
-  // fecha e reabre (ou só atualizar o body)
   setStatus("Medida excluída ✔", "success");
+  location.reload(); // ✅ refresh da página
 }
 
 async function editarMedida(m) {
@@ -1275,6 +1274,7 @@ async function editarMedida(m) {
   await carregarMedidasCache();
   abrirModalVerMedidas(String(m.numero)); // reabre atualizado
   setStatus("Medida atualizada ✔", "success");
+  location.reload(); // ✅ refresh da página
 }
 
 async function salvarMedida() {
