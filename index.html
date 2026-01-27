@@ -738,6 +738,19 @@ function abrirModalVerMedidas(numero) {
         </div>
       `;
       body.appendChild(card);
+
+      const btns = m.can_edit ? `
+  <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+    <button type="button" class="secondary" onclick="editarMedida(${m.id}, '${m.data}', ${JSON.stringify(m.descricao)})">
+      <i class="bi bi-pencil"></i> Editar
+    </button>
+    <button type="button" class="secondary" style="border:1px solid rgba(179,38,30,.35); color:#b3261e;"
+      onclick="excluirMedida(${m.id})">
+      <i class="bi bi-trash"></i> Excluir
+    </button>
+  </div>
+` : "";
+
     });
   }
 
@@ -1200,6 +1213,88 @@ if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula))
     opt.textContent = l;
     sel.appendChild(opt);
   });
+}
+
+  async function excluirMedida(id) {
+  if (!confirm("Tem certeza que deseja excluir esta medida?")) return;
+
+  const resp = await apiFetch(`/medidas/${id}`, { method: "DELETE" });
+  const text = await resp.text();
+
+  if (!resp.ok) {
+    setStatus(`Erro ao excluir medida: ${text}`, "error");
+    return;
+  }
+
+  await carregarMedidasCache();
+  renderTabela(dadosGlobais);
+  setStatus("Medida excluída ✔", "success");
+}
+
+function editarMedida(id, dataAtual, descAtual) {
+  // reutiliza o modal de adicionar medida, mas em modo edição
+  abrirModalMedida();
+  document.getElementById("mdNumero").value = "";           // opcional: trava número na edição
+  document.getElementById("mdNumero").disabled = true;      // evita trocar de inspeção
+  document.getElementById("mdData").value = dataAtual || "";
+  document.getElementById("mdDescricao").value = descAtual || "";
+
+  // guarda id em memória
+  window._editMedidaId = id;
+
+  // troca o botão salvar para "Atualizar"
+  const btn = document.querySelector("#modalMedida button[onclick='salvarMedida()']");
+  if (btn) btn.innerHTML = `<i class="bi bi-check2-circle"></i> Atualizar medida`;
+}
+
+async function salvarMedida() {
+  const idEdit = window._editMedidaId || null;
+
+  const numeroEl = document.getElementById("mdNumero");
+  const numero = (numeroEl.value || "").trim();
+  const data = document.getElementById("mdData").value;
+  const descricao = document.getElementById("mdDescricao").value.trim();
+
+  if (!data) return setStatus("Informe a data da medida.", "error");
+  if (!descricao) return setStatus("Descreva qual foi a medida.", "error");
+
+  setStatus(idEdit ? "Atualizando medida..." : "Salvando medida...", "success");
+
+  let resp;
+
+  if (idEdit) {
+    resp = await apiFetch(`/medidas/${idEdit}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, descricao })
+    });
+  } else {
+    if (!numero) return setStatus("Informe o Número da inspeção.", "error");
+    resp = await apiFetch(`/medidas`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numero, data, descricao })
+    });
+  }
+
+  const text = await resp.text();
+  if (!resp.ok) {
+    setStatus(`Erro: ${text}`, "error");
+    return;
+  }
+
+  // limpa modo edição
+  window._editMedidaId = null;
+  document.getElementById("mdNumero").disabled = false;
+
+  fecharModalMedida();
+  document.getElementById("mdNumero").value = "";
+  document.getElementById("mdDescricao").value = "";
+
+  await carregarMedidasCache();
+  renderTabela(dadosGlobais);
+
+  setStatus(idEdit ? "Medida atualizada ✔" : "Medida registrada ✔", "success");
 }
 
 /* ===============================
