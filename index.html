@@ -545,7 +545,6 @@
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Colaborador</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Base</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Polo</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Líder</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Última auditoria</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções por colaborador em 2026</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Qtd dias sem auditoria</th>
@@ -1096,29 +1095,18 @@ async function carregarRanking() {
     tbody.innerHTML = "";
 
     rows.forEach((r, idx) => {
-  const tr = document.createElement("tr");
-
-  const rank = idx + 1;
-  const colaborador = r.colaborador ?? "";
-  const base = r.base ?? "";
-  const polo = r.polo ?? "";
-  const lider = r.lider ?? "";
-  const ultima = formatarDataBR(r.ultima_auditoria);
-  const qtdAno = r.qtd_ano ?? 0;
-  const dias = r.dias_desde ?? "-";
-
-  tr.innerHTML =
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + rank + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + colaborador + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + base + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + polo + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + lider + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + ultima + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + qtdAno + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + dias + "</td>";
-
-  tbody.appendChild(tr);
-});
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${idx + 1}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.colaborador ?? ""}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.base ?? ""}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.polo ?? ""}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${formatarDataBR(r.ultima_auditoria)}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.qtd_ano ?? 0}</td>
+        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.dias_desde ?? "-"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
 
     setStatus(`Ranking carregado: ${rows.length} colaboradores`, "success");
   } catch (e) {
@@ -1139,15 +1127,10 @@ async function carregarRanking() {
   if (anoEl) anoEl.value = new Date().getFullYear();
 })();
 
-((function initRankingUI(){
+(function initRankingUI(){
   const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = String(localStorage.getItem("matricula") || "").trim();
-
-  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-  const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
-
   const box = document.getElementById("boxRankingLider");
-  if (box && podeGeral) box.style.display = "block";
+  if (box && perfil === "admin") box.style.display = "block";
 })();
 
 /* ===============================
