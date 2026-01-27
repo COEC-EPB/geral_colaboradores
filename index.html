@@ -316,6 +316,26 @@
       padding:16px;
       z-index:9999;
     }
+      .alerta-meses{
+    display:none;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(179,38,30,.30);
+    background: rgba(179,38,30,.08);
+    color:#b3261e;
+    font-weight:800;
+    font-size:14px;
+    max-width: 520px;
+  }
+
+  .piscar{
+    animation: piscar 0.85s linear infinite;
+  }
+
+  @keyframes piscar{
+    0%, 100% { opacity: 1; }
+    50% { opacity: .25; }
+  }
   </style>
 </head>
 
@@ -341,7 +361,7 @@
 
     <button onclick="aplicarFiltros()"><i class="bi bi-funnel"></i> Filtrar</button>
     <button class="secondary" onclick="limparFiltros()"><i class="bi bi-x-circle"></i> Limpar</button>
-
+    <div id="alertMeses" class="alerta-meses"></div>
     <div class="status" id="status"></div>
   </div>
 
@@ -1326,6 +1346,57 @@ async function salvarMedida() {
 
   setStatus(idEdit ? "Medida atualizada ✔" : "Medida registrada ✔", "success");
 }
+  function calcularMesesParaCobrirEquipe(qtdColab) {
+  const metaMes = Math.ceil((Number(qtdColab) || 0) / 2); // ceil(qtd/2)
+  if (metaMes <= 0) return null;
+  return Math.ceil(110 / metaMes); // ceil(110 / metaMes)
+}
+
+function mostrarAlertaMeses(meses, qtdColab) {
+  const el = document.getElementById("alertMeses");
+  if (!el) return;
+
+  el.textContent = `⚠️ Prazo estimado: ${meses} mês(es) para inspecionar toda a equipe (colaboradores: ${qtdColab}).`;
+  el.style.display = "block";
+  el.classList.add("piscar");
+
+  // some depois de alguns segundos
+  setTimeout(() => {
+    el.classList.remove("piscar");
+    el.style.display = "none";
+  }, 8000);
+}
+
+// Pega a quantidade de colaboradores do líder (usando o ranking como base)
+async function alertarPrazoDoLider() {
+  try {
+    // Aqui: chama o ranking SEM lider param.
+    // - user comum: o worker já filtra pelo líder do token
+    // - admin/liberados: vai vir geral (aí você pode filtrar pelo select se quiser)
+    const qs = new URLSearchParams();
+    const liderEl = document.getElementById("rankingLider");
+
+    // se tiver select de líder preenchido, usa ele (só pra admin/liberados)
+    if (liderEl && liderEl.value) qs.set("lider", liderEl.value);
+
+    const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
+      headers: authHeaders()
+    });
+
+    const text = await res.text();
+    if (!res.ok) return;
+
+    const data = JSON.parse(text);
+    const qtdColab = (data.results || []).length;
+
+    const meses = calcularMesesParaCobrirEquipe(qtdColab);
+    if (meses == null) return;
+
+    mostrarAlertaMeses(meses, qtdColab);
+  } catch (e) {
+    // silencioso pra não atrapalhar
+  }
+}
 
 /* ===============================
    UI INIT (admin fields)
@@ -1362,7 +1433,15 @@ async function salvarMedida() {
   console.log("perfil:", localStorage.getItem("perfil"));
   console.log("matricula detectada:", getMatriculaAtual());
   await carregarLideresRanking(); // 👈 AQUI
+  await alertarPrazoDoLider();
 
+  const rankingLiderEl = document.getElementById("rankingLider");
+if (rankingLiderEl) {
+  rankingLiderEl.addEventListener("change", async () => {
+    await carregarRanking();
+    await alertarPrazoDoLider();
+  });
+}
   carregarRanking();
 })();
 </script>
