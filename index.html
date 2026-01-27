@@ -61,14 +61,14 @@
       flex-wrap: wrap;
     }
 
-    input[type="file"], input[type="text"], input[type="date"], input[type="number"] {
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #fff;
-      font-size: 14px;
-      outline: none;
-    }
+    input[type="file"], input[type="text"], input[type="date"], input[type="number"], select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+}
 
     button {
       padding: 9px 14px;
@@ -561,6 +561,36 @@
 </main>
 
 <script>
+
+  function getMatriculaAtual() {
+  // tenta vários nomes comuns no localStorage
+  const keys = ["matricula", "matriculaLogin", "user", "usuario", "sub", "id"];
+  for (const k of keys) {
+    const v = String(localStorage.getItem(k) || "").trim();
+    if (v) return v;
+  }
+
+  // tenta pegar do JWT (payload.sub)
+  const token = String(localStorage.getItem("token") || "").trim();
+  if (token && token.split(".").length === 3) {
+    try {
+      const payloadB64 = token.split(".")[1]
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+      const payloadJson = decodeURIComponent(
+        atob(payloadB64)
+          .split("")
+          .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      const payload = JSON.parse(payloadJson);
+      if (payload && payload.sub) return String(payload.sub).trim();
+    } catch (e) {}
+  }
+
+  return "";
+}
+
 /* ===============================
    CONFIG / SESSÃO
 ================================ */
@@ -1072,7 +1102,7 @@ function renderChart(porMes) {
 async function carregarRanking() {
     try {
     const perfil = localStorage.getItem("perfil") || "user";
-    const matricula = String(localStorage.getItem("matricula") || "").trim(); // ✅ AQUI
+    const matricula = getMatriculaAtual();
     const liderEl = document.getElementById("rankingLider");
 
     const qs = new URLSearchParams();
@@ -1135,7 +1165,7 @@ if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula))
 
   async function carregarLideresRanking() {
   const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = String(localStorage.getItem("matricula") || "").trim();
+  const matricula = getMatriculaAtual();
 
   const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
   const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
@@ -1186,7 +1216,7 @@ if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula))
 
 (function initRankingUI(){
   const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = String(localStorage.getItem("matricula") || "").trim();
+  const matricula = getMatriculaAtual();
 
   const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
   const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
@@ -1204,6 +1234,8 @@ if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula))
   // ✅ importante: carrega medidas antes (pra renderizar o link vermelho)
   await carregarMedidasCache();
   await carregarInspecoes();
+  console.log("perfil:", localStorage.getItem("perfil"));
+  console.log("matricula detectada:", getMatriculaAtual());
   await carregarLideresRanking(); // 👈 AQUI
 
   carregarRanking();
