@@ -1134,43 +1134,42 @@ if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula))
 }
 
   async function carregarLideresRanking() {
-  try {
-    const perfil = localStorage.getItem("perfil") || "user";
-    const matricula = String(localStorage.getItem("matricula") || "").trim();
+  const perfil = localStorage.getItem("perfil") || "user";
+  const matricula = String(localStorage.getItem("matricula") || "").trim();
 
-    const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-    const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
+  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
+  const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
 
-    if (!podeGeral) return; // user comum não vê
+  const box = document.getElementById("boxRankingLider");
+  const sel = document.getElementById("rankingLider");
+  if (!box || !sel) return;
 
-    const select = document.getElementById("rankingLider");
-    if (!select) return;
-
-    const res = await fetch(`${API}/lideres`, {
-      headers: authHeaders()
-    });
-
-    const text = await res.text();
-    if (!res.ok) {
-      console.error("Erro ao carregar líderes:", text);
-      return;
-    }
-
-    const rows = JSON.parse(text) || [];
-
-    // limpa mantendo "Todos"
-    select.innerHTML = `<option value="">Todos os líderes</option>`;
-
-    rows.forEach(r => {
-      const opt = document.createElement("option");
-      opt.value = r.lider;
-      opt.textContent = r.lider;
-      select.appendChild(opt);
-    });
-
-  } catch (e) {
-    console.error("Erro carregarLideresRanking", e);
+  // se não pode geral, nem mostra (porque ele já filtra pelo token)
+  if (!podeGeral) {
+    box.style.display = "none";
+    return;
   }
+
+  box.style.display = "block";
+
+  const res = await fetch(`${API}/lideres`, { headers: authHeaders() });
+  const text = await res.text();
+  if (!res.ok) {
+    console.error("Erro /lideres:", text);
+    setStatus(`Erro ao carregar líderes: ${text}`, "error");
+    return;
+  }
+
+  const data = JSON.parse(text);
+  const lideres = data.results || [];
+
+  sel.innerHTML = `<option value="">Selecione o líder...</option>`;
+  lideres.forEach((l) => {
+    const opt = document.createElement("option");
+    opt.value = l;
+    opt.textContent = l;
+    sel.appendChild(opt);
+  });
 }
 
 /* ===============================
