@@ -1352,24 +1352,22 @@ async function salvarMedida() {
   setStatus(idEdit ? "Medida atualizada ✔" : "Medida registrada ✔", "success");
 }
   function calcularMesesParaCobrirEquipe(qtdColab) {
-  const metaMes = Math.ceil((Number(qtdColab) || 0) / 2); // ceil(qtd/2)
+  const metaMes = Math.ceil((Number(qtdColab) || 0) / 2); // divide por 2
   if (metaMes <= 0) return null;
-  return Math.ceil(110 / metaMes); // ceil(110 / metaMes)
+
+  return Math.ceil(110 / metaMes); // regra que você definiu
 }
 
 function mostrarAlertaMeses(meses, qtdColab) {
   const el = document.getElementById("alertMeses");
   if (!el) return;
 
-  el.textContent = `⚠️ Prazo estimado: ${meses} mês(es) para inspecionar toda a equipe (colaboradores: ${qtdColab}).`;
-  el.style.display = "block";
-  el.classList.add("piscar");
+  el.textContent =
+    `⚠️ Prazo estimado: ${meses} mês(es) para inspecionar toda a equipe ` +
+    `(colaboradores: ${qtdColab}).`;
 
-  // some depois de alguns segundos
-  setTimeout(() => {
-    el.classList.remove("piscar");
-    el.style.display = "none";
-  }, 8000);
+  el.style.display = "block";
+  el.classList.add("piscar"); // fica piscando SEM sumir
 }
 
 // Pega a quantidade de colaboradores do líder (usando o ranking como base)
