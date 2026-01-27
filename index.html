@@ -715,44 +715,63 @@ function abrirModalVerMedidas(numero) {
 
   if (!medidas.length) {
     body.innerHTML = `<div style="color:#666;">Nenhuma medida encontrada.</div>`;
-  } else {
-    medidas.forEach((m) => {
-      const card = document.createElement("div");
-      card.style.border = "1px solid var(--border)";
-      card.style.borderRadius = "12px";
-      card.style.padding = "12px";
-      card.style.background = "#fff";
-
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-          <div style="font-weight:700; color:#b3261e;">
-            <i class="bi bi-exclamation-triangle-fill"></i> Medida
-          </div>
-          <div style="color:#555; font-size:13px;">
-            <b>Data:</b> ${formatarDataBR2(m.data)}
-          </div>
-        </div>
-        <div style="margin-top:8px; white-space:pre-wrap; color:#333;">${m.descricao ?? ""}</div>
-        <div style="margin-top:8px; font-size:12px; color:#777;">
-          <b>Criado por:</b> ${m.criado_por ?? "-"}
-        </div>
-      `;
-      body.appendChild(card);
-
-      const btns = m.can_edit ? `
-  <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-    <button type="button" class="secondary" onclick="editarMedida(${m.id}, '${m.data}', ${JSON.stringify(m.descricao)})">
-      <i class="bi bi-pencil"></i> Editar
-    </button>
-    <button type="button" class="secondary" style="border:1px solid rgba(179,38,30,.35); color:#b3261e;"
-      onclick="excluirMedida(${m.id})">
-      <i class="bi bi-trash"></i> Excluir
-    </button>
-  </div>
-` : "";
-
-    });
+    modal.style.display = "flex";
+    return;
   }
+
+  medidas.forEach((m) => {
+    const card = document.createElement("div");
+    card.style.border = "1px solid var(--border)";
+    card.style.borderRadius = "12px";
+    card.style.padding = "12px";
+    card.style.background = "#fff";
+
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div style="font-weight:700; color:#b3261e;">
+          <i class="bi bi-exclamation-triangle-fill"></i> Medida
+        </div>
+        <div style="color:#555; font-size:13px;">
+          <b>Data:</b> ${formatarDataBR2(m.data)}
+        </div>
+      </div>
+
+      <div style="margin-top:8px; white-space:pre-wrap; color:#333;">${m.descricao ?? ""}</div>
+
+      <div style="margin-top:8px; font-size:12px; color:#777;">
+        <b>Criado por:</b> ${m.criado_por ?? "-"}
+      </div>
+    `;
+
+    // ✅ Botões Editar/Excluir (só se puder)
+    if (m.can_edit) {
+      const btnWrap = document.createElement("div");
+      btnWrap.style.display = "flex";
+      btnWrap.style.gap = "8px";
+      btnWrap.style.marginTop = "10px";
+      btnWrap.style.flexWrap = "wrap";
+
+      const btnEditar = document.createElement("button");
+      btnEditar.type = "button";
+      btnEditar.className = "secondary";
+      btnEditar.innerHTML = `<i class="bi bi-pencil"></i> Editar`;
+      btnEditar.addEventListener("click", () => editarMedida(m));
+
+      const btnExcluir = document.createElement("button");
+      btnExcluir.type = "button";
+      btnExcluir.className = "secondary";
+      btnExcluir.style.border = "1px solid rgba(179,38,30,.35)";
+      btnExcluir.style.color = "#b3261e";
+      btnExcluir.innerHTML = `<i class="bi bi-trash"></i> Excluir`;
+      btnExcluir.addEventListener("click", () => excluirMedida(m.id));
+
+      btnWrap.appendChild(btnEditar);
+      btnWrap.appendChild(btnExcluir);
+      card.appendChild(btnWrap);
+    }
+
+    body.appendChild(card);
+  });
 
   modal.style.display = "flex";
 }
@@ -1216,35 +1235,46 @@ if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula))
 }
 
   async function excluirMedida(id) {
-  if (!confirm("Tem certeza que deseja excluir esta medida?")) return;
+  if (!confirm("Deseja realmente excluir esta medida?")) return;
 
-  const resp = await apiFetch(`/medidas/${id}`, { method: "DELETE" });
-  const text = await resp.text();
+  const res = await fetch(`${API}/medidas/${id}`, {
+    method: "DELETE",
+    headers: authHeaders()
+  });
 
-  if (!resp.ok) {
-    setStatus(`Erro ao excluir medida: ${text}`, "error");
+  const text = await res.text();
+  if (!res.ok) {
+    setStatus(`Erro ao excluir: ${text}`, "error");
     return;
   }
 
   await carregarMedidasCache();
-  renderTabela(dadosGlobais);
+  // fecha e reabre (ou só atualizar o body)
   setStatus("Medida excluída ✔", "success");
 }
 
-function editarMedida(id, dataAtual, descAtual) {
-  // reutiliza o modal de adicionar medida, mas em modo edição
-  abrirModalMedida();
-  document.getElementById("mdNumero").value = "";           // opcional: trava número na edição
-  document.getElementById("mdNumero").disabled = true;      // evita trocar de inspeção
-  document.getElementById("mdData").value = dataAtual || "";
-  document.getElementById("mdDescricao").value = descAtual || "";
+async function editarMedida(m) {
+  const novaData = prompt("Nova data (YYYY-MM-DD):", m.data || "");
+  if (!novaData) return;
 
-  // guarda id em memória
-  window._editMedidaId = id;
+  const novaDescricao = prompt("Nova descrição:", m.descricao || "");
+  if (!novaDescricao) return;
 
-  // troca o botão salvar para "Atualizar"
-  const btn = document.querySelector("#modalMedida button[onclick='salvarMedida()']");
-  if (btn) btn.innerHTML = `<i class="bi bi-check2-circle"></i> Atualizar medida`;
+  const res = await fetch(`${API}/medidas/${m.id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ data: novaData, descricao: novaDescricao })
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    setStatus(`Erro ao editar: ${text}`, "error");
+    return;
+  }
+
+  await carregarMedidasCache();
+  abrirModalVerMedidas(String(m.numero)); // reabre atualizado
+  setStatus("Medida atualizada ✔", "success");
 }
 
 async function salvarMedida() {
