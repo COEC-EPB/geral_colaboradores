@@ -527,8 +527,10 @@
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
         <div id="boxRankingLider" style="display:none;">
           <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
-          <input id="rankingLider" type="text" placeholder="Digite o líder"
-            style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+            <select id="rankingLider"
+    style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+    <option value="">Todos os líderes</option>
+  </select>
         </div>
 
         <button type="button" onclick="carregarRanking()">
@@ -1073,9 +1075,12 @@ async function carregarRanking() {
     const liderEl = document.getElementById("rankingLider");
 
     const qs = new URLSearchParams();
-    if (perfil === "admin" && liderEl && liderEl.value.trim()) {
-      qs.set("lider", liderEl.value.trim());
-    }
+
+if (perfil === "admin" || ["6855","3075664","8004","11273"].includes(matricula)) {
+  if (liderEl && liderEl.value) {
+    qs.set("lider", liderEl.value);
+  }
+}
 
     const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
       method: "GET",
@@ -1127,6 +1132,46 @@ async function carregarRanking() {
   }
 }
 
+  async function carregarLideresRanking() {
+  try {
+    const perfil = localStorage.getItem("perfil") || "user";
+    const matricula = String(localStorage.getItem("matricula") || "").trim();
+
+    const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
+    const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
+
+    if (!podeGeral) return; // user comum não vê
+
+    const select = document.getElementById("rankingLider");
+    if (!select) return;
+
+    const res = await fetch(`${API}/lideres`, {
+      headers: authHeaders()
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      console.error("Erro ao carregar líderes:", text);
+      return;
+    }
+
+    const rows = JSON.parse(text) || [];
+
+    // limpa mantendo "Todos"
+    select.innerHTML = `<option value="">Todos os líderes</option>`;
+
+    rows.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.lider;
+      opt.textContent = r.lider;
+      select.appendChild(opt);
+    });
+
+  } catch (e) {
+    console.error("Erro carregarLideresRanking", e);
+  }
+}
+
 /* ===============================
    UI INIT (admin fields)
 ================================ */
@@ -1159,6 +1204,7 @@ async function carregarRanking() {
   // ✅ importante: carrega medidas antes (pra renderizar o link vermelho)
   await carregarMedidasCache();
   await carregarInspecoes();
+  await carregarLideresRanking(); // 👈 AQUI
 
   carregarRanking();
 })();
