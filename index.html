@@ -1070,8 +1070,9 @@ function renderChart(porMes) {
    RANKING
 ================================ */
 async function carregarRanking() {
-  try {
+    try {
     const perfil = localStorage.getItem("perfil") || "user";
+    const matricula = String(localStorage.getItem("matricula") || "").trim(); // ✅ AQUI
     const liderEl = document.getElementById("rankingLider");
 
     const qs = new URLSearchParams();
