@@ -963,11 +963,13 @@ document.addEventListener("click", e => {
 /* ============================================================
    ✅ FREQUÊNCIA (MODAL) - AJUSTADO (return/await dentro da função)
 ============================================================ */
+// ✅ Somente esses podem ver frequência de todos (além do admin)
+const LIBERADOS_GERAL = ["6855", "3075664", "8004", "11273"];
+
 function podeVerTodosFrequencia() {
   const perfil = localStorage.getItem("perfil") || "user";
   const matricula = String(getMatriculaAtual() || "").trim();
-  const LIBERADOS_GERAL = ["6855", "3075664", "8004", "11273"];
-  return perfil === "admin" || LIBERADOS_GERAL.includes(matricula);
+  return (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
 }
 
 // ✅ (Opção C) Recriada: calcula frequência do gestor no mês
@@ -981,16 +983,14 @@ function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
   for (const item of (dadosGlobais || [])) {
     const dt = parseISODateFlex(item?.data_inspecao);
     if (!dt) continue;
-
     if (getMonthKey(dt) !== mesKey) continue;
 
-    // Conta se o gestor aparece em qualquer campo “responsável”
+    // ✅ somente campos que você pediu
     const candidatos = [
       item?.lider,
       item?.auditor_1,
       item?.auditor_2,
-      item?.auditor_3,
-      item?.cadastrante
+      item?.auditor_3
     ].map(normName);
 
     if (!candidatos.includes(gKey)) continue;
