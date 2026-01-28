@@ -983,11 +983,6 @@ document.addEventListener("click", e => {
   if (numero) abrirModalVerMedidas(numero);
 });
 
-/* ============================================================
-   ✅ FREQUÊNCIA (MODAL) - AJUSTADO (return/await dentro da função)
-============================================================ */
-// ✅ Somente esses podem ver frequência de todos (além do admin)
-// Quem pode ver a frequência de TODOS (estatística)
 // ✅ Normalização forte: tira acento, UPPER, trim, remove espaços duplicados
 function normName(s) {
   return String(s || "")
@@ -998,28 +993,7 @@ function normName(s) {
     .toUpperCase();
 }
 
- function listaGestoresPermitidosParaFrequencia() {
-  const perfil = localStorage.getItem("perfil") || "user";
-
-  // admin vê todos
-  if (perfil === "admin") return null;
-
-  const meuNome = normName(getNomeDoToken());
-  if (!meuNome) return new Set();
-
-  // ✅ super gestores da frequência → veem todos
-  if (SUPER_GESTORES_INSPECOES.has(meuNome)) {
-    return null; // null = sem filtro (vê todos)
-  }
-
-  // delegados
-  const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
-
-  return new Set([meuNome, ...delegados]);
-}
-
-  
-// ✅ defina cru, sem normName aqui
+// ✅ SUPER gestores (cru)
 const SUPER_GESTORES_INSPECOES_RAW = [
   "NATHALIA HOLANDA VILHENA",
   "EDIVALDO DA SILVA BRANDAO NETO",
@@ -1027,41 +1001,50 @@ const SUPER_GESTORES_INSPECOES_RAW = [
   "RENAN IGOR MENEZES DA SILVA"
 ];
 
-// ✅ normaliza na criação final
+// ✅ SUPER gestores (normalizado)
 const SUPER_GESTORES_INSPECOES = new Set(SUPER_GESTORES_INSPECOES_RAW.map(normName));
-  
-// Delegações de VISUALIZAÇÃO DE INSPEÇÕES (para lançar medidas)
+
+// ✅ Delegações (para inspeções e também para frequência)
 const DELEGACAO_VER_INSPECOES = {
   [normName("WESLEY FERNANDES DE SOUZA")]: [
     normName("GERALDO PEDRO DA SILVA JUNIOR")
   ],
-
   [normName("YURI VILMAR BATISTA MELO")]: [
     normName("RICHARDSON SILVA DE OLIVEIRA")
   ],
-
   [normName("RENATO LINS DE VASCONCELOS NETO")]: [
     normName("FABRICIO ANDRE SILVA DE ARAUJO"),
     normName("WELLINGTON ANDRADE DE PAIVA")
   ],
-
   [normName("FABIO LIMA DE FRANCA")]: [
     normName("ALMIR BITTENCOURT NETO"),
     normName("ADNILSON PIMENTEL DE SOUZA")
   ],
-
   [normName("DELMIR BARBOSA MAXIMIANO")]: [
     normName("MARCIO JOSE TOURINHO DIAS"),
     normName("IVAN DE SOUZA BRAGA")
   ],
-
   [normName("THOMAZ CHAVES DO NASCIMENTO")]: [
     normName("LEONARDO WAGNER DE SOUSA TEIXEIRA"),
     normName("FERNANDO LIMA DA SILVA")
   ]
 };
 
-// ✅ pode ver inspeções do próprio nome + delegados
+// ✅ Permissão para FREQUÊNCIA: logado + delegados, e super gestores veem todos
+function listaGestoresPermitidosParaFrequencia() {
+  const perfil = localStorage.getItem("perfil") || "user";
+  if (perfil === "admin") return null;
+
+  const meuNome = normName(getNomeDoToken());
+  if (!meuNome) return new Set();
+
+  if (SUPER_GESTORES_INSPECOES.has(meuNome)) return null; // vê todos
+
+  const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
+  return new Set([meuNome, ...delegados]);
+}
+
+// ✅ Permissão para INSPEÇÕES: logado + delegados, e super gestores veem todos
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
   if (perfil === "admin") return null;
@@ -1069,16 +1052,9 @@ function listaGestoresPermitidosParaInspecoes() {
   const meuNome = normName(getNomeDoToken());
   if (!meuNome) return new Set();
 
-  if (SUPER_GESTORES_INSPECOES.has(meuNome)) {
-    return null; // ✅ vê tudo
-  }
+  if (SUPER_GESTORES_INSPECOES.has(meuNome)) return null; // vê todos
 
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
-  return new Set([meuNome, ...delegados]);
-}
-  // delegados normais
-  const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
-
   return new Set([meuNome, ...delegados]);
 }
 
