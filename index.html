@@ -1212,16 +1212,31 @@ async function carregarInspecoes() {
     const text = await res.text();
 
     console.log("STATUS /inspecoes:", res.status);
-    console.log("BODY /inspecoes:", text);
+    console.log("BODY /inspecoes (raw):", text.slice(0, 500));
 
     if (res.status === 401) return logout();
     if (!res.ok) throw new Error(text);
 
-    dadosGlobais = JSON.parse(text);
+    let parsed = [];
+    try { parsed = JSON.parse(text); } catch { parsed = []; }
+
+    // ✅ aceita: [ ... ] OU { results:[ ... ] } OU {data:[...]}
+    const arr =
+      Array.isArray(parsed) ? parsed :
+      Array.isArray(parsed?.results) ? parsed.results :
+      Array.isArray(parsed?.data) ? parsed.data :
+      [];
+
+    dadosGlobais = arr;
+
     renderTabela(dadosGlobais);
+    return dadosGlobais;
+
   } catch (e) {
     setStatus("Erro ao carregar dados.", "error");
     console.error(e);
+    dadosGlobais = [];
+    return [];
   }
 }
 
@@ -1721,26 +1736,30 @@ async function alertarPrazoDoLider() {
   const modal = document.getElementById("modalFreq");
   if (!modal) return;
 
-  // 🔥 GARANTIA ABSOLUTA: dados carregados
+  // ✅ garante dados
   if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
     await carregarInspecoes();
   }
 
+  console.log("dadosGlobais (modal):", dadosGlobais.length);
+
   modal.style.display = "flex";
 
-  // mês atual como padrão
+  // mês atual se vazio
   const mesEl = document.getElementById("freqMes");
   if (mesEl && !mesEl.value) {
     const d = new Date();
     mesEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  // agora SIM pode popular
+  // ✅ agora popula
   popularSelectGestores();
 
   const perfil = localStorage.getItem("perfil") || "user";
   const nomeGestorLogado = getNomeDoToken();
   const sel = document.getElementById("freqGestor");
+
+  console.log("select options:", sel?.options?.length);
 
   // 🔒 gestor comum só vê o dele
   if (perfil !== "admin") {
