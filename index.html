@@ -54,14 +54,15 @@
       font-size: 18px;
     }
 
-    .top-actions {
+    .top-actions { 
+      margin-left: auto; 
       display: flex;
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
     }
 
-    input[type="file"], input[type="text"], input[type="date"], input[type="number"], select {
+  input, select, textarea {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -86,11 +87,12 @@
 
     button:hover { background: var(--primary-dark); }
 
-    button.secondary {
-      background: #eee;
-      color: #333;
-    }
-    button.secondary:hover { background: #e5e5e5; }
+    button.secondary{
+  background:#fff;
+  color:#333;
+  border:1px solid var(--border);
+}
+button.secondary:hover{ background:#f3f3f3; }
 
     main { padding: 24px; }
 
@@ -162,6 +164,7 @@
       border-radius: 12px;
       padding: 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.2);
+      max-height: 90vh; overflow: auto; 
     }
 
     .modal-head {
@@ -331,12 +334,6 @@
 .piscar{
   animation: piscar 0.85s linear infinite;
 }
-
-@keyframes piscar{
-  0%, 100% { opacity: 1; }
-  50% { opacity: .25; }
-}
-
   @keyframes piscar{
     0%, 100% { opacity: 1; }
     50% { opacity: .25; }
@@ -359,14 +356,14 @@
   <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
 
   <div class="top-actions" id="areaAdmin">
-    <input type="file" id="excel" accept=".xlsx" />
-    <button onclick="logout()">
-      <i class="bi bi-box-arrow-right"></i> Sair
-    </button>
-  </div>
+  <input type="file" id="excel" accept=".xlsx" />
   <button type="button" class="secondary" id="btnAbrirFreq">
-  <i class="bi bi-graph-up"></i> Frequência
-</button>
+    <i class="bi bi-graph-up"></i> Frequência
+  </button>
+  <button onclick="logout()">
+    <i class="bi bi-box-arrow-right"></i> Sair
+  </button>
+</div>
 </header>
 
 <main>
@@ -1724,57 +1721,34 @@ async function alertarPrazoDoLider() {
   const modal = document.getElementById("modalFreq");
   if (!modal) return;
 
-  // ✅ garante dadosGlobais carregado ANTES de montar lista
+  // 🔥 GARANTIA ABSOLUTA: dados carregados
   if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
     await carregarInspecoes();
   }
 
   modal.style.display = "flex";
 
-  // mês atual se vazio
+  // mês atual como padrão
   const mesEl = document.getElementById("freqMes");
   if (mesEl && !mesEl.value) {
     const d = new Date();
     mesEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  // ✅ agora sim popula a lista com dadosGlobais cheio
+  // agora SIM pode popular
   popularSelectGestores();
 
   const perfil = localStorage.getItem("perfil") || "user";
-  const nomeGestorLogado = getNomeDoToken(); // nome do token (lider)
+  const nomeGestorLogado = getNomeDoToken();
   const sel = document.getElementById("freqGestor");
-  const btnAtualizar = document.getElementById("btnAtualizarFreq");
 
-  // ✅ gestor comum só vê o dele
+  // 🔒 gestor comum só vê o dele
   if (perfil !== "admin") {
-    if (sel) {
-      const key = normName(nomeGestorLogado);
-      let achou = false;
-
-      for (const opt of sel.options) {
-        if (normName(opt.value) === key) {
-          sel.value = opt.value;
-          achou = true;
-          break;
-        }
-      }
-
-      // se não achou, cria
-      if (!achou && nomeGestorLogado) {
-        const opt = document.createElement("option");
-        opt.value = nomeGestorLogado;
-        opt.textContent = nomeGestorLogado;
-        sel.appendChild(opt);
-        sel.value = nomeGestorLogado;
-      }
-
-      sel.disabled = true;
-    }
-
-    if (btnAtualizar) btnAtualizar.style.display = "inline-flex";
+    sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
+    sel.value = nomeGestorLogado;
+    sel.disabled = true;
   } else {
-    if (sel) sel.disabled = false;
+    sel.disabled = false;
   }
 
   atualizarGraficoFrequenciaGestor();
@@ -1786,7 +1760,8 @@ function fecharModalFreq() {
 }
 
 // Botão do topo
-document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
+document.getElementById("btnAbrirFreq")
+  ?.addEventListener("click", abrirModalFreq);
 document.getElementById("btnFecharFreq")?.addEventListener("click", fecharModalFreq);
 
 // Atualizar
