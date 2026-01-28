@@ -665,23 +665,41 @@ function getMatriculaAtual() {
   return "";
 }
 
-function getNomeDoToken() {
-  const token = String(localStorage.getItem("token") || "").trim();
-  if (!token || token.split(".").length !== 3) return "";
-
+function decodeJwtPayload(token) {
   try {
-    const payloadB64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const payloadJson = decodeURIComponent(
-      atob(payloadB64)
-        .split("")
-        .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    const payload = JSON.parse(payloadJson);
-    return String(payload.lider || "").trim(); // no seu worker: "lider" = nome
+    const parts = String(token || "").split(".");
+    if (parts.length !== 3) return null;
+
+    let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    // ✅ padding
+    while (b64.length % 4) b64 += "=";
+
+    const json = atob(b64);
+    return JSON.parse(json);
   } catch (e) {
-    return "";
+    return null;
   }
+}
+
+function getNomeDoToken() {
+  // 1) tenta localStorage "lider" (muito comum salvar no login)
+  const lsLider = String(localStorage.getItem("lider") || "").trim();
+  if (lsLider) return lsLider;
+
+  // 2) tenta pegar do JWT
+  const token = String(localStorage.getItem("token") || "").trim();
+  const payload = decodeJwtPayload(token);
+  if (!payload) return "";
+
+  // tenta vários campos possíveis
+  return String(
+    payload.lider ??
+    payload.nome ??
+    payload.name ??
+    payload.usuario ??
+    payload.user ??
+    ""
+  ).trim();
 }
 
 /* ============================================================
@@ -984,11 +1002,16 @@ const DELEGACAO_VER_INSPECOES = {
 // ✅ pode ver inspeções do próprio nome + delegados
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
-  if (perfil === "admin") return null; // null = vê tudo
+  if (perfil === "admin") return null; // admin vê tudo
 
   const meuNome = normName(getNomeDoToken());
-  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []);
+  if (!meuNome) {
+    // aqui é melhor mostrar um aviso (porque sem nome não dá pra delegar)
+    setStatus("Não consegui identificar o gestor logado (nome vazio no token/localStorage).", "error");
+    return new Set(); // mantém 0 (seguro) até corrigir o nome
+  }
 
+  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []);
   return new Set([meuNome, ...delegados]);
 }
 
