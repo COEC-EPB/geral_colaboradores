@@ -1150,25 +1150,38 @@ async function popularSelectGestoresModal() {
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
   if (podeVerTodos) {
-    // ✅ pega lista completa do backend
-    let lideres = [];
-    try {
-      lideres = await carregarLideresParaFrequencia();
-    } catch (e) {
-      console.error("Erro ao carregar /lideres:", e);
-      sel.innerHTML = `<option value="">Erro ao carregar líderes</option>`;
-      return;
-    }
-
-    // ordena e popula
-    lideres.sort((a, b) => normName(a).localeCompare(normName(b)));
-
-    sel.innerHTML =
-      `<option value="">Selecione…</option>` +
-      lideres.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
-
-    return;
+  let lideres = [];
+  try {
+    lideres = await carregarLideresParaFrequencia();
+  } catch (e) {
+    console.error("Erro ao carregar /lideres:", e);
+    lideres = [];
   }
+
+  // ✅ garante que os super gestores sempre apareçam
+  const todos = new Map(); // key normalizada -> nome exibido
+
+  // 1) adiciona os do backend
+  lideres.forEach(n => {
+    const key = normName(n);
+    if (key) todos.set(key, n);
+  });
+
+  // 2) adiciona os super (se não existirem)
+  SUPER_GESTORES_INSPECOES_RAW.forEach(n => {
+    const key = normName(n);
+    if (key && !todos.has(key)) todos.set(key, n);
+  });
+
+  const listaFinal = Array.from(todos.values())
+    .sort((a, b) => normName(a).localeCompare(normName(b)));
+
+  sel.innerHTML =
+    `<option value="">Selecione…</option>` +
+    listaFinal.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
+
+  return;
+}
 
   // ✅ gestor normal: ele + delegados (sem depender do dadosGlobais)
   const delegados = (DELEGACAO_VER_INSPECOES[meuNomeKey] || []);
