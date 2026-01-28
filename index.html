@@ -689,6 +689,40 @@ if (perfil !== "admin") {
   if (el) el.remove();
 }
 
+// ✅ Meta mensal por gestor (NOME -> META)
+const META_MENSAL_POR_GESTOR = {
+  "ANDERSON DE ARAUJO VASCONCELOS": 6,
+  "EDEVALDO FELICIANO DA SILVA": 8,
+  "ALEXANDRE BATISTA DIAS": 3,
+  "DAVIDSON DA SILVA GOMES": 5,
+  "THOMAZ CHAVES DO NASCIMENTO": 8,
+  "WESLEY FERNANDES DE SOUZA": 10,
+  "JANSEN LACERDA DE OLIVEIRA JUNIOR": 10,
+  "FABIANO OLIVEIRA DE MENEZES": 5,
+  "CRISTIANO CAETANO MADEIRO": 10,
+  "NATHALIA HOLANDA VILHENA": 4,
+  "EDIVALDO DA SILVA BRANDAO NETO": 8,
+  "RENAN IGOR MENEZES DA SILVA": 0,
+  "MACIEL GOMES DE AGUIAR": 10,
+  "DELMIR BARBOSA MAXIMIANO": 10,
+  "FABIO LIMA DE FRANCA": 10,
+  "YURI VILMAR BATISTA MELO": 10,
+  "MARCONE HENRIQUE DA CRUZ": 10,
+  "RENATO LINS DE VASCONCELOS NETO": 10,
+  "FABRICIO ANDRE SILVA DE ARAUJO": 4,
+  "GERALDO PEDRO DA SILVA JUNIOR": 4,
+  "RICHARDSON SILVA DE OLIVEIRA": 4
+};
+
+  // pega meta do gestor selecionado (padrão = 10)
+function getMetaMensalGestor(nomeGestor) {
+  const key = normName(nomeGestor); // usa sua função normName (UPPER + trim)
+  if (Object.prototype.hasOwnProperty.call(META_MENSAL_POR_GESTOR, key)) {
+    return Number(META_MENSAL_POR_GESTOR[key] ?? 10);
+  }
+  return 10;
+}
+  
 /* ===============================
    HELPERS
 ================================ */
@@ -1062,22 +1096,22 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   if (!mesKey) { resumo.textContent = "Selecione um mês."; return; }
   if (!gestor) { resumo.textContent = "Selecione um gestor."; return; }
 
-  const metaMensal = 10;
-  const metaSemanal = metaMensal / 4; // 2,5
+  const metaMensal = getMetaMensalGestor(gestor);  // ✅ dinâmico
+const metaSemanal = metaMensal / 4;
 
   const { weeks, total } = calcFrequenciaGestorNoMes(gestor, mesKey);
   drawFreqChart(canvas, weeks, metaSemanal);
 
   resumo.innerHTML = `
-    <div style="display:inline-flex; gap:10px; flex-wrap:wrap; align-items:center;
-                padding:8px 10px; border:1px solid var(--border); border-radius:999px; background:#fff;">
-      <b>${gestor}</b>
-      <span>|</span> <span>Mês:</span> <b>${mesKey}</b>
-      <span>|</span> <span>Total no mês:</span> <b>${total}</b>
-      <span>|</span> <span>Meta semanal:</span> <b>${metaSemanal}</b>
-    </div>
-  `;
-}
+  <div style="display:inline-flex; gap:10px; flex-wrap:wrap; align-items:center;
+              padding:8px 10px; border:1px solid var(--border); border-radius:999px; background:#fff;">
+    <b>${gestor}</b>
+    <span>|</span> <span>Mês:</span> <b>${mesKey}</b>
+    <span>|</span> <span>Total no mês:</span> <b>${total}</b>
+    <span>|</span> <span>Meta mensal:</span> <b>${metaMensal}</b>
+    <span>|</span> <span>Meta semanal:</span> <b>${metaSemanal.toFixed(2).replace(".", ",")}</b>
+  </div>
+`;
 
 /* ===============================
    TABELA INSPEÇÕES
