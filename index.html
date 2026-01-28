@@ -591,45 +591,7 @@
     </div>
   </div>
 
-  <!-- 📈 Frequência semanal (por gestor) -->
-<div class="card" style="margin-top:16px; padding:16px;">
-  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
-    <div>
-      <h3 style="margin:0; color:var(--primary);">Frequência semanal (gestor)</h3>
-      <div style="font-size:13px; color:#666; margin-top:4px;">
-        Quantas inspeções o gestor fez por semana no mês + linha de meta (2,5/semana)
-      </div>
-    </div>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-      <div>
-        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Mês</div>
-        <input id="freqMes" type="month" style="width:160px;">
-      </div>
-
-      <div>
-        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Gestor</div>
-        <select id="freqGestor" style="width:280px;">
-          <option value="">Selecione…</option>
-        </select>
-      </div>
-
-      <button type="button" onclick="atualizarGraficoFrequenciaGestor()">
-        <i class="bi bi-activity"></i> Atualizar
-      </button>
-    </div>
-  </div>
-
-  <div style="margin-top:12px;">
-    <canvas id="freqCanvas" height="240"
-      style="width:100%; border:1px solid var(--border); border-radius:12px; background:#fff;"></canvas>
-  </div>
-
-  <div id="freqResumo" style="margin-top:10px; font-size:13px; color:#555;"></div>
-</div>
-
-
-  <!-- Ranking -->
+    <!-- Ranking -->
   <div class="card" style="margin-top:16px; padding:16px;">
     <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
       <div>
@@ -1803,7 +1765,7 @@ async function alertarPrazoDoLider() {
     }
 
     if (btnAtualizar) btnAtualizar.style.display = "inline-flex";
-  } else {a
+  } else {
     if (sel) sel.disabled = false;
   }
 
