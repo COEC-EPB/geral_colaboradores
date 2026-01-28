@@ -1760,9 +1760,14 @@ async function alertarPrazoDoLider() {
   }
 }
 
-  function abrirModalFreq() {
+  async function abrirModalFreq() {
   const modal = document.getElementById("modalFreq");
   if (!modal) return;
+
+  // ✅ garante dadosGlobais carregado ANTES de montar lista
+  if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
+    await carregarInspecoes();
+  }
 
   modal.style.display = "flex";
 
@@ -1770,22 +1775,20 @@ async function alertarPrazoDoLider() {
   const mesEl = document.getElementById("freqMes");
   if (mesEl && !mesEl.value) {
     const d = new Date();
-    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    mesEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  // popular lista primeiro
+  // ✅ agora sim popula a lista com dadosGlobais cheio
   popularSelectGestores();
 
   const perfil = localStorage.getItem("perfil") || "user";
-  const nomeGestorLogado = getNomeDoToken(); // 👈 nome do gestor no token
-
+  const nomeGestorLogado = getNomeDoToken(); // nome do token (lider)
   const sel = document.getElementById("freqGestor");
   const btnAtualizar = document.getElementById("btnAtualizarFreq");
 
-  // ✅ regra: gestor comum só vê o dele
+  // ✅ gestor comum só vê o dele
   if (perfil !== "admin") {
     if (sel) {
-      // seta o valor dele (se existir no select)
       const key = normName(nomeGestorLogado);
       let achou = false;
 
@@ -1797,7 +1800,7 @@ async function alertarPrazoDoLider() {
         }
       }
 
-      // se por algum motivo não achou na lista, cria a opção
+      // se não achou, cria
       if (!achou && nomeGestorLogado) {
         const opt = document.createElement("option");
         opt.value = nomeGestorLogado;
@@ -1806,18 +1809,14 @@ async function alertarPrazoDoLider() {
         sel.value = nomeGestorLogado;
       }
 
-      // trava o select (ele não escolhe outro)
       sel.disabled = true;
     }
 
-    // pode deixar o botão atualizar (ok) ou esconder
     if (btnAtualizar) btnAtualizar.style.display = "inline-flex";
   } else {
-    // admin pode selecionar qualquer gestor
     if (sel) sel.disabled = false;
   }
 
-  // desenha
   atualizarGraficoFrequenciaGestor();
 }
 
@@ -1870,29 +1869,20 @@ document.getElementById("modalFreq")?.addEventListener("click", (e) => {
 (async function init(){
   carregarStatsMensal();
 
-  // ✅ importante: carrega medidas antes (pra renderizar o link vermelho)
   await carregarMedidasCache();
   await carregarInspecoes();
-  console.log("perfil:", localStorage.getItem("perfil"));
-  console.log("matricula detectada:", getMatriculaAtual());
-  await carregarLideresRanking(); // 👈 AQUI
-  await alertarPrazoDoLider();
-  
-  const rankingLiderEl = document.getElementById("rankingLider");
-if (rankingLiderEl) {
-  rankingLiderEl.addEventListener("change", async () => {
-    await carregarRanking();
-    await alertarPrazoDoLider();
-  });
-}
-  await carregarInspecoes();
-popularSelectGestores();
 
-const mesEl = document.getElementById("freqMes");
-if (mesEl && !mesEl.value) {
-  const d = new Date();
-  mesEl.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}`;
-}
+  await carregarLideresRanking();
+  await alertarPrazoDoLider();
+
+  const rankingLiderEl = document.getElementById("rankingLider");
+  if (rankingLiderEl) {
+    rankingLiderEl.addEventListener("change", async () => {
+      await carregarRanking();
+      await alertarPrazoDoLider();
+    });
+  }
+
   carregarRanking();
 })();
 </script>
