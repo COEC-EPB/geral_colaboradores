@@ -1010,31 +1010,45 @@ function normName(s) {
 
 // Delegações de VISUALIZAÇÃO DE INSPEÇÕES (para lançar medidas)
 const DELEGACAO_VER_INSPECOES = {
-  [normName("WESLEY FERNANDES DE SOUZA")]: [normName("GERALDO PEDRO DA SILVA JUNIOR")],
-  [normName("YURI VILMAR BATISTA MELO")]: [normName("RICHARDSON SILVA DE OLIVEIRA")],
-  [normName("RENATO LINS DE VASCONCELOS NETO")]: [normName("FABRICIO ANDRE SILVA DE ARAUJO")],
-  [normName("RENATO LINS DE VASCONCELOS NETO")]: [normName("WELLINGTON ANDRADE DE PAIVA")],
-  [normName("FABIO LIMA DE FRANCA")]: [normName("ALMIR BITTENCOURT NETO")],
-  [normName("FABIO LIMA DE FRANCA")]: [normName("ADNILSON PIMENTEL DE SOUZA")],
-  [normName("DELMIR BARBOSA MAXIMIANO")]: [normName("MARCIO JOSE TOURINHO DIAS")],
-  [normName("DELMIR BARBOSA MAXIMIANO")]: [normName("IVAN DE SOUZA BRAGA")],
-  [normName("THOMAZ CHAVES DO NASCIMENTO")]: [normName("LEONARDO WAGNER DE SOUSA TEIXEIRA")],
-  [normName("THOMAZ CHAVES DO NASCIMENTO")]: [normName("FERNANDO LIMA DA SILVA")]
+  [normName("WESLEY FERNANDES DE SOUZA")]: [
+    normName("GERALDO PEDRO DA SILVA JUNIOR")
+  ],
+
+  [normName("YURI VILMAR BATISTA MELO")]: [
+    normName("RICHARDSON SILVA DE OLIVEIRA")
+  ],
+
+  [normName("RENATO LINS DE VASCONCELOS NETO")]: [
+    normName("FABRICIO ANDRE SILVA DE ARAUJO"),
+    normName("WELLINGTON ANDRADE DE PAIVA")
+  ],
+
+  [normName("FABIO LIMA DE FRANCA")]: [
+    normName("ALMIR BITTENCOURT NETO"),
+    normName("ADNILSON PIMENTEL DE SOUZA")
+  ],
+
+  [normName("DELMIR BARBOSA MAXIMIANO")]: [
+    normName("MARCIO JOSE TOURINHO DIAS"),
+    normName("IVAN DE SOUZA BRAGA")
+  ],
+
+  [normName("THOMAZ CHAVES DO NASCIMENTO")]: [
+    normName("LEONARDO WAGNER DE SOUSA TEIXEIRA"),
+    normName("FERNANDO LIMA DA SILVA")
+  ]
 };
 
 // ✅ pode ver inspeções do próprio nome + delegados
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
-  if (perfil === "admin") return null; // admin vê tudo
+  if (perfil === "admin") return null;
 
   const meuNome = normName(getNomeDoToken());
-  if (!meuNome) {
-    // aqui é melhor mostrar um aviso (porque sem nome não dá pra delegar)
-    setStatus("Não consegui identificar o gestor logado (nome vazio no token/localStorage).", "error");
-    return new Set(); // mantém 0 (seguro) até corrigir o nome
-  }
+  if (!meuNome) return new Set();
 
-  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []);
+  const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
+
   return new Set([meuNome, ...delegados]);
 }
 
