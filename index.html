@@ -1014,12 +1014,16 @@ function normName(s) {
 }
 
   
-const SUPER_GESTORES_INSPECOES = new Set([
-  normName("NATHALIA HOLANDA VILHENA"),
-  normName("EDIVALDO DA SILVA BRANDAO NETO"),
-  normName("FABIANO OLIVEIRA DE MENEZES"),
-  normName("RENAN IGOR MENEZES DA SILVA")
-]);
+// ✅ defina cru, sem normName aqui
+const SUPER_GESTORES_INSPECOES_RAW = [
+  "NATHALIA HOLANDA VILHENA",
+  "EDIVALDO DA SILVA BRANDAO NETO",
+  "FABIANO OLIVEIRA DE MENEZES",
+  "RENAN IGOR MENEZES DA SILVA"
+];
+
+// ✅ normaliza na criação final
+const SUPER_GESTORES_INSPECOES = new Set(SUPER_GESTORES_INSPECOES_RAW.map(normName));
   
 // Delegações de VISUALIZAÇÃO DE INSPEÇÕES (para lançar medidas)
 const DELEGACAO_VER_INSPECOES = {
@@ -1055,27 +1059,18 @@ const DELEGACAO_VER_INSPECOES = {
 // ✅ pode ver inspeções do próprio nome + delegados
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
-
-  // ADMIN VÊ TUDO
   if (perfil === "admin") return null;
 
   const meuNome = normName(getNomeDoToken());
-
-  // 🔍 DEBUG AQUI:
-  console.log("-------------- DEBUG SUPER GESTORES --------------");
-  console.log("getNomeDoToken():", getNomeDoToken());
-  console.log("normName(getNomeDoToken()):", meuNome);
-  console.log("SUPER_GESTORES_INSPECOES:", Array.from(SUPER_GESTORES_INSPECOES));
-  console.log("é super?", SUPER_GESTORES_INSPECOES.has(meuNome));
-  console.log("---------------------------------------------------");
-
   if (!meuNome) return new Set();
 
-  // SUPER GESTOR = VÊ TUDO
   if (SUPER_GESTORES_INSPECOES.has(meuNome)) {
-    return null;
+    return null; // ✅ vê tudo
   }
 
+  const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
+  return new Set([meuNome, ...delegados]);
+}
   // delegados normais
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
 
