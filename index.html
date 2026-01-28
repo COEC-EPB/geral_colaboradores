@@ -964,12 +964,29 @@ document.addEventListener("click", e => {
    ✅ FREQUÊNCIA (MODAL) - AJUSTADO (return/await dentro da função)
 ============================================================ */
 // ✅ Somente esses podem ver frequência de todos (além do admin)
-const LIBERADOS_GERAL = ["6855", "3075664", "8004", "11273"];
+// Quem pode ver a frequência de TODOS (estatística)
+const LIBERADOS_FREQ_TODOS = ["6855", "3075664", "8004", "11273"];
+
+// Delegações de VISUALIZAÇÃO DE INSPEÇÕES (para lançar medidas)
+const DELEGACAO_VER_INSPECOES = {
+  "WESLEY FERNANDES DE SOUZA": ["GERALDO PEDRO DA SILVA JUNIOR"]
+};
 
 function podeVerTodosFrequencia() {
   const perfil = localStorage.getItem("perfil") || "user";
   const matricula = String(getMatriculaAtual() || "").trim();
-  return (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
+  return perfil === "admin" || LIBERADOS_FREQ_TODOS.includes(matricula);
+}
+  // ✅ pode ver inspeções do próprio nome + delegados
+function listaGestoresPermitidosParaInspecoes() {
+  const perfil = localStorage.getItem("perfil") || "user";
+  if (perfil === "admin") return null; // null = sem filtro (vê tudo)
+
+  const meuNome = normName(getNomeDoToken());
+  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []).map(normName);
+
+  // ele pode ver o dele + delegados
+  return new Set([meuNome, ...delegados]);
 }
 
 // ✅ (Opção C) Recriada: calcula frequência do gestor no mês
@@ -1301,6 +1318,14 @@ async function carregarInspecoes() {
       Array.isArray(parsed?.data) ? parsed.data :
       [];
 
+    // ✅ aplica permissão de visualização de inspeções (para lançar medidas)
+const permitidos = listaGestoresPermitidosParaInspecoes();
+
+const arrFiltrado = permitidos
+  ? arr.filter(it => permitidos.has(normName(it?.lider)))
+  : arr; // admin vê tudo
+
+dadosGlobais = arrFiltrado;
     dadosGlobais = arr;
 
     renderTabela(dadosGlobais);
