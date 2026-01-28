@@ -1144,73 +1144,57 @@ async function popularSelectGestoresModal() {
   const perfil = localStorage.getItem("perfil") || "user";
   const meuNomeKey = normName(getNomeDoToken());
 
-  // pode ver todos (admin ou super gestor)
-  const podeVerTodos = (perfil === "admin") || SUPER_GESTORES_INSPECOES.has(meuNomeKey);
-
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
-  if (podeVerTodos) {
+  // Pode ver todos: admin OU super gestor
+  const podeVerTodos = (perfil === "admin") || SUPER_GESTORES_INSPECOES.has(meuNomeKey);
+
+  // 1) sempre tenta pegar os líderes do backend
   let lideres = [];
   try {
-    lideres = await carregarLideresParaFrequencia();
+    lideres = await carregarLideresParaFrequencia(); // retorna array de strings
   } catch (e) {
     console.error("Erro ao carregar /lideres:", e);
     lideres = [];
   }
 
-  // ✅ garante que os super gestores sempre apareçam
-  const todos = new Map(); // key normalizada -> nome exibido
+  // 2) monta lista final (sem duplicar): backend + super
+  const map = new Map(); // key normalizada -> nome exibido
 
-  // 1) adiciona os do backend
+  // backend
   lideres.forEach(n => {
     const key = normName(n);
-    if (key) todos.set(key, n);
+    if (key) map.set(key, n);
   });
 
-  // 2) adiciona os super (se não existirem)
-  SUPER_GESTORES_INSPECOES_RAW.forEach(n => {
+  // garante que super gestores sempre apareçam
+  (SUPER_GESTORES_INSPECOES_RAW || []).forEach(n => {
     const key = normName(n);
-    if (key && !todos.has(key)) todos.set(key, n);
+    if (key && !map.has(key)) map.set(key, n);
   });
 
-  const listaFinal = Array.from(todos.values())
+  // 3) se não pode ver todos, restringe a ele + delegados
+  if (!podeVerTodos) {
+    const delegados = DELEGACAO_VER_INSPECOES[meuNomeKey] || [];
+    const permitidos = new Set([meuNomeKey, ...delegados]);
+
+    // filtra o map pra só permitidos
+    for (const [k] of map) {
+      if (!permitidos.has(k)) map.delete(k);
+    }
+
+    // se por algum motivo ele não estiver no map, adiciona
+    if (meuNomeKey && !map.has(meuNomeKey)) {
+      map.set(meuNomeKey, String(getNomeDoToken() || meuNomeKey));
+    }
+  }
+
+  const listaFinal = Array.from(map.values())
     .sort((a, b) => normName(a).localeCompare(normName(b)));
 
   sel.innerHTML =
     `<option value="">Selecione…</option>` +
     listaFinal.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
-
-  return;
-}
-
-  // ✅ gestor normal: ele + delegados (sem depender do dadosGlobais)
-  const delegados = (DELEGACAO_VER_INSPECOES[meuNomeKey] || []);
-  const permitidos = [meuNomeKey, ...delegados];
-
-  // monta as opções com o "nome bonito"
-  // (usando os próprios strings já normalizados, mas exibindo o original do token quando possível)
-  const exibicao = [];
-  const nomeOriginalToken = String(getNomeDoToken() || "").trim();
-  if (nomeOriginalToken) exibicao.push(nomeOriginalToken);
-
-  // adiciona delegados como texto "normalizado" (você pode trocar por nomes bonitos se tiver)
-  for (const d of delegados) exibicao.push(d);
-
-  // remove repetidos por norm
-  const unique = [];
-  const seen = new Set();
-  for (const n of exibicao) {
-    const k = normName(n);
-    if (!k || seen.has(k)) continue;
-    seen.add(k);
-    unique.push(n);
-  }
-
-  unique.sort((a, b) => normName(a).localeCompare(normName(b)));
-
-  sel.innerHTML =
-    `<option value="">Selecione…</option>` +
-    unique.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
 }
   
 function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
