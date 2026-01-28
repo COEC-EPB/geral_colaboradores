@@ -983,6 +983,20 @@ document.addEventListener("click", e => {
   if (numero) abrirModalVerMedidas(numero);
 });
 
+
+async function carregarLideresParaFrequencia() {
+  const res = await fetch(`${API}/lideres`, { headers: authHeaders() });
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+
+  const data = JSON.parse(text);
+  // seu /lideres retorna { results: [...] }
+  return (data.results || []).map(n => String(n || "").trim()).filter(Boolean);
+}
+
+
+
+  
 // ✅ Normalização forte: tira acento, UPPER, trim, remove espaços duplicados
 function normName(s) {
   return String(s || "")
@@ -1123,44 +1137,69 @@ function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
   return { weeks, total };
 }
 
-function popularSelectGestoresModal() {
+async function popularSelectGestoresModal() {
   const sel = document.getElementById("freqGestorModal");
   if (!sel) return;
 
-  // lista completa dos gestores encontrados no sistema
-  const map = new Map();
+  const perfil = localStorage.getItem("perfil") || "user";
+  const meuNomeKey = normName(getNomeDoToken());
 
-  (dadosGlobais || []).forEach(i => {
-    [i.lider, i.auditor_1, i.auditor_2, i.auditor_3, i.cadastrante].forEach(n => {
-      const nome = String(n || "").trim();
-      if (!nome) return;
-      const key = normName(nome);
-      if (!map.has(key)) map.set(key, nome);
-    });
-  });
+  // pode ver todos (admin ou super gestor)
+  const podeVerTodos = (perfil === "admin") || SUPER_GESTORES_INSPECOES.has(meuNomeKey);
 
-  // pega gestores permitidos pela delegação
-  const permitidos = listaGestoresPermitidosParaFrequencia();
+  sel.innerHTML = `<option value="">Carregando...</option>`;
 
-  const todosGestores = Array.from(map.entries())
-    .map(([, nomeOriginal]) => nomeOriginal)
-    .sort((a, b) => a.localeCompare(b));
+  if (podeVerTodos) {
+    // ✅ pega lista completa do backend
+    let lideres = [];
+    try {
+      lideres = await carregarLideresParaFrequencia();
+    } catch (e) {
+      console.error("Erro ao carregar /lideres:", e);
+      sel.innerHTML = `<option value="">Erro ao carregar líderes</option>`;
+      return;
+    }
 
-  sel.innerHTML = "";
+    // ordena e popula
+    lideres.sort((a, b) => normName(a).localeCompare(normName(b)));
 
-  // SEM PERMISSÃO TOTAL → lista somente os permitidos
-  if (permitidos) {
-    const lista = todosGestores.filter(n => permitidos.has(normName(n)));
+    sel.innerHTML =
+      `<option value="">Selecione…</option>` +
+      lideres.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
 
-    sel.innerHTML = `<option value="">Selecione…</option>` +
-      lista.map(n => `<option value="${n}">${n}</option>`).join("");
-
-  } else {
-    // admin → lista tudo
-    sel.innerHTML = `<option value="">Selecione…</option>` +
-      todosGestores.map(n => `<option value="${n}">${n}</option>`).join("");
+    return;
   }
+
+  // ✅ gestor normal: ele + delegados (sem depender do dadosGlobais)
+  const delegados = (DELEGACAO_VER_INSPECOES[meuNomeKey] || []);
+  const permitidos = [meuNomeKey, ...delegados];
+
+  // monta as opções com o "nome bonito"
+  // (usando os próprios strings já normalizados, mas exibindo o original do token quando possível)
+  const exibicao = [];
+  const nomeOriginalToken = String(getNomeDoToken() || "").trim();
+  if (nomeOriginalToken) exibicao.push(nomeOriginalToken);
+
+  // adiciona delegados como texto "normalizado" (você pode trocar por nomes bonitos se tiver)
+  for (const d of delegados) exibicao.push(d);
+
+  // remove repetidos por norm
+  const unique = [];
+  const seen = new Set();
+  for (const n of exibicao) {
+    const k = normName(n);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    unique.push(n);
+  }
+
+  unique.sort((a, b) => normName(a).localeCompare(normName(b)));
+
+  sel.innerHTML =
+    `<option value="">Selecione…</option>` +
+    unique.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
 }
+  
 function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
 
@@ -1301,7 +1340,7 @@ async function abrirModalFreq() {
   }
 
   // popula o select (já vai vir filtrado para delegados)
-  popularSelectGestoresModal();
+ await popularSelectGestoresModal();
 
   const sel = document.getElementById("freqGestorModal");
   if (!sel) return;
