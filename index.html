@@ -754,15 +754,6 @@ const META_MENSAL_POR_GESTOR = {
   "RICHARDSON SILVA DE OLIVEIRA": 4
 };
 
-function normName(s) {
-  return String(s || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // tira acento
-    .replace(/\s+/g, " ")            // remove espaços duplicados
-    .trim()
-    .toUpperCase();
-}
-
 function getMetaMensalGestor(nomeGestor) {
   const key = normName(nomeGestor);
   if (Object.prototype.hasOwnProperty.call(META_MENSAL_POR_GESTOR, key)) {
@@ -1095,17 +1086,7 @@ function podeVerTodosFrequencia() {
   const matricula = String(getMatriculaAtual() || "").trim();
   return (perfil === "admin") || LIBERADOS_FREQ_TODOS.includes(matricula);
 }
-  // ✅ pode ver inspeções do próprio nome + delegados
-function listaGestoresPermitidosParaInspecoes() {
-  const perfil = localStorage.getItem("perfil") || "user";
-  if (perfil === "admin") return null; // null = sem filtro (vê tudo)
 
-  const meuNome = normName(getNomeDoToken());
-  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []).map(normName);
-
-  // ele pode ver o dele + delegados
-  return new Set([meuNome, ...delegados]);
-}
 
 // ✅ (Opção C) Recriada: calcula frequência do gestor no mês
 function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
@@ -1281,7 +1262,7 @@ function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   }
 }
 
-function atualizarGraficoFrequenciaGestorModal() {
+async function atualizarGraficoFrequenciaGestorModal() {
   const mesEl = document.getElementById("freqMesModal");
   const gestorEl = document.getElementById("freqGestorModal");
   const canvas = document.getElementById("freqCanvasModal");
@@ -1291,19 +1272,28 @@ function atualizarGraficoFrequenciaGestorModal() {
   const mesKey = String(mesEl.value || "").trim(); // YYYY-MM
   const gestor = String(gestorEl.value || "").trim();
 
-  if (!mesKey) {
-    resumo.textContent = "Selecione um mês.";
-    return;
-  }
-  if (!gestor) {
-    resumo.textContent = "Selecione um gestor.";
-    return;
-  }
+  if (!mesKey) { resumo.textContent = "Selecione um mês."; return; }
+  if (!gestor) { resumo.textContent = "Selecione um gestor."; return; }
 
   const metaMensal = getMetaMensalGestor(gestor);
   const metaSemanal = metaMensal / 4;
 
-  const { weeks, total } = calcFrequenciaGestorNoMes(gestor, mesKey);
+  // ✅ pega do Worker (Jeito B)
+  const res = await fetch(`${API}/frequencia?mes=${encodeURIComponent(mesKey)}&gestor=${encodeURIComponent(gestor)}`, {
+    headers: authHeaders()
+  });
+
+  const text = await res.text();
+  let data = {};
+  try { data = JSON.parse(text); } catch {}
+
+  if (!res.ok) {
+    resumo.textContent = data?.erro ? `Erro: ${data.erro}` : `Erro ao carregar frequência: ${text}`;
+    return;
+  }
+
+  const weeks = Array.isArray(data.weeks) ? data.weeks : [0,0,0,0,0];
+  const total = Number(data.total || 0);
 
   canvas.height = 280;
   drawFreqChart(canvas, weeks, metaSemanal);
@@ -1318,7 +1308,6 @@ function atualizarGraficoFrequenciaGestorModal() {
     </div>
   `;
 }
-
 async function abrirModalFreq() {
   const modal = document.getElementById("modalFreq");
   if (!modal) return;
