@@ -1372,35 +1372,31 @@ function mostrarAlertaMeses(meses, qtdColab) {
 
 // Pega a quantidade de colaboradores do líder (usando o ranking como base)
 async function alertarPrazoDoLider() {
-  const perfil = localStorage.getItem("perfil") || "";
-  const liderToken = localStorage.getItem("lider") || "";
-
-  // ✅ só líder vê
-  if (perfil !== "user" || !liderToken) {
-    const el = document.getElementById("alertMeses");
-    if (el) el.style.display = "none";
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API}/ranking-colaboradores`, {
+   try {
+    const res = await fetch(`${API}/gestor-info`, {
       headers: authHeaders()
     });
 
     if (!res.ok) return;
 
     const data = await res.json();
-    const qtdColab = (data.results || []).length;
 
-    const meses = calcularMesesParaCobrirEquipe(qtdColab);
-    if (meses == null) return;
+    // ❌ não é gestor → não mostra nada
+    if (!data.is_gestor || data.qtd_colaboradores <= 0) {
+      const el = document.getElementById("alertMeses");
+      if (el) el.style.display = "none";
+      return;
+    }
 
-    mostrarAlertaMeses(meses, qtdColab);
+    const meses = calcularMesesParaCobrirEquipe(data.qtd_colaboradores);
+    if (!meses) return;
+
+    mostrarAlertaMeses(meses, data.qtd_colaboradores);
+
   } catch (e) {
-    console.error("Erro no alerta de meses:", e);
+    console.error("Erro ao calcular prazo do gestor:", e);
   }
 }
-
 /* ===============================
    UI INIT (admin fields)
 ================================ */
