@@ -433,7 +433,7 @@ button.secondary:hover{ background:#f3f3f3; }
     </div>
   </div>
 
-  <!-- ✅ Modal FREQUÊNCIA -->
+ <!-- ✅ Modal FREQUÊNCIA -->
 <div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
   <div class="modal-box" style="width:min(980px, 100%);">
     <div class="modal-head">
@@ -447,24 +447,24 @@ button.secondary:hover{ background:#f3f3f3; }
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:end;">
       <div style="min-width:180px;">
-        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Mês</label>
+        <label>Mês</label>
         <input id="freqMesModal" type="month" style="width:180px;">
-        <select id="freqGestorModal" style="width:100%;"></select>
       </div>
 
       <div style="flex:1; min-width:260px;">
-        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Gestor</label>
-        <select id="freqGestor" style="width:100%;"></select>
+        <label>Gestor</label>
+        <select id="freqGestorModal" style="width:100%;"></select>
       </div>
 
       <button type="button" id="btnAtualizarFreqModal">
-  <i class="bi bi-arrow-repeat"></i> Atualizar
-</button>
+        <i class="bi bi-arrow-repeat"></i> Atualizar
+      </button>
     </div>
 
-    <<div id="freqResumoModal" style="margin-top:12px;"></div>
+    <div id="freqResumoModal" style="margin-top:12px;"></div>
 
-<canvas id="freqCanvasModal" style="width:100%; height:280px;"></canvas>
+    <div style="margin-top:12px;">
+      <canvas id="freqCanvasModal" style="width:100%; height:280px;"></canvas>
     </div>
 
     <div style="margin-top:10px; font-size:12px; color:#666;">
@@ -1741,24 +1741,33 @@ async function alertarPrazoDoLider() {
     mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   }
 
-  popularSelectGestoresModal();
+  // ✅ popula a lista do select do modal
+  popularSelectGestores();
 
-  const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = getMatriculaAtual();
-
-  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-  const podeVerTodos = (perfil === "admin") || LIBERADOS_GERAL.includes(String(matricula));
-
-  const nomeGestorLogado = getNomeDoToken(); // nome do gestor no token
   const sel = document.getElementById("freqGestorModal");
+  const nomeGestorLogado = getNomeDoToken();
 
-  // ✅ se NÃO pode ver todos: trava e filtra no gestor logado
+  // admin/liberados vê todos; os demais ficam travados no próprio gestor
+  const podeVerTodos = podeVerTodosRanking(); // você já criou essa função
+
   if (!podeVerTodos) {
+    // trava no próprio
     sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
     sel.value = nomeGestorLogado;
     sel.disabled = true;
   } else {
     sel.disabled = false;
+
+    // opcional: já selecionar o logado se existir na lista
+    if (nomeGestorLogado) {
+      const key = normName(nomeGestorLogado);
+      for (const opt of sel.options) {
+        if (normName(opt.value) === key) {
+          sel.value = opt.value;
+          break;
+        }
+      }
+    }
   }
 
   atualizarGraficoFrequenciaGestorModal();
@@ -1834,7 +1843,8 @@ document.getElementById("modalFreq")?.addEventListener("click", (e) => {
 })();
 
   console.log("dadosGlobais:", dadosGlobais.length);
-console.log("select options:", document.getElementById("freqGestor").options.length);
+console.log("select options:", document.getElementById("freqGestorModal")?.options.length);
+
 </script>
 
 </body>
