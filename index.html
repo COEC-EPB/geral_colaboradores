@@ -1010,14 +1010,20 @@ function normName(s){
 }
   function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
-  const W = canvas.width = canvas.clientWidth;   // ajusta ao tamanho
-  const H = canvas.height = canvas.height;       // mantém altura definida
 
-  ctx.clearRect(0,0,W,H);
+  // ✅ se ainda não renderizou (modal abriu agora), tenta no próximo frame
+  const W = canvas.clientWidth;
+  const H = canvas.clientHeight || 280;
+  if (!W) return;
+
+  canvas.width = W;
+  canvas.height = H;
+
+  ctx.clearRect(0, 0, W, H);
 
   const padding = 42;
-  const chartW = W - padding*2;
-  const chartH = H - padding*2;
+  const chartW = W - padding * 2;
+  const chartH = H - padding * 2;
 
   const maxVal = Math.max(1, metaPorSemana, ...weeks);
   const yMax = Math.ceil(maxVal + 1);
@@ -1052,7 +1058,7 @@ function normName(s){
   // linha meta
   const yMeta = (H - padding) - (metaPorSemana / yMax) * chartH;
   ctx.strokeStyle = "#b3261e";
-  ctx.setLineDash([6,4]);
+  ctx.setLineDash([6, 4]);
   ctx.beginPath();
   ctx.moveTo(padding, yMeta);
   ctx.lineTo(W - padding, yMeta);
@@ -1064,15 +1070,14 @@ function normName(s){
 
   // barras
   const barGap = 14;
-  const barW = (chartW - barGap*4) / 5;
+  const barW = (chartW - barGap * 4) / 5;
 
   for (let i = 0; i < 5; i++) {
     const val = weeks[i];
-    const x = padding + i*(barW + barGap);
+    const x = padding + i * (barW + barGap);
     const h = (val / yMax) * chartH;
     const y = (H - padding) - h;
 
-    // barra
     ctx.fillStyle = "rgba(0,151,206,.25)";
     ctx.strokeStyle = "rgba(0,151,206,.35)";
     ctx.lineWidth = 1;
@@ -1082,31 +1087,13 @@ function normName(s){
     ctx.fill();
     ctx.stroke();
 
-    // valor em cima
     ctx.fillStyle = "#333";
-    ctx.fillText(String(val), x + barW/2 - 4, y - 6);
+    ctx.fillText(String(val), x + barW / 2 - 4, y - 6);
 
-    // label semana
     ctx.fillStyle = "#555";
-    ctx.fillText(`Sem ${i+1}`, x + 6, H - padding + 18);
+    ctx.fillText(`Sem ${i + 1}`, x + 6, H - padding + 18);
   }
 }
-
-// polyfill simples p/ roundRect (se precisar)
-if (!CanvasRenderingContext2D.prototype.roundRect) {
-  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-    r = Math.min(r, w/2, h/2);
-    this.beginPath();
-    this.moveTo(x+r, y);
-    this.arcTo(x+w, y, x+w, y+h, r);
-    this.arcTo(x+w, y+h, x, y+h, r);
-    this.arcTo(x, y+h, x, y, r);
-    this.arcTo(x, y, x+w, y, r);
-    this.closePath();
-    return this;
-  }
-}
-
   function atualizarGraficoFrequenciaGestorModal() {
   const mesEl = document.getElementById("freqMesModal");
   const gestorEl = document.getElementById("freqGestorModal");
@@ -1770,7 +1757,10 @@ async function alertarPrazoDoLider() {
     }
   }
 
+  requestAnimationFrame(() => {
   atualizarGraficoFrequenciaGestorModal();
+  setTimeout(atualizarGraficoFrequenciaGestorModal, 50);
+});
 }
 
 function fecharModalFreq() {
@@ -1842,8 +1832,9 @@ document.getElementById("modalFreq")?.addEventListener("click", (e) => {
   carregarRanking();
 })();
 
-  console.log("dadosGlobais:", dadosGlobais.length);
-console.log("select options:", document.getElementById("freqGestorModal")?.options.length);
+console.log("gestor:", gestor, "mesKey:", mesKey);
+const { weeks, total } = calcFrequenciaGestorNoMes(gestor, mesKey);
+console.log("weeks:", weeks, "total:", total);
 
 </script>
 
