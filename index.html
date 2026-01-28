@@ -974,32 +974,30 @@ function podeVerTodosFrequencia() {
 
 // ✅ (Opção C) Recriada: calcula frequência do gestor no mês
 function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
-  const weeks = [0, 0, 0, 0, 0];
+  const weeks = [0,0,0,0]; // semana 1..5
   let total = 0;
 
-  const gKey = normName(gestorNome);
-  if (!gKey || !mesKey) return { weeks, total };
+  const alvo = normName(gestorNome);
 
-  for (const item of (dadosGlobais || [])) {
-    const dt = parseISODateFlex(item?.data_inspecao);
-    if (!dt) continue;
-    if (getMonthKey(dt) !== mesKey) continue;
+  (dadosGlobais || []).forEach(i => {
+    const dt = parseISODateFlex(i.data_inspecao);
+    if (!dt) return;
+    if (getMonthKey(dt) !== mesKey) return;
 
-    // ✅ somente campos que você pediu
-    const candidatos = [
-      item?.lider,
-      item?.auditor_1,
-      item?.auditor_2,
-      item?.auditor_3
-    ].map(normName);
+    const match =
+      normName(i.lider) === alvo ||
+      normName(i.auditor_1) === alvo ||
+      normName(i.auditor_2) === alvo ||
+      normName(i.auditor_3) === alvo ||
+      normName(i.cadastrante) === alvo;
 
-    if (!candidatos.includes(gKey)) continue;
+    if (!match) return;
 
-    const w = weekOfMonth(dt); // 1..5
-    const idx = Math.min(Math.max(w - 1, 0), 4);
-    weeks[idx] += 1;
-    total += 1;
-  }
+    const w = weekOfMonth(dt);
+    if (w >= 1 && w <= 5) weeks[w-1]++;
+
+    total++;
+  });
 
   return { weeks, total };
 }
