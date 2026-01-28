@@ -998,7 +998,7 @@ function normName(s) {
     .toUpperCase();
 }
 
-  function listaGestoresPermitidosParaFrequencia() {
+ function listaGestoresPermitidosParaFrequencia() {
   const perfil = localStorage.getItem("perfil") || "user";
 
   // admin vê todos
@@ -1007,8 +1007,13 @@ function normName(s) {
   const meuNome = normName(getNomeDoToken());
   if (!meuNome) return new Set();
 
-  // pega delegados
-  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []);
+  // ✅ super gestores da frequência → veem todos
+  if (SUPER_GESTORES_INSPECOES.has(meuNome)) {
+    return null; // null = sem filtro (vê todos)
+  }
+
+  // delegados
+  const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
 
   return new Set([meuNome, ...delegados]);
 }
