@@ -1008,6 +1008,14 @@ function normName(s) {
   return new Set([meuNome, ...delegados]);
 }
 
+  
+const SUPER_GESTORES_INSPECOES = new Set([
+  normName("NATHALIA HOLANDA VILHENA"),
+  normName("EDIVALDO DA SILVA BRANDAO NETO"),
+  normName("FABIANO OLIVEIRA DE MENEZES"),
+  normName("RENAN IGOR MENEZES DA SILVA")
+]);
+  
 // Delegações de VISUALIZAÇÃO DE INSPEÇÕES (para lançar medidas)
 const DELEGACAO_VER_INSPECOES = {
   [normName("WESLEY FERNANDES DE SOUZA")]: [
@@ -1042,11 +1050,19 @@ const DELEGACAO_VER_INSPECOES = {
 // ✅ pode ver inspeções do próprio nome + delegados
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
+
+  // admin vê tudo
   if (perfil === "admin") return null;
 
   const meuNome = normName(getNomeDoToken());
   if (!meuNome) return new Set();
 
+  // super gestores → podem ver tudo
+  if (SUPER_GESTORES_INSPECOES.has(meuNome)) {
+    return null; // null = sem filtro, vê tudo
+  }
+
+  // delegação tradicional
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
 
   return new Set([meuNome, ...delegados]);
