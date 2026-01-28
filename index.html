@@ -755,7 +755,12 @@ const META_MENSAL_POR_GESTOR = {
 };
 
 function normName(s) {
-  return String(s || "").trim().toUpperCase();
+  return String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // tira acento
+    .replace(/\s+/g, " ")            // remove espaços duplicados
+    .trim()
+    .toUpperCase();
 }
 
 function getMetaMensalGestor(nomeGestor) {
@@ -1050,21 +1055,20 @@ const DELEGACAO_VER_INSPECOES = {
 // ✅ pode ver inspeções do próprio nome + delegados
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
-
-  // admin vê tudo
   if (perfil === "admin") return null;
 
   const meuNome = normName(getNomeDoToken());
+  console.log("meuNome:", meuNome);
+  console.log("SUPER_GESTORES_INSPECOES:", Array.from(SUPER_GESTORES_INSPECOES));
+  console.log("é super?", SUPER_GESTORES_INSPECOES.has(meuNome));
+
   if (!meuNome) return new Set();
 
-  // super gestores → podem ver tudo
   if (SUPER_GESTORES_INSPECOES.has(meuNome)) {
-    return null; // null = sem filtro, vê tudo
+    return null; // vê tudo
   }
 
-  // delegação tradicional
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
-
   return new Set([meuNome, ...delegados]);
 }
 
