@@ -637,21 +637,20 @@ button.secondary:hover{ background:#f3f3f3; }
 </main>
 
 <script>
-    function getMatriculaAtual() {
-  // tenta vários nomes comuns no localStorage
+/* ============================================================
+   🔎 MATRÍCULA / TOKEN HELPERS
+============================================================ */
+function getMatriculaAtual() {
   const keys = ["matricula", "matriculaLogin", "user", "usuario", "sub", "id"];
   for (const k of keys) {
     const v = String(localStorage.getItem(k) || "").trim();
     if (v) return v;
   }
 
-  // tenta pegar do JWT (payload.sub)
   const token = String(localStorage.getItem("token") || "").trim();
   if (token && token.split(".").length === 3) {
     try {
-      const payloadB64 = token.split(".")[1]
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
+      const payloadB64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
       const payloadJson = decodeURIComponent(
         atob(payloadB64)
           .split("")
@@ -666,14 +665,32 @@ button.secondary:hover{ background:#f3f3f3; }
   return "";
 }
 
-/* ===============================
+function getNomeDoToken() {
+  const token = String(localStorage.getItem("token") || "").trim();
+  if (!token || token.split(".").length !== 3) return "";
+
+  try {
+    const payloadB64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payloadJson = decodeURIComponent(
+      atob(payloadB64)
+        .split("")
+        .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(payloadJson);
+    return String(payload.lider || "").trim(); // no seu worker: "lider" = nome
+  } catch (e) {
+    return "";
+  }
+}
+
+/* ============================================================
    CONFIG / SESSÃO
-================================ */
+============================================================ */
 const API = "https://inspecoes.pedro-fillype.workers.dev";
 const statusEl = document.getElementById("status");
 let dadosGlobais = [];
 
-// cache de medidas -> numero => []
 window.medidasPorNumero = {};
 
 if (localStorage.getItem("logado") !== "true") {
@@ -692,7 +709,9 @@ if (perfil !== "admin") {
   if (el) el.remove();
 }
 
-// ✅ Meta mensal por gestor (NOME -> META)
+/* ============================================================
+   ✅ META MENSAL POR GESTOR
+============================================================ */
 const META_MENSAL_POR_GESTOR = {
   "ANDERSON DE ARAUJO VASCONCELOS": 6,
   "EDEVALDO FELICIANO DA SILVA": 8,
@@ -715,41 +734,25 @@ const META_MENSAL_POR_GESTOR = {
   "FABRICIO ANDRE SILVA DE ARAUJO": 4,
   "GERALDO PEDRO DA SILVA JUNIOR": 4,
   "RICHARDSON SILVA DE OLIVEIRA": 4
+};
+
+function normName(s) {
+  return String(s || "").trim().toUpperCase();
 }
 
-  // pega meta do gestor selecionado (padrão = 10)
 function getMetaMensalGestor(nomeGestor) {
-  const key = normName(nomeGestor); // usa sua função normName (UPPER + trim)
+  const key = normName(nomeGestor);
   if (Object.prototype.hasOwnProperty.call(META_MENSAL_POR_GESTOR, key)) {
     return Number(META_MENSAL_POR_GESTOR[key] ?? 10);
   }
   return 10;
 }
 
-  function getNomeDoToken() {
-  const token = String(localStorage.getItem("token") || "").trim();
-  if (!token || token.split(".").length !== 3) return "";
-
-  try {
-    const payloadB64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const payloadJson = decodeURIComponent(
-      atob(payloadB64)
-        .split("")
-        .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    const payload = JSON.parse(payloadJson);
-    // no seu worker, "lider" é o NOME (row.nome)
-    return String(payload.lider || "").trim();
-  } catch (e) {
-    return "";
-  }
-}
-  
-/* ===============================
+/* ============================================================
    HELPERS
-================================ */
+============================================================ */
 function setStatus(msg, type = "") {
+  if (!statusEl) return;
   statusEl.textContent = msg;
   statusEl.className = `status ${type}`;
 }
@@ -766,7 +769,7 @@ async function apiFetch(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     ...options,
     headers: {
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       ...(options.headers || {})
     }
   });
@@ -774,10 +777,10 @@ async function apiFetch(path, options = {}) {
 }
 
 function authHeaders() {
-  const token = localStorage.getItem("token") || "";
+  const tk = localStorage.getItem("token") || "";
   return {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`
+    Authorization: `Bearer ${tk}`
   };
 }
 
@@ -803,9 +806,47 @@ function formatarDataBR2(iso) {
   return `${d}/${m}/${y}`;
 }
 
-/* ===============================
+function parseISODateFlex(v) {
+  const s = String(v || "").trim();
+  if (!s) return null;
+
+  if (s.includes("/")) {
+    const [d, m, y] = s.split("/");
+    if (!y || !m || !d) return null;
+    const dt = new Date(`${y}-${m}-${d}T00:00:00`);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  const iso = s.slice(0, 10);
+  const dt = new Date(`${iso}T00:00:00`);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function getMonthKey(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+function weekOfMonth(d) {
+  return Math.floor((d.getDate() - 1) / 7) + 1; // 1..5
+}
+
+/* ============================================================
+   ✅ PERMISSÕES (Ranking) - (Opção C)
+============================================================ */
+function podeVerTodosRanking() {
+  const perfil = localStorage.getItem("perfil") || "user";
+  const matricula = String(getMatriculaAtual() || "").trim();
+  const LIBERADOS_GERAL = ["6855", "3075664", "8004", "11273"];
+  return perfil === "admin" || LIBERADOS_GERAL.includes(matricula);
+}
+
+/* ============================================================
    MEDIDAS: CACHE + MODAL VER
-================================ */
+============================================================ */
 async function carregarMedidasCache() {
   const res = await apiFetch(`/medidas`);
   if (res.status === 401) return logout();
@@ -814,8 +855,8 @@ async function carregarMedidasCache() {
   if (!res.ok) throw new Error(text);
 
   const rows = JSON.parse(text) || [];
-
   const map = {};
+
   for (const r of rows) {
     const numero = String(r.numero ?? "").trim();
     if (!numero) continue;
@@ -823,8 +864,8 @@ async function carregarMedidasCache() {
     map[numero].push(r);
   }
 
-  Object.keys(map).forEach((k) => {
-    map[k].sort((a,b) => String(b.data||"").localeCompare(String(a.data||"")));
+  Object.keys(map).forEach(k => {
+    map[k].sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
   });
 
   window.medidasPorNumero = map;
@@ -834,10 +875,12 @@ function abrirModalVerMedidas(numero) {
   const modal = document.getElementById("modalVerMedidas");
   const titulo = document.getElementById("vmTitulo");
   const body = document.getElementById("vmBody");
+  if (!modal || !titulo || !body) return;
 
-  const medidas = (window.medidasPorNumero && window.medidasPorNumero[numero])
-    ? window.medidasPorNumero[numero]
-    : [];
+  const medidas =
+    window.medidasPorNumero && window.medidasPorNumero[numero]
+      ? window.medidasPorNumero[numero]
+      : [];
 
   titulo.textContent = `Medidas da inspeção: ${numero}`;
   body.innerHTML = "";
@@ -848,7 +891,7 @@ function abrirModalVerMedidas(numero) {
     return;
   }
 
-  medidas.forEach((m) => {
+  medidas.forEach(m => {
     const card = document.createElement("div");
     card.style.border = "1px solid var(--border)";
     card.style.borderRadius = "12px";
@@ -872,7 +915,6 @@ function abrirModalVerMedidas(numero) {
       </div>
     `;
 
-    // ✅ Botões Editar/Excluir (só se puder)
     if (m.can_edit) {
       const btnWrap = document.createElement("div");
       btnWrap.style.display = "flex";
@@ -906,11 +948,11 @@ function abrirModalVerMedidas(numero) {
 }
 
 function fecharModalVerMedidas() {
-  document.getElementById("modalVerMedidas").style.display = "none";
+  const modal = document.getElementById("modalVerMedidas");
+  if (modal) modal.style.display = "none";
 }
 
-// clique no link vermelho (delegação)
-document.addEventListener("click", (e) => {
+document.addEventListener("click", e => {
   const a = e.target.closest(".medida-link");
   if (!a) return;
   e.preventDefault();
@@ -918,125 +960,49 @@ document.addEventListener("click", (e) => {
   if (numero) abrirModalVerMedidas(numero);
 });
 
-
-/* ===============================
-   FREQUÊNCIA (MODAL) - CORRIGIDO
-================================ */
-
-// usa sua regra: admin ou liberados podem ver todos
-
- function podeVerTodosFrequencia() {
+/* ============================================================
+   ✅ FREQUÊNCIA (MODAL) - AJUSTADO (return/await dentro da função)
+============================================================ */
+function podeVerTodosFrequencia() {
   const perfil = localStorage.getItem("perfil") || "user";
   const matricula = String(getMatriculaAtual() || "").trim();
-  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-  return (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
-} 
+  const LIBERADOS_GERAL = ["6855", "3075664", "8004", "11273"];
+  return perfil === "admin" || LIBERADOS_GERAL.includes(matricula);
+}
 
-  const modal = document.getElementById("modalFreq");
-  if (!modal) return;
+// ✅ (Opção C) Recriada: calcula frequência do gestor no mês
+function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
+  const weeks = [0, 0, 0, 0, 0];
+  let total = 0;
 
-  if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
-    await carregarInspecoes();
+  const gKey = normName(gestorNome);
+  if (!gKey || !mesKey) return { weeks, total };
+
+  for (const item of (dadosGlobais || [])) {
+    const dt = parseISODateFlex(item?.data_inspecao);
+    if (!dt) continue;
+
+    if (getMonthKey(dt) !== mesKey) continue;
+
+    // Conta se o gestor aparece em qualquer campo “responsável”
+    const candidatos = [
+      item?.lider,
+      item?.auditor_1,
+      item?.auditor_2,
+      item?.auditor_3,
+      item?.cadastrante
+    ].map(normName);
+
+    if (!candidatos.includes(gKey)) continue;
+
+    const w = weekOfMonth(dt); // 1..5
+    const idx = Math.min(Math.max(w - 1, 0), 4);
+    weeks[idx] += 1;
+    total += 1;
   }
 
-  modal.style.display = "flex";
-
-  // mês default
-  const mesEl = document.getElementById("freqMesModal");
-  if (mesEl && !mesEl.value) {
-    const d = new Date();
-    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  }
-
-  // popula o select
-  popularSelectGestoresModal();
-
-  // trava no gestor logado se não puder ver todos
-  const sel = document.getElementById("freqGestorModal");
-  const nomeGestorLogado = String(getNomeDoToken() || "").trim();
-  const podeTodos = podeVerTodosFrequencia();
-
-  if (!podeTodos && nomeGestorLogado) {
-    sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
-    sel.value = nomeGestorLogado;
-    sel.disabled = true;
-  } else {
-    sel.disabled = false;
-
-    // seleciona o logado se existir na lista
-    if (nomeGestorLogado) {
-      const key = normName(nomeGestorLogado);
-      for (const opt of sel.options) {
-        if (normName(opt.value) === key) {
-          sel.value = opt.value;
-          break;
-        }
-      }
-    }
-  }
-
-  // desenha após abrir (garante layout)
-  requestAnimationFrame(() => {
-    atualizarGraficoFrequenciaGestorModal();
-    setTimeout(atualizarGraficoFrequenciaGestorModal, 50);
-  });
+  return { weeks, total };
 }
-
-function fecharModalFreq() {
-  const modal = document.getElementById("modalFreq");
-  if (modal) modal.style.display = "none";
-}
-
-// Botão do topo
-document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
-document.getElementById("btnFecharFreq")?.addEventListener("click", () => {
-  const modal = document.getElementById("modalFreq");
-  if (modal) modal.style.display = "none";
-});
-
-document.getElementById("btnAtualizarFreqModal")?.addEventListener("click", atualizarGraficoFrequenciaGestorModal);
-document.getElementById("freqMesModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
-document.getElementById("freqGestorModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
-
-document.getElementById("modalFreq")?.addEventListener("click", (e) => {
-  if (e.target.id === "modalFreq") {
-    const modal = document.getElementById("modalFreq");
-    if (modal) modal.style.display = "none";
-  }
-});  
-
-  function parseISODateFlex(v) {
-  // aceita "YYYY-MM-DD" ou "DD/MM/YYYY"
-  const s = String(v || "").trim();
-  if (!s) return null;
-
-  if (s.includes("/")) {
-    const [d, m, y] = s.split("/");
-    if (!y || !m || !d) return null;
-    return new Date(`${y}-${m}-${d}T00:00:00`);
-  }
-  // pega só a parte YYYY-MM-DD
-  const iso = s.slice(0, 10);
-  const dt = new Date(`${iso}T00:00:00`);
-  return isNaN(dt.getTime()) ? null : dt;
-}
-
-function pad2(n){ return String(n).padStart(2,"0"); }
-
-function getMonthKey(d){
-  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}`;
-}
-
-// semana "do mês" (1..5/6) baseado em blocos de 7 dias a partir do dia 1
-function weekOfMonth(d){
-  return Math.floor((d.getDate() - 1) / 7) + 1; // 1..5
-}
-
-function normName(s){
-  return String(s||"").trim().toUpperCase();
-}
-
-  
 
 function popularSelectGestoresModal() {
   const sel = document.getElementById("freqGestorModal");
@@ -1054,18 +1020,17 @@ function popularSelectGestoresModal() {
   });
 
   const lista = Array.from(map.entries())
-    .sort((a,b) => a[0].localeCompare(b[0]))
-    .map(([,orig]) => orig);
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, orig]) => orig);
 
   sel.innerHTML =
     `<option value="">Selecione…</option>` +
-    lista.map(n => `<option value="${String(n).replaceAll('"','&quot;')}">${n}</option>`).join("");
+    lista.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
 }
-  
-  function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
+
+function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
 
-  // ✅ se ainda não renderizou (modal abriu agora), tenta no próximo frame
   const W = canvas.clientWidth;
   const H = canvas.clientHeight || 280;
   if (!W) return;
@@ -1082,7 +1047,6 @@ function popularSelectGestoresModal() {
   const maxVal = Math.max(1, metaPorSemana, ...weeks);
   const yMax = Math.ceil(maxVal + 1);
 
-  // eixos
   ctx.lineWidth = 1;
   ctx.strokeStyle = "#d9d9d9";
   ctx.beginPath();
@@ -1091,10 +1055,10 @@ function popularSelectGestoresModal() {
   ctx.lineTo(W - padding, H - padding);
   ctx.stroke();
 
-  // grid Y + labels
   ctx.fillStyle = "#666";
   ctx.font = "12px Segoe UI, Arial";
   const steps = 5;
+
   for (let s = 0; s <= steps; s++) {
     const v = (yMax / steps) * s;
     const y = (H - padding) - (v / yMax) * chartH;
@@ -1109,7 +1073,6 @@ function popularSelectGestoresModal() {
     ctx.fillText(v.toFixed(0), 8, y + 4);
   }
 
-  // linha meta
   const yMeta = (H - padding) - (metaPorSemana / yMax) * chartH;
   ctx.strokeStyle = "#b3261e";
   ctx.setLineDash([6, 4]);
@@ -1122,7 +1085,6 @@ function popularSelectGestoresModal() {
   ctx.fillStyle = "#b3261e";
   ctx.fillText(`Meta: ${metaPorSemana}`, padding + 6, yMeta - 8);
 
-  // barras
   const barGap = 14;
   const barW = (chartW - barGap * 4) / 5;
 
@@ -1137,7 +1099,8 @@ function popularSelectGestoresModal() {
     ctx.lineWidth = 1;
 
     ctx.beginPath();
-    ctx.roundRect(x, y, barW, h, 10);
+    if (ctx.roundRect) ctx.roundRect(x, y, barW, h, 10);
+    else ctx.rect(x, y, barW, h);
     ctx.fill();
     ctx.stroke();
 
@@ -1148,7 +1111,8 @@ function popularSelectGestoresModal() {
     ctx.fillText(`Sem ${i + 1}`, x + 6, H - padding + 18);
   }
 }
-  function atualizarGraficoFrequenciaGestorModal() {
+
+function atualizarGraficoFrequenciaGestorModal() {
   const mesEl = document.getElementById("freqMesModal");
   const gestorEl = document.getElementById("freqGestorModal");
   const canvas = document.getElementById("freqCanvasModal");
@@ -1158,17 +1122,20 @@ function popularSelectGestoresModal() {
   const mesKey = String(mesEl.value || "").trim(); // YYYY-MM
   const gestor = String(gestorEl.value || "").trim();
 
-  console.log("gestor:", gestor, "mesKey:", mesKey);
-
-  if (!mesKey) { resumo.textContent = "Selecione um mês."; return; }
-  if (!gestor) { resumo.textContent = "Selecione um gestor."; return; }
+  if (!mesKey) {
+    resumo.textContent = "Selecione um mês.";
+    return;
+  }
+  if (!gestor) {
+    resumo.textContent = "Selecione um gestor.";
+    return;
+  }
 
   const metaMensal = getMetaMensalGestor(gestor);
   const metaSemanal = metaMensal / 4;
 
   const { weeks, total } = calcFrequenciaGestorNoMes(gestor, mesKey);
 
-  // garante tamanho
   canvas.height = 280;
   drawFreqChart(canvas, weeks, metaSemanal);
 
@@ -1182,16 +1149,86 @@ function popularSelectGestoresModal() {
     </div>
   `;
 }
-/* ===============================
+
+async function abrirModalFreq() {
+  const modal = document.getElementById("modalFreq");
+  if (!modal) return;
+
+  if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
+    await carregarInspecoes();
+  }
+
+  modal.style.display = "flex";
+
+  const mesEl = document.getElementById("freqMesModal");
+  if (mesEl && !mesEl.value) {
+    const d = new Date();
+    mesEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  popularSelectGestoresModal();
+
+  const sel = document.getElementById("freqGestorModal");
+  const nomeGestorLogado = String(getNomeDoToken() || "").trim();
+  const podeTodos = podeVerTodosFrequencia();
+
+  if (sel) {
+    if (!podeTodos && nomeGestorLogado) {
+      sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
+      sel.value = nomeGestorLogado;
+      sel.disabled = true;
+    } else {
+      sel.disabled = false;
+
+      if (nomeGestorLogado) {
+        const key = normName(nomeGestorLogado);
+        for (const opt of sel.options) {
+          if (normName(opt.value) === key) {
+            sel.value = opt.value;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  requestAnimationFrame(() => {
+    atualizarGraficoFrequenciaGestorModal();
+    setTimeout(atualizarGraficoFrequenciaGestorModal, 50);
+  });
+}
+
+function fecharModalFreq() {
+  const modal = document.getElementById("modalFreq");
+  if (modal) modal.style.display = "none";
+}
+
+document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
+document.getElementById("btnFecharFreq")?.addEventListener("click", fecharModalFreq);
+document.getElementById("btnAtualizarFreqModal")?.addEventListener("click", atualizarGraficoFrequenciaGestorModal);
+document.getElementById("freqMesModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
+document.getElementById("freqGestorModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
+
+document.getElementById("modalFreq")?.addEventListener("click", e => {
+  if (e.target.id === "modalFreq") fecharModalFreq();
+});
+
+/* ============================================================
    TABELA INSPEÇÕES
-================================ */
+============================================================ */
 function renderTabela(dados) {
   const tbody = document.getElementById("tbody");
+  if (!tbody) return;
+
   tbody.innerHTML = "";
 
   dados.forEach(item => {
     const numero = String(item.numero ?? "").trim();
-    const medidas = (window.medidasPorNumero && window.medidasPorNumero[numero]) ? window.medidasPorNumero[numero] : [];
+    const medidas =
+      window.medidasPorNumero && window.medidasPorNumero[numero]
+        ? window.medidasPorNumero[numero]
+        : [];
+
     const temMedida = medidas.length > 0;
 
     const badgeMedida = temMedida
@@ -1203,10 +1240,7 @@ function renderTabela(dados) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>
-        ${numero}
-        ${badgeMedida}
-      </td>
+      <td>${numero} ${badgeMedida}</td>
       <td>${item.numero_plano ?? ""}</td>
       <td>${item.localidade ?? ""}</td>
       <td>${item.area ?? ""}</td>
@@ -1241,9 +1275,9 @@ function renderTabela(dados) {
   setStatus(`Registros exibidos: ${dados.length}`, "success");
 }
 
-/* ===============================
+/* ============================================================
    CARREGAR INSPEÇÕES
-================================ */
+============================================================ */
 async function carregarInspecoes() {
   setStatus("Carregando inspeções...");
   try {
@@ -1257,9 +1291,12 @@ async function carregarInspecoes() {
     if (!res.ok) throw new Error(text);
 
     let parsed = [];
-    try { parsed = JSON.parse(text); } catch { parsed = []; }
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = [];
+    }
 
-    // ✅ aceita: [ ... ] OU { results:[ ... ] } OU {data:[...]}
     const arr =
       Array.isArray(parsed) ? parsed :
       Array.isArray(parsed?.results) ? parsed.results :
@@ -1270,7 +1307,6 @@ async function carregarInspecoes() {
 
     renderTabela(dadosGlobais);
     return dadosGlobais;
-
   } catch (e) {
     setStatus("Erro ao carregar dados.", "error");
     console.error(e);
@@ -1279,13 +1315,13 @@ async function carregarInspecoes() {
   }
 }
 
-/* ===============================
+/* ============================================================
    FILTROS
-================================ */
+============================================================ */
 function aplicarFiltros() {
-  const lider = document.getElementById("filtroLider").value.toLowerCase().trim();
-  const localidade = document.getElementById("filtroLocalidade").value.toLowerCase().trim();
-  const data = document.getElementById("filtroData").value;
+  const lider = document.getElementById("filtroLider")?.value.toLowerCase().trim() || "";
+  const localidade = document.getElementById("filtroLocalidade")?.value.toLowerCase().trim() || "";
+  const data = document.getElementById("filtroData")?.value || "";
 
   const filtrado = dadosGlobais.filter(item => {
     const okLider = !lider || (item.lider && item.lider.toLowerCase().includes(lider));
@@ -1298,15 +1334,18 @@ function aplicarFiltros() {
 }
 
 function limparFiltros() {
-  document.getElementById("filtroLider").value = "";
-  document.getElementById("filtroLocalidade").value = "";
-  document.getElementById("filtroData").value = "";
+  const a = document.getElementById("filtroLider");
+  const b = document.getElementById("filtroLocalidade");
+  const c = document.getElementById("filtroData");
+  if (a) a.value = "";
+  if (b) b.value = "";
+  if (c) c.value = "";
   renderTabela(dadosGlobais);
 }
 
-/* ===============================
+/* ============================================================
    IMPORTAR EXCEL (somente admin)
-================================ */
+============================================================ */
 function normalizarLinha(l) {
   return {
     numero: l["Número"]?.toString().trim() || null,
@@ -1348,7 +1387,7 @@ function chunkArray(arr, size) {
 
 const excelInput = document.getElementById("excel");
 if (excelInput && perfil === "admin") {
-  excelInput.addEventListener("change", async (e) => {
+  excelInput.addEventListener("change", async e => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -1385,69 +1424,129 @@ if (excelInput && perfil === "admin") {
 
     setStatus("Importação concluída ✔", "success");
 
-    // recarrega tudo
     await carregarMedidasCache();
     await carregarInspecoes();
   });
 }
 
-/* ===============================
-   MEDIDAS DISCIPLINARES
-================================ */
+/* ============================================================
+   MEDIDAS DISCIPLINARES (✅ sem duplicação de salvarMedida)
+============================================================ */
 function abrirModalMedida() {
-  document.getElementById("modalMedida").style.display = "flex";
+  const modal = document.getElementById("modalMedida");
+  if (!modal) return;
+
+  modal.style.display = "flex";
   const hoje = new Date().toISOString().split("T")[0];
   const mdData = document.getElementById("mdData");
-  if (!mdData.value) mdData.value = hoje;
+  if (mdData && !mdData.value) mdData.value = hoje;
 }
 
 function fecharModalMedida() {
-  document.getElementById("modalMedida").style.display = "none";
+  const modal = document.getElementById("modalMedida");
+  if (modal) modal.style.display = "none";
 }
 
-async function salvarMedida() {
-  const numero = document.getElementById("mdNumero").value.trim();
-  const data = document.getElementById("mdData").value;
-  const descricao = document.getElementById("mdDescricao").value.trim();
+async function excluirMedida(id) {
+  if (!confirm("Deseja realmente excluir esta medida?")) return;
 
-  if (!numero) return setStatus("Informe o Número da inspeção.", "error");
-  if (!data) return setStatus("Informe a data da medida.", "error");
-  if (!descricao) return setStatus("Descreva qual foi a medida.", "error");
-
-  setStatus("Salvando medida disciplinar...", "success");
-
-  const resp = await apiFetch(`/medidas`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ numero, data, descricao })
+  const res = await fetch(`${API}/medidas/${id}`, {
+    method: "DELETE",
+    headers: authHeaders()
   });
 
-  if (resp.status === 401) return logout();
-
-  if (!resp.ok) {
-    const err = await resp.text();
-    setStatus(`Erro ao salvar medida: ${err}`, "error");
+  const text = await res.text();
+  if (!res.ok) {
+    setStatus(`Erro ao excluir: ${text}`, "error");
     return;
   }
 
-  fecharModalMedida();
-  document.getElementById("mdNumero").value = "";
-  document.getElementById("mdDescricao").value = "";
+  setStatus("Medida excluída ✔", "success");
+  location.reload();
+}
 
-  // ✅ atualiza o cache e redesenha a tabela (pra aparecer o link vermelho)
+async function editarMedida(m) {
+  const novaData = prompt("Nova data (YYYY-MM-DD):", m.data || "");
+  if (!novaData) return;
+
+  const novaDescricao = prompt("Nova descrição:", m.descricao || "");
+  if (!novaDescricao) return;
+
+  const res = await fetch(`${API}/medidas/${m.id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ data: novaData, descricao: novaDescricao })
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    setStatus(`Erro ao editar: ${text}`, "error");
+    return;
+  }
+
+  await carregarMedidasCache();
+  abrirModalVerMedidas(String(m.numero));
+  setStatus("Medida atualizada ✔", "success");
+  location.reload();
+}
+
+async function salvarMedida() {
+  const idEdit = window._editMedidaId || null;
+
+  const numeroEl = document.getElementById("mdNumero");
+  const numero = (numeroEl?.value || "").trim();
+  const data = document.getElementById("mdData")?.value || "";
+  const descricao = (document.getElementById("mdDescricao")?.value || "").trim();
+
+  if (!data) return setStatus("Informe a data da medida.", "error");
+  if (!descricao) return setStatus("Descreva qual foi a medida.", "error");
+
+  setStatus(idEdit ? "Atualizando medida..." : "Salvando medida...", "success");
+
+  let resp;
+
+  if (idEdit) {
+    resp = await apiFetch(`/medidas/${idEdit}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, descricao })
+    });
+  } else {
+    if (!numero) return setStatus("Informe o Número da inspeção.", "error");
+    resp = await apiFetch(`/medidas`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numero, data, descricao })
+    });
+  }
+
+  const text = await resp.text();
+  if (!resp.ok) {
+    setStatus(`Erro: ${text}`, "error");
+    return;
+  }
+
+  window._editMedidaId = null;
+  if (numeroEl) numeroEl.disabled = false;
+
+  fecharModalMedida();
+  if (numeroEl) numeroEl.value = "";
+  const descEl = document.getElementById("mdDescricao");
+  if (descEl) descEl.value = "";
+
   await carregarMedidasCache();
   renderTabela(dadosGlobais);
 
-  setStatus("Medida registrada com sucesso ✔", "success");
+  setStatus(idEdit ? "Medida atualizada ✔" : "Medida registrada ✔", "success");
 }
 
-/* ===============================
+/* ============================================================
    STATS MENSAL
-================================ */
+============================================================ */
 function nomeMes(mm) {
   const map = {
-    "01":"Jan","02":"Fev","03":"Mar","04":"Abr","05":"Mai","06":"Jun",
-    "07":"Jul","08":"Ago","09":"Set","10":"Out","11":"Nov","12":"Dez"
+    "01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr", "05": "Mai", "06": "Jun",
+    "07": "Jul", "08": "Ago", "09": "Set", "10": "Out", "11": "Nov", "12": "Dez"
   };
   return map[mm] || mm;
 }
@@ -1457,9 +1556,9 @@ async function carregarStatsMensal() {
     const anoEl = document.getElementById("statsAno");
     const liderEl = document.getElementById("statsLider");
 
-    if (!anoEl.value) anoEl.value = new Date().getFullYear();
+    if (anoEl && !anoEl.value) anoEl.value = new Date().getFullYear();
 
-    const ano = String(anoEl.value);
+    const ano = String(anoEl?.value || new Date().getFullYear());
     const perfil = localStorage.getItem("perfil") || "user";
     const lider = (perfil === "admin" && liderEl) ? (liderEl.value || "").trim() : "";
 
@@ -1480,24 +1579,26 @@ async function carregarStatsMensal() {
       return;
     }
 
-    document.getElementById("kpiTotalAno").textContent = data.total_ano ?? 0;
-    document.getElementById("kpiNaoConformes").textContent = data.soma_nao_conforme_ano ?? 0;
+    const k1 = document.getElementById("kpiTotalAno");
+    const k2 = document.getElementById("kpiNaoConformes");
+    if (k1) k1.textContent = data.total_ano ?? 0;
+    if (k2) k2.textContent = data.soma_nao_conforme_ano ?? 0;
 
     const tbody = document.getElementById("statsTbody");
-    tbody.innerHTML = "";
-
-    (data.por_mes || []).forEach(r => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td style="padding:10px; border-bottom:1px solid var(--border);">${nomeMes(r.mes)}</td>
-        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.total}</td>
-        <td style="padding:10px; border-bottom:1px solid var(--border);">${r.soma_nao_conforme}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+    if (tbody) {
+      tbody.innerHTML = "";
+      (data.por_mes || []).forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="padding:10px; border-bottom:1px solid var(--border);">${nomeMes(r.mes)}</td>
+          <td style="padding:10px; border-bottom:1px solid var(--border);">${r.total}</td>
+          <td style="padding:10px; border-bottom:1px solid var(--border);">${r.soma_nao_conforme}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
     renderChart(data.por_mes || []);
-
     setStatus("Estatísticas atualizadas ✔", "success");
   } catch (e) {
     setStatus("Erro ao carregar estatísticas.", "error");
@@ -1536,21 +1637,15 @@ function renderChart(porMes) {
   });
 }
 
-/* ===============================
+/* ============================================================
    RANKING
-================================ */
+============================================================ */
 async function carregarRanking() {
   try {
-    const perfil = localStorage.getItem("perfil") || "user";
-    const matricula = getMatriculaAtual();
-
-    const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-    const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(String(matricula));
-
+    const podeGeral = podeVerTodosRanking();
     const liderEl = document.getElementById("rankingLider");
     const qs = new URLSearchParams();
 
-    // ✅ só admin/liberados mandam lider
     if (podeGeral && liderEl && liderEl.value) {
       qs.set("lider", liderEl.value);
     }
@@ -1571,12 +1666,14 @@ async function carregarRanking() {
 
     const rows = data.results || [];
     const tbody = document.getElementById("rankingTbody");
+    if (!tbody) return;
+
     tbody.innerHTML = "";
 
     rows.forEach((r, idx) => {
       const tr = document.createElement("tr");
       tr.innerHTML =
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx+1) + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.colaborador ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
@@ -1594,12 +1691,8 @@ async function carregarRanking() {
   }
 }
 
-  async function carregarLideresRanking() {
-  const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = getMatriculaAtual();
-
-  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-  const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(String(matricula));
+async function carregarLideresRanking() {
+  const podeGeral = podeVerTodosRanking();
 
   const box = document.getElementById("boxRankingLider");
   const sel = document.getElementById("rankingLider");
@@ -1607,7 +1700,7 @@ async function carregarRanking() {
 
   if (!podeGeral) {
     box.style.display = "none";
-    return; // ✅ importante
+    return;
   }
 
   box.style.display = "block";
@@ -1624,7 +1717,7 @@ async function carregarRanking() {
   const lideres = data.results || [];
 
   sel.innerHTML = `<option value="">Selecione o líder...</option>`;
-  lideres.forEach((l) => {
+  lideres.forEach(l => {
     const opt = document.createElement("option");
     opt.value = l;
     opt.textContent = l;
@@ -1632,103 +1725,13 @@ async function carregarRanking() {
   });
 }
 
-  async function excluirMedida(id) {
-  if (!confirm("Deseja realmente excluir esta medida?")) return;
-
-  const res = await fetch(`${API}/medidas/${id}`, {
-    method: "DELETE",
-    headers: authHeaders()
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    setStatus(`Erro ao excluir: ${text}`, "error");
-    return;
-  }
-
-  setStatus("Medida excluída ✔", "success");
-  location.reload(); // ✅ refresh da página
-}
-
-async function editarMedida(m) {
-  const novaData = prompt("Nova data (YYYY-MM-DD):", m.data || "");
-  if (!novaData) return;
-
-  const novaDescricao = prompt("Nova descrição:", m.descricao || "");
-  if (!novaDescricao) return;
-
-  const res = await fetch(`${API}/medidas/${m.id}`, {
-    method: "PUT",
-    headers: authHeaders(),
-    body: JSON.stringify({ data: novaData, descricao: novaDescricao })
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    setStatus(`Erro ao editar: ${text}`, "error");
-    return;
-  }
-
-  await carregarMedidasCache();
-  abrirModalVerMedidas(String(m.numero)); // reabre atualizado
-  setStatus("Medida atualizada ✔", "success");
-  location.reload(); // ✅ refresh da página
-}
-
-async function salvarMedida() {
-  const idEdit = window._editMedidaId || null;
-
-  const numeroEl = document.getElementById("mdNumero");
-  const numero = (numeroEl.value || "").trim();
-  const data = document.getElementById("mdData").value;
-  const descricao = document.getElementById("mdDescricao").value.trim();
-
-  if (!data) return setStatus("Informe a data da medida.", "error");
-  if (!descricao) return setStatus("Descreva qual foi a medida.", "error");
-
-  setStatus(idEdit ? "Atualizando medida..." : "Salvando medida...", "success");
-
-  let resp;
-
-  if (idEdit) {
-    resp = await apiFetch(`/medidas/${idEdit}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data, descricao })
-    });
-  } else {
-    if (!numero) return setStatus("Informe o Número da inspeção.", "error");
-    resp = await apiFetch(`/medidas`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numero, data, descricao })
-    });
-  }
-
-  const text = await resp.text();
-  if (!resp.ok) {
-    setStatus(`Erro: ${text}`, "error");
-    return;
-  }
-
-  // limpa modo edição
-  window._editMedidaId = null;
-  document.getElementById("mdNumero").disabled = false;
-
-  fecharModalMedida();
-  document.getElementById("mdNumero").value = "";
-  document.getElementById("mdDescricao").value = "";
-
-  await carregarMedidasCache();
-  renderTabela(dadosGlobais);
-
-  setStatus(idEdit ? "Medida atualizada ✔" : "Medida registrada ✔", "success");
-}
-  function calcularMesesParaCobrirEquipe(qtdColab) {
-  const metaMes = Math.ceil((Number(qtdColab) || 0) / 2); // divide por 2
+/* ============================================================
+   ALERTA PRAZO DO LÍDER (✅ corrigido ${meses})
+============================================================ */
+function calcularMesesParaCobrirEquipe(qtdColab) {
+  const metaMes = Math.ceil((Number(qtdColab) || 0) / 2);
   if (metaMes <= 0) return null;
-
-  return Math.ceil(110 / metaMes); // regra que você definiu
+  return Math.ceil(110 / metaMes);
 }
 
 function mostrarAlertaMeses(meses, qtdColab) {
@@ -1736,25 +1739,20 @@ function mostrarAlertaMeses(meses, qtdColab) {
   if (!el) return;
 
   el.textContent =
-    `⚠️ Prazo estimado: ${4} mês(es) para inspecionar toda a equipe ` +
+    `⚠️ Prazo estimado: ${meses} mês(es) para inspecionar toda a equipe ` +
     `(colaboradores: ${qtdColab}).`;
 
   el.style.display = "block";
-  el.classList.add("piscar"); // fica piscando SEM sumir
+  el.classList.add("piscar");
 }
 
-// Pega a quantidade de colaboradores do líder (usando o ranking como base)
 async function alertarPrazoDoLider() {
-   try {
-    const res = await fetch(`${API}/gestor-info`, {
-      headers: authHeaders()
-    });
-
+  try {
+    const res = await fetch(`${API}/gestor-info`, { headers: authHeaders() });
     if (!res.ok) return;
 
     const data = await res.json();
 
-    // ❌ não é gestor → não mostra nada
     if (!data.is_gestor || data.qtd_colaboradores <= 0) {
       const el = document.getElementById("alertMeses");
       if (el) el.style.display = "none";
@@ -1765,16 +1763,15 @@ async function alertarPrazoDoLider() {
     if (!meses) return;
 
     mostrarAlertaMeses(meses, data.qtd_colaboradores);
-
   } catch (e) {
     console.error("Erro ao calcular prazo do gestor:", e);
   }
 }
 
-/* ===============================
-   UI INIT (admin fields)
-================================ */
-(function initStatsUI(){
+/* ============================================================
+   UI INIT
+============================================================ */
+(function initStatsUI() {
   const perfil = localStorage.getItem("perfil") || "user";
   const box = document.getElementById("boxStatsLider");
   if (box && perfil === "admin") box.style.display = "block";
@@ -1783,12 +1780,11 @@ async function alertarPrazoDoLider() {
   if (anoEl) anoEl.value = new Date().getFullYear();
 })();
 
-(function initRankingUI(){
+(function initRankingUI() {
   const box = document.getElementById("boxRankingLider");
   if (!box) return;
 
   if (!podeVerTodosRanking()) {
-    // remove do DOM pra não aparecer nunca
     box.remove();
     return;
   }
@@ -1796,19 +1792,19 @@ async function alertarPrazoDoLider() {
   box.style.display = "block";
 })();
 
-/* ===============================
+/* ============================================================
    INIT
-================================ */
-(async function init(){
+============================================================ */
+(async function init() {
   carregarStatsMensal();
 
   await carregarMedidasCache();
   await carregarInspecoes();
 
   if (podeVerTodosRanking()) {
-    if (!podeVerTodosRanking()) return;
-  await carregarLideresRanking();
-}
+    await carregarLideresRanking();
+  }
+
   await alertarPrazoDoLider();
 
   const rankingLiderEl = document.getElementById("rankingLider");
@@ -1821,10 +1817,8 @@ async function alertarPrazoDoLider() {
 
   carregarRanking();
 })();
-
-
-
 </script>
+
 
 </body>
 </html>
