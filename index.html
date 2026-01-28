@@ -448,7 +448,8 @@ button.secondary:hover{ background:#f3f3f3; }
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:end;">
       <div style="min-width:180px;">
         <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Mês</label>
-        <input id="freqMes" type="month" style="width:180px;">
+        <input id="freqMesModal" type="month" style="width:180px;">
+        <select id="freqGestorModal" style="width:100%;"></select>
       </div>
 
       <div style="flex:1; min-width:260px;">
@@ -456,15 +457,14 @@ button.secondary:hover{ background:#f3f3f3; }
         <select id="freqGestor" style="width:100%;"></select>
       </div>
 
-      <button type="button" id="btnAtualizarFreq">
-        <i class="bi bi-arrow-repeat"></i> Atualizar
-      </button>
+      <button type="button" id="btnAtualizarFreqModal">
+  <i class="bi bi-arrow-repeat"></i> Atualizar
+</button>
     </div>
 
-    <div id="freqResumo" style="margin-top:12px;"></div>
+    <<div id="freqResumoModal" style="margin-top:12px;"></div>
 
-    <div style="margin-top:12px;">
-      <canvas id="freqCanvas" style="width:100%; height:280px;"></canvas>
+<canvas id="freqCanvasModal" style="width:100%; height:280px;"></canvas>
     </div>
 
     <div style="margin-top:10px; font-size:12px; color:#666;">
@@ -957,19 +957,13 @@ function normName(s){
 }
 
   function popularSelectGestores() {
-  const sel = document.getElementById("freqGestor");
+  const sel = document.getElementById("freqGestorModal");
   if (!sel) return;
 
-  const map = new Map(); // KEY -> nome original (primeira ocorrência)
+  const map = new Map();
 
   (dadosGlobais || []).forEach(i => {
-    const candidatos = [
-      i.lider,
-      i.auditor_1, i.auditor_2, i.auditor_3,
-      i.cadastrante
-    ];
-
-    candidatos.forEach(n => {
+    [i.lider, i.auditor_1, i.auditor_2, i.auditor_3, i.cadastrante].forEach(n => {
       const nome = String(n || "").trim();
       if (!nome) return;
       const key = normName(nome);
@@ -1114,35 +1108,34 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
   function atualizarGraficoFrequenciaGestor() {
-  const mesEl = document.getElementById("freqMes");
-  const gestorEl = document.getElementById("freqGestor");
-  const canvas = document.getElementById("freqCanvas");
-  const resumo = document.getElementById("freqResumo");
+  const mesEl = document.getElementById("freqMesModal");
+  const gestorEl = document.getElementById("freqGestorModal");
+  const canvas = document.getElementById("freqCanvasModal");
+  const resumo = document.getElementById("freqResumoModal");
   if (!mesEl || !gestorEl || !canvas || !resumo) return;
 
-  const mesKey = String(mesEl.value || "").trim(); // YYYY-MM
+  const mesKey = String(mesEl.value || "").trim();
   const gestor = String(gestorEl.value || "").trim();
 
   if (!mesKey) { resumo.textContent = "Selecione um mês."; return; }
   if (!gestor) { resumo.textContent = "Selecione um gestor."; return; }
 
-  const metaMensal = getMetaMensalGestor(gestor);  // ✅ dinâmico
-const metaSemanal = metaMensal / 4;
+  const metaMensal = getMetaMensalGestor(gestor);
+  const metaSemanal = metaMensal / 4;
 
   const { weeks, total } = calcFrequenciaGestorNoMes(gestor, mesKey);
   drawFreqChart(canvas, weeks, metaSemanal);
 
   resumo.innerHTML = `
-  <div style="display:inline-flex; gap:10px; flex-wrap:wrap; align-items:center;
-              padding:8px 10px; border:1px solid var(--border); border-radius:999px; background:#fff;">
-    <b>${gestor}</b>
-    <span>|</span> <span>Mês:</span> <b>${mesKey}</b>
-    <span>|</span> <span>Total no mês:</span> <b>${total}</b>
-    <span>|</span> <span>Meta mensal:</span> <b>${metaMensal}</b>
-    <span>|</span> <span>Meta semanal:</span> <b>${metaSemanal.toFixed(2).replace(".", ",")}</b>
-  </div>
-`;
-  }
+    <div class="pill">
+      <b>${gestor}</b>
+      <span>|</span> <span>Mês:</span> <b>${mesKey}</b>
+      <span>|</span> <span>Total:</span> <b>${total}</b>
+      <span>|</span> <span>Meta mensal:</span> <b>${metaMensal}</b>
+      <span>|</span> <span>Meta semanal:</span> <b>${metaSemanal.toFixed(2).replace(".", ",")}</b>
+    </div>
+  `;
+}
 /* ===============================
    TABELA INSPEÇÕES
 ================================ */
@@ -1736,33 +1729,31 @@ async function alertarPrazoDoLider() {
   const modal = document.getElementById("modalFreq");
   if (!modal) return;
 
-  // ✅ garante dados
   if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
     await carregarInspecoes();
   }
 
-  console.log("dadosGlobais (modal):", dadosGlobais.length);
-
   modal.style.display = "flex";
 
-  // mês atual se vazio
-  const mesEl = document.getElementById("freqMes");
+  const mesEl = document.getElementById("freqMesModal");
   if (mesEl && !mesEl.value) {
     const d = new Date();
-    mesEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   }
 
-  // ✅ agora popula
-  popularSelectGestores();
+  popularSelectGestoresModal();
 
   const perfil = localStorage.getItem("perfil") || "user";
-  const nomeGestorLogado = getNomeDoToken();
-  const sel = document.getElementById("freqGestor");
+  const matricula = getMatriculaAtual();
 
-  console.log("select options:", sel?.options?.length);
+  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
+  const podeVerTodos = (perfil === "admin") || LIBERADOS_GERAL.includes(String(matricula));
 
-  // 🔒 gestor comum só vê o dele
-  if (perfil !== "admin") {
+  const nomeGestorLogado = getNomeDoToken(); // nome do gestor no token
+  const sel = document.getElementById("freqGestorModal");
+
+  // ✅ se NÃO pode ver todos: trava e filtra no gestor logado
+  if (!podeVerTodos) {
     sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
     sel.value = nomeGestorLogado;
     sel.disabled = true;
@@ -1770,7 +1761,7 @@ async function alertarPrazoDoLider() {
     sel.disabled = false;
   }
 
-  atualizarGraficoFrequenciaGestor();
+  atualizarGraficoFrequenciaGestorModal();
 }
 
 function fecharModalFreq() {
@@ -1779,16 +1770,13 @@ function fecharModalFreq() {
 }
 
 // Botão do topo
-document.getElementById("btnAbrirFreq")
-  ?.addEventListener("click", abrirModalFreq);
+document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
 document.getElementById("btnFecharFreq")?.addEventListener("click", fecharModalFreq);
 
-// Atualizar
-document.getElementById("btnAtualizarFreq")?.addEventListener("click", atualizarGraficoFrequenciaGestor);
+document.getElementById("btnAtualizarFreqModal")?.addEventListener("click", atualizarGraficoFrequenciaGestorModal);
 
-// Atualiza automaticamente ao mudar mês/gestor
-document.getElementById("freqMes")?.addEventListener("change", atualizarGraficoFrequenciaGestor);
-document.getElementById("freqGestor")?.addEventListener("change", atualizarGraficoFrequenciaGestor);
+document.getElementById("freqMesModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
+document.getElementById("freqGestorModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
 
 // fechar clicando fora
 document.getElementById("modalFreq")?.addEventListener("click", (e) => {
