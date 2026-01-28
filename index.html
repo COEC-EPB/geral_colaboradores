@@ -639,6 +639,14 @@
 
 <script>
 
+  function podeVerTodosRanking() {
+  const perfil = localStorage.getItem("perfil") || "user";
+  const matricula = String(getMatriculaAtual() || "").trim();
+
+  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
+  return (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
+}
+
     function getMatriculaAtual() {
   // tenta vários nomes comuns no localStorage
   const keys = ["matricula", "matriculaLogin", "user", "usuario", "sub", "id"];
@@ -1805,16 +1813,16 @@ document.getElementById("modalFreq")?.addEventListener("click", (e) => {
 })();
 
 (function initRankingUI(){
-  const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = getMatriculaAtual();
-
-  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-  const podeGeral = (perfil === "admin") || LIBERADOS_GERAL.includes(String(matricula));
-
   const box = document.getElementById("boxRankingLider");
   if (!box) return;
 
-  box.style.display = podeGeral ? "block" : "none";
+  if (!podeVerTodosRanking()) {
+    // remove do DOM pra não aparecer nunca
+    box.remove();
+    return;
+  }
+
+  box.style.display = "block";
 })();
 
 /* ===============================
@@ -1826,7 +1834,10 @@ document.getElementById("modalFreq")?.addEventListener("click", (e) => {
   await carregarMedidasCache();
   await carregarInspecoes();
 
+  if (podeVerTodosRanking()) {
+    if (!podeVerTodosRanking()) return;
   await carregarLideresRanking();
+}
   await alertarPrazoDoLider();
 
   const rankingLiderEl = document.getElementById("rankingLider");
