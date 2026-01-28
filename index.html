@@ -433,13 +433,14 @@ button.secondary:hover{ background:#f3f3f3; }
     </div>
   </div>
 
- <!-- ✅ Modal FREQUÊNCIA -->
+ <!-- ✅ Modal FREQUÊNCIA (CORRIGIDO) -->
 <div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
   <div class="modal-box" style="width:min(980px, 100%);">
     <div class="modal-head">
       <h3 style="margin:0; color:var(--primary); font-size:16px;">
         Frequência de Inspeções (por gestor)
       </h3>
+
       <button type="button" class="secondary" id="btnFecharFreq">
         <i class="bi bi-x-lg"></i>
       </button>
@@ -447,12 +448,12 @@ button.secondary:hover{ background:#f3f3f3; }
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:end;">
       <div style="min-width:180px;">
-        <label>Mês</label>
+        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Mês</label>
         <input id="freqMesModal" type="month" style="width:180px;">
       </div>
 
       <div style="flex:1; min-width:260px;">
-        <label>Gestor</label>
+        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Gestor</label>
         <select id="freqGestorModal" style="width:100%;">
           <option value="">Selecione…</option>
         </select>
@@ -636,15 +637,6 @@ button.secondary:hover{ background:#f3f3f3; }
 </main>
 
 <script>
-
-  function podeVerTodosRanking() {
-  const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = String(getMatriculaAtual() || "").trim();
-
-  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-  return (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
-}
-
     function getMatriculaAtual() {
   // tenta vários nomes comuns no localStorage
   const keys = ["matricula", "matriculaLogin", "user", "usuario", "sub", "id"];
@@ -926,6 +918,93 @@ document.addEventListener("click", (e) => {
   if (numero) abrirModalVerMedidas(numero);
 });
 
+
+/* ===============================
+   FREQUÊNCIA (MODAL) - CORRIGIDO
+================================ */
+
+// usa sua regra: admin ou liberados podem ver todos
+
+ function podeVerTodosFrequencia() {
+  const perfil = localStorage.getItem("perfil") || "user";
+  const matricula = String(getMatriculaAtual() || "").trim();
+  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
+  return (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
+} 
+
+  const modal = document.getElementById("modalFreq");
+  if (!modal) return;
+
+  if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
+    await carregarInspecoes();
+  }
+
+  modal.style.display = "flex";
+
+  // mês default
+  const mesEl = document.getElementById("freqMesModal");
+  if (mesEl && !mesEl.value) {
+    const d = new Date();
+    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  }
+
+  // popula o select
+  popularSelectGestoresModal();
+
+  // trava no gestor logado se não puder ver todos
+  const sel = document.getElementById("freqGestorModal");
+  const nomeGestorLogado = String(getNomeDoToken() || "").trim();
+  const podeTodos = podeVerTodosFrequencia();
+
+  if (!podeTodos && nomeGestorLogado) {
+    sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
+    sel.value = nomeGestorLogado;
+    sel.disabled = true;
+  } else {
+    sel.disabled = false;
+
+    // seleciona o logado se existir na lista
+    if (nomeGestorLogado) {
+      const key = normName(nomeGestorLogado);
+      for (const opt of sel.options) {
+        if (normName(opt.value) === key) {
+          sel.value = opt.value;
+          break;
+        }
+      }
+    }
+  }
+
+  // desenha após abrir (garante layout)
+  requestAnimationFrame(() => {
+    atualizarGraficoFrequenciaGestorModal();
+    setTimeout(atualizarGraficoFrequenciaGestorModal, 50);
+  });
+}
+
+function fecharModalFreq() {
+  const modal = document.getElementById("modalFreq");
+  if (modal) modal.style.display = "none";
+}
+
+// Botão do topo
+document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
+document.getElementById("btnFecharFreq")?.addEventListener("click", () => {
+  const modal = document.getElementById("modalFreq");
+  if (modal) modal.style.display = "none";
+});
+
+document.getElementById("btnAtualizarFreqModal")?.addEventListener("click", atualizarGraficoFrequenciaGestorModal);
+document.getElementById("freqMesModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
+document.getElementById("freqGestorModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
+
+document.getElementById("modalFreq")?.addEventListener("click", (e) => {
+  if (e.target.id === "modalFreq") {
+    const modal = document.getElementById("modalFreq");
+    if (modal) modal.style.display = "none";
+  }
+});  
+
   function parseISODateFlex(v) {
   // aceita "YYYY-MM-DD" ou "DD/MM/YYYY"
   const s = String(v || "").trim();
@@ -957,11 +1036,13 @@ function normName(s){
   return String(s||"").trim().toUpperCase();
 }
 
-  function popularSelectGestores() {
+  
+
+function popularSelectGestoresModal() {
   const sel = document.getElementById("freqGestorModal");
   if (!sel) return;
 
-  const map = new Map();
+  const map = new Map(); // KEY -> nome original
 
   (dadosGlobais || []).forEach(i => {
     [i.lider, i.auditor_1, i.auditor_2, i.auditor_3, i.cadastrante].forEach(n => {
@@ -976,64 +1057,11 @@ function normName(s){
     .sort((a,b) => a[0].localeCompare(b[0]))
     .map(([,orig]) => orig);
 
-  sel.innerHTML = `<option value="">Selecione…</option>` + lista.map(n =>
-    `<option value="${String(n).replaceAll('"','&quot;')}">${n}</option>`
-  ).join("");
+  sel.innerHTML =
+    `<option value="">Selecione…</option>` +
+    lista.map(n => `<option value="${String(n).replaceAll('"','&quot;')}">${n}</option>`).join("");
 }
-
-async function abrirModalFreq() {
-  const modal = document.getElementById("modalFreq");
-  if (!modal) return;
-
-  // garante dados
-  if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
-    await carregarInspecoes();
-  }
-
-  modal.style.display = "flex";
-
-  // mês padrão
-  const mesEl = document.getElementById("freqMesModal");
-  if (mesEl && !mesEl.value) {
-    const d = new Date();
-    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  }
-
-  // popula o select
-  popularSelectGestoresModal();
-
-  const sel = document.getElementById("freqGestorModal");
-  const nomeGestorLogado = getNomeDoToken();
-
-  const perfil = localStorage.getItem("perfil") || "user";
-  const matricula = String(getMatriculaAtual() || "").trim();
-  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
-  const podeVerTodos = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
-
-  if (sel) {
-    if (!podeVerTodos) {
-      // trava no gestor logado
-      sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
-      sel.value = nomeGestorLogado;
-      sel.disabled = true;
-    } else {
-      sel.disabled = false;
-
-      // se tiver nome do token, já seleciona pra ajudar
-      if (nomeGestorLogado) {
-        const key = normName(nomeGestorLogado);
-        for (const opt of sel.options) {
-          if (normName(opt.value) === key) {
-            sel.value = opt.value;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  atualizarGraficoFrequenciaGestorModal(); // desenha
-}
+  
   function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
 
@@ -1127,10 +1155,10 @@ async function abrirModalFreq() {
   const resumo = document.getElementById("freqResumoModal");
   if (!mesEl || !gestorEl || !canvas || !resumo) return;
 
-  const mesKey = String(mesEl.value || "").trim();
+  const mesKey = String(mesEl.value || "").trim(); // YYYY-MM
   const gestor = String(gestorEl.value || "").trim();
 
-    console.log("gestor:", gestor, "mesKey:", mesKey); // ✅ aqui pode
+  console.log("gestor:", gestor, "mesKey:", mesKey);
 
   if (!mesKey) { resumo.textContent = "Selecione um mês."; return; }
   if (!gestor) { resumo.textContent = "Selecione um gestor."; return; }
@@ -1139,6 +1167,9 @@ async function abrirModalFreq() {
   const metaSemanal = metaMensal / 4;
 
   const { weeks, total } = calcFrequenciaGestorNoMes(gestor, mesKey);
+
+  // garante tamanho
+  canvas.height = 280;
   drawFreqChart(canvas, weeks, metaSemanal);
 
   resumo.innerHTML = `
@@ -1740,79 +1771,6 @@ async function alertarPrazoDoLider() {
   }
 }
 
-  async function abrirModalFreq() {
-  const modal = document.getElementById("modalFreq");
-  if (!modal) return;
-
-  if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
-    await carregarInspecoes();
-  }
-
-  modal.style.display = "flex";
-
-  const mesEl = document.getElementById("freqMesModal");
-  if (mesEl && !mesEl.value) {
-    const d = new Date();
-    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  }
-
-  // ✅ popula a lista do select do modal
-  popularSelectGestores();
-
-  const sel = document.getElementById("freqGestorModal");
-  const nomeGestorLogado = getNomeDoToken();
-
-  // admin/liberados vê todos; os demais ficam travados no próprio gestor
-  const podeVerTodos = podeVerTodosRanking(); // você já criou essa função
-
-  if (!podeVerTodos) {
-    // trava no próprio
-    sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
-    sel.value = nomeGestorLogado;
-    sel.disabled = true;
-  } else {
-    sel.disabled = false;
-
-    // opcional: já selecionar o logado se existir na lista
-    if (nomeGestorLogado) {
-      const key = normName(nomeGestorLogado);
-      for (const opt of sel.options) {
-        if (normName(opt.value) === key) {
-          sel.value = opt.value;
-          break;
-        }
-      }
-    }
-  }
-
-  requestAnimationFrame(() => {
-  atualizarGraficoFrequenciaGestorModal();
-  setTimeout(atualizarGraficoFrequenciaGestorModal, 50);
-});
-}
-
-function fecharModalFreq() {
-  const modal = document.getElementById("modalFreq");
-  if (modal) modal.style.display = "none";
-}
-
-// Botão do topo
-document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
-document.getElementById("btnFecharFreq")?.addEventListener("click", () => {
-  const modal = document.getElementById("modalFreq");
-  if (modal) modal.style.display = "none";
-});
-
-document.getElementById("btnAtualizarFreqModal")?.addEventListener("click", atualizarGraficoFrequenciaGestorModal);
-document.getElementById("freqMesModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
-document.getElementById("freqGestorModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
-
-document.getElementById("modalFreq")?.addEventListener("click", (e) => {
-  if (e.target.id === "modalFreq") {
-    const modal = document.getElementById("modalFreq");
-    if (modal) modal.style.display = "none";
-  }
-});
 /* ===============================
    UI INIT (admin fields)
 ================================ */
