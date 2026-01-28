@@ -453,7 +453,9 @@ button.secondary:hover{ background:#f3f3f3; }
 
       <div style="flex:1; min-width:260px;">
         <label>Gestor</label>
-        <select id="freqGestorModal" style="width:100%;"></select>
+        <select id="freqGestorModal" style="width:100%;">
+          <option value="">Selecione…</option>
+        </select>
       </div>
 
       <button type="button" id="btnAtualizarFreqModal">
@@ -464,7 +466,7 @@ button.secondary:hover{ background:#f3f3f3; }
     <div id="freqResumoModal" style="margin-top:12px;"></div>
 
     <div style="margin-top:12px;">
-      <canvas id="freqCanvasModal" style="width:100%; height:280px;"></canvas>
+      <canvas id="freqCanvasModal" height="280" style="width:100%;"></canvas>
     </div>
 
     <div style="margin-top:10px; font-size:12px; color:#666;">
@@ -472,7 +474,6 @@ button.secondary:hover{ background:#f3f3f3; }
     </div>
   </div>
 </div>
-
   <!-- ✅ Modal adicionar medida -->
   <div id="modalMedida">
     <div class="modal-box">
@@ -980,33 +981,58 @@ function normName(s){
   ).join("");
 }
 
-  function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
-  const weeks = [0,0,0,0,0]; // semana 1..5
-  let total = 0;
+async function abrirModalFreq() {
+  const modal = document.getElementById("modalFreq");
+  if (!modal) return;
 
-  const alvo = normName(gestorNome);
+  // garante dados
+  if (!Array.isArray(dadosGlobais) || dadosGlobais.length === 0) {
+    await carregarInspecoes();
+  }
 
-  (dadosGlobais || []).forEach(i => {
-    const dt = parseISODateFlex(i.data_inspecao);
-    if (!dt) return;
-    if (getMonthKey(dt) !== mesKey) return;
+  modal.style.display = "flex";
 
-    const match =
-      normName(i.lider) === alvo ||
-      normName(i.auditor_1) === alvo ||
-      normName(i.auditor_2) === alvo ||
-      normName(i.auditor_3) === alvo ||
-      normName(i.cadastrante) === alvo;
+  // mês padrão
+  const mesEl = document.getElementById("freqMesModal");
+  if (mesEl && !mesEl.value) {
+    const d = new Date();
+    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  }
 
-    if (!match) return;
+  // popula o select
+  popularSelectGestoresModal();
 
-    const w = weekOfMonth(dt);
-    if (w >= 1 && w <= 5) weeks[w-1]++;
+  const sel = document.getElementById("freqGestorModal");
+  const nomeGestorLogado = getNomeDoToken();
 
-    total++;
-  });
+  const perfil = localStorage.getItem("perfil") || "user";
+  const matricula = String(getMatriculaAtual() || "").trim();
+  const LIBERADOS_GERAL = ["6855","3075664","8004","11273"];
+  const podeVerTodos = (perfil === "admin") || LIBERADOS_GERAL.includes(matricula);
 
-  return { weeks, total };
+  if (sel) {
+    if (!podeVerTodos) {
+      // trava no gestor logado
+      sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
+      sel.value = nomeGestorLogado;
+      sel.disabled = true;
+    } else {
+      sel.disabled = false;
+
+      // se tiver nome do token, já seleciona pra ajudar
+      if (nomeGestorLogado) {
+        const key = normName(nomeGestorLogado);
+        for (const opt of sel.options) {
+          if (normName(opt.value) === key) {
+            sel.value = opt.value;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  atualizarGraficoFrequenciaGestorModal(); // desenha
 }
   function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
@@ -1772,16 +1798,20 @@ function fecharModalFreq() {
 
 // Botão do topo
 document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
-document.getElementById("btnFecharFreq")?.addEventListener("click", fecharModalFreq);
+document.getElementById("btnFecharFreq")?.addEventListener("click", () => {
+  const modal = document.getElementById("modalFreq");
+  if (modal) modal.style.display = "none";
+});
 
 document.getElementById("btnAtualizarFreqModal")?.addEventListener("click", atualizarGraficoFrequenciaGestorModal);
-
 document.getElementById("freqMesModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
 document.getElementById("freqGestorModal")?.addEventListener("change", atualizarGraficoFrequenciaGestorModal);
 
-// fechar clicando fora
 document.getElementById("modalFreq")?.addEventListener("click", (e) => {
-  if (e.target.id === "modalFreq") fecharModalFreq();
+  if (e.target.id === "modalFreq") {
+    const modal = document.getElementById("modalFreq");
+    if (modal) modal.style.display = "none";
+  }
 });
 /* ===============================
    UI INIT (admin fields)
