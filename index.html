@@ -548,38 +548,38 @@
     </div>
   </div>
 
-  <!-- 📈 Frequência semanal (por colaborador) -->
+  <!-- 📈 Frequência semanal (por gestor) -->
 <div class="card" style="margin-top:16px; padding:16px;">
   <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
     <div>
-      <h3 style="margin:0; color:var(--primary);">Frequência semanal (colaborador)</h3>
+      <h3 style="margin:0; color:var(--primary);">Frequência semanal (gestor)</h3>
       <div style="font-size:13px; color:#666; margin-top:4px;">
-        Inspeções por semana no mês + linha de meta (2,5/semana)
+        Quantas inspeções o gestor fez por semana no mês + linha de meta (2,5/semana)
       </div>
     </div>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
       <div>
         <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Mês</div>
-        <input id="freqMes" type="month"
-          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:160px;">
+        <input id="freqMes" type="month" style="width:160px;">
       </div>
 
       <div>
-        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Colaborador</div>
-        <select id="freqColaborador" style="width:260px;">
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Gestor</div>
+        <select id="freqGestor" style="width:280px;">
           <option value="">Selecione…</option>
         </select>
       </div>
 
-      <button type="button" onclick="atualizarGraficoFrequencia()">
+      <button type="button" onclick="atualizarGraficoFrequenciaGestor()">
         <i class="bi bi-activity"></i> Atualizar
       </button>
     </div>
   </div>
 
   <div style="margin-top:12px;">
-    <canvas id="freqCanvas" height="240" style="width:100%; border:1px solid var(--border); border-radius:12px; background:#fff;"></canvas>
+    <canvas id="freqCanvas" height="240"
+      style="width:100%; border:1px solid var(--border); border-radius:12px; background:#fff;"></canvas>
   </div>
 
   <div id="freqResumo" style="margin-top:10px; font-size:13px; color:#555;"></div>
@@ -892,47 +892,57 @@ function normName(s){
   return String(s||"").trim().toUpperCase();
 }
 
-  function popularSelectColaboradores() {
-  const sel = document.getElementById("freqColaborador");
+  function popularSelectGestores() {
+  const sel = document.getElementById("freqGestor");
   if (!sel) return;
 
-  const set = new Map(); // KEY -> nome original
+  const map = new Map(); // KEY -> nome original (primeira ocorrência)
 
   (dadosGlobais || []).forEach(i => {
-    const c1 = String(i.colaborador_1 || "").trim();
-    const c2 = String(i.colaborador_2 || "").trim();
+    const candidatos = [
+      i.lider,
+      i.auditor_1, i.auditor_2, i.auditor_3,
+      i.cadastrante
+    ];
 
-    if (c1) set.set(normName(c1), c1);
-    if (c2) set.set(normName(c2), c2);
+    candidatos.forEach(n => {
+      const nome = String(n || "").trim();
+      if (!nome) return;
+      const key = normName(nome);
+      if (!map.has(key)) map.set(key, nome);
+    });
   });
 
-  const items = Array.from(set.entries())
+  const lista = Array.from(map.entries())
     .sort((a,b) => a[0].localeCompare(b[0]))
     .map(([,orig]) => orig);
 
-  sel.innerHTML = `<option value="">Selecione…</option>` + items.map(n =>
+  sel.innerHTML = `<option value="">Selecione…</option>` + lista.map(n =>
     `<option value="${String(n).replaceAll('"','&quot;')}">${n}</option>`
   ).join("");
 }
 
-  function calcFrequenciaSemanalNoMes(colaboradorNome, mesKey) {
+  function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
   const weeks = [0,0,0,0,0]; // semana 1..5
   let total = 0;
 
-  const alvo = normName(colaboradorNome);
+  const alvo = normName(gestorNome);
 
   (dadosGlobais || []).forEach(i => {
     const dt = parseISODateFlex(i.data_inspecao);
     if (!dt) return;
-
     if (getMonthKey(dt) !== mesKey) return;
 
-    const c1 = normName(i.colaborador_1);
-    const c2 = normName(i.colaborador_2);
+    const match =
+      normName(i.lider) === alvo ||
+      normName(i.auditor_1) === alvo ||
+      normName(i.auditor_2) === alvo ||
+      normName(i.auditor_3) === alvo ||
+      normName(i.cadastrante) === alvo;
 
-    if (c1 !== alvo && c2 !== alvo) return;
+    if (!match) return;
 
-    const w = weekOfMonth(dt); // 1..5
+    const w = weekOfMonth(dt);
     if (w >= 1 && w <= 5) weeks[w-1]++;
 
     total++;
@@ -940,7 +950,6 @@ function normName(s){
 
   return { weeks, total };
 }
-
   function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
   const W = canvas.width = canvas.clientWidth;   // ajusta ao tamanho
@@ -1040,37 +1049,32 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   }
 }
 
-  function atualizarGraficoFrequencia() {
+  function atualizarGraficoFrequenciaGestor() {
   const mesEl = document.getElementById("freqMes");
-  const colEl = document.getElementById("freqColaborador");
+  const gestorEl = document.getElementById("freqGestor");
   const canvas = document.getElementById("freqCanvas");
   const resumo = document.getElementById("freqResumo");
-  if (!mesEl || !colEl || !canvas || !resumo) return;
+  if (!mesEl || !gestorEl || !canvas || !resumo) return;
 
-  const mesKey = String(mesEl.value || "").trim(); // "YYYY-MM"
-  const col = String(colEl.value || "").trim();
+  const mesKey = String(mesEl.value || "").trim(); // YYYY-MM
+  const gestor = String(gestorEl.value || "").trim();
 
-  if (!mesKey) {
-    resumo.textContent = "Selecione um mês.";
-    return;
-  }
-  if (!col) {
-    resumo.textContent = "Selecione um colaborador.";
-    return;
-  }
+  if (!mesKey) { resumo.textContent = "Selecione um mês."; return; }
+  if (!gestor) { resumo.textContent = "Selecione um gestor."; return; }
 
   const metaMensal = 10;
   const metaSemanal = metaMensal / 4; // 2,5
 
-  const { weeks, total } = calcFrequenciaSemanalNoMes(col, mesKey);
+  const { weeks, total } = calcFrequenciaGestorNoMes(gestor, mesKey);
   drawFreqChart(canvas, weeks, metaSemanal);
 
   resumo.innerHTML = `
-    <div class="pill">
-      <b>${col}</b> — <span>Mês:</span> ${mesKey} |
-      <span>Total no mês:</span> <b>${total}</b> |
-      <span>Meta mensal:</span> <b>${metaMensal}</b> |
-      <span>Meta semanal:</span> <b>${metaSemanal}</b>
+    <div style="display:inline-flex; gap:10px; flex-wrap:wrap; align-items:center;
+                padding:8px 10px; border:1px solid var(--border); border-radius:999px; background:#fff;">
+      <b>${gestor}</b>
+      <span>|</span> <span>Mês:</span> <b>${mesKey}</b>
+      <span>|</span> <span>Total no mês:</span> <b>${total}</b>
+      <span>|</span> <span>Meta semanal:</span> <b>${metaSemanal}</b>
     </div>
   `;
 }
@@ -1703,9 +1707,8 @@ if (rankingLiderEl) {
   });
 }
   await carregarInspecoes();
-popularSelectColaboradores();
+popularSelectGestores();
 
-// setar mês atual no input
 const mesEl = document.getElementById("freqMes");
 if (mesEl && !mesEl.value) {
   const d = new Date();
