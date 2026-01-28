@@ -1055,25 +1055,31 @@ const DELEGACAO_VER_INSPECOES = {
 // ✅ pode ver inspeções do próprio nome + delegados
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
+
+  // ADMIN VÊ TUDO
   if (perfil === "admin") return null;
 
   const meuNome = normName(getNomeDoToken());
-  console.log("meuNome:", meuNome);
+
+  // 🔍 DEBUG AQUI:
+  console.log("-------------- DEBUG SUPER GESTORES --------------");
+  console.log("getNomeDoToken():", getNomeDoToken());
+  console.log("normName(getNomeDoToken()):", meuNome);
   console.log("SUPER_GESTORES_INSPECOES:", Array.from(SUPER_GESTORES_INSPECOES));
   console.log("é super?", SUPER_GESTORES_INSPECOES.has(meuNome));
+  console.log("---------------------------------------------------");
 
   if (!meuNome) return new Set();
 
+  // SUPER GESTOR = VÊ TUDO
   if (SUPER_GESTORES_INSPECOES.has(meuNome)) {
-    return null; // vê tudo
+    return null;
   }
 
+  // delegados normais
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
-  return new Set([meuNome, ...delegados]);
 
-  console.log("getNomeDoToken():", getNomeDoToken());
-console.log("normName(getNomeDoToken()):", normName(getNomeDoToken()));
-console.log("é super?", SUPER_GESTORES_INSPECOES.has(normName(getNomeDoToken())));
+  return new Set([meuNome, ...delegados]);
 }
 
   
