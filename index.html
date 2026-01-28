@@ -341,6 +341,15 @@
     0%, 100% { opacity: 1; }
     50% { opacity: .25; }
   }
+    .pill {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+}
   </style>
 </head>
 
@@ -538,6 +547,44 @@
       </table>
     </div>
   </div>
+
+  <!-- 📈 Frequência semanal (por colaborador) -->
+<div class="card" style="margin-top:16px; padding:16px;">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h3 style="margin:0; color:var(--primary);">Frequência semanal (colaborador)</h3>
+      <div style="font-size:13px; color:#666; margin-top:4px;">
+        Inspeções por semana no mês + linha de meta (2,5/semana)
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Mês</div>
+        <input id="freqMes" type="month"
+          style="padding:8px; border:1px solid var(--border); border-radius:8px; width:160px;">
+      </div>
+
+      <div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Colaborador</div>
+        <select id="freqColaborador" style="width:260px;">
+          <option value="">Selecione…</option>
+        </select>
+      </div>
+
+      <button type="button" onclick="atualizarGraficoFrequencia()">
+        <i class="bi bi-activity"></i> Atualizar
+      </button>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <canvas id="freqCanvas" height="240" style="width:100%; border:1px solid var(--border); border-radius:12px; background:#fff;"></canvas>
+  </div>
+
+  <div id="freqResumo" style="margin-top:10px; font-size:13px; color:#555;"></div>
+</div>
+
 
   <!-- Ranking -->
   <div class="card" style="margin-top:16px; padding:16px;">
@@ -813,6 +860,220 @@ document.addEventListener("click", (e) => {
   const numero = a.getAttribute("data-numero");
   if (numero) abrirModalVerMedidas(numero);
 });
+
+  function parseISODateFlex(v) {
+  // aceita "YYYY-MM-DD" ou "DD/MM/YYYY"
+  const s = String(v || "").trim();
+  if (!s) return null;
+
+  if (s.includes("/")) {
+    const [d, m, y] = s.split("/");
+    if (!y || !m || !d) return null;
+    return new Date(`${y}-${m}-${d}T00:00:00`);
+  }
+  // pega só a parte YYYY-MM-DD
+  const iso = s.slice(0, 10);
+  const dt = new Date(`${iso}T00:00:00`);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+
+function getMonthKey(d){
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}`;
+}
+
+// semana "do mês" (1..5/6) baseado em blocos de 7 dias a partir do dia 1
+function weekOfMonth(d){
+  return Math.floor((d.getDate() - 1) / 7) + 1; // 1..5
+}
+
+function normName(s){
+  return String(s||"").trim().toUpperCase();
+}
+
+  function popularSelectColaboradores() {
+  const sel = document.getElementById("freqColaborador");
+  if (!sel) return;
+
+  const set = new Map(); // KEY -> nome original
+
+  (dadosGlobais || []).forEach(i => {
+    const c1 = String(i.colaborador_1 || "").trim();
+    const c2 = String(i.colaborador_2 || "").trim();
+
+    if (c1) set.set(normName(c1), c1);
+    if (c2) set.set(normName(c2), c2);
+  });
+
+  const items = Array.from(set.entries())
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([,orig]) => orig);
+
+  sel.innerHTML = `<option value="">Selecione…</option>` + items.map(n =>
+    `<option value="${String(n).replaceAll('"','&quot;')}">${n}</option>`
+  ).join("");
+}
+
+  function calcFrequenciaSemanalNoMes(colaboradorNome, mesKey) {
+  const weeks = [0,0,0,0,0]; // semana 1..5
+  let total = 0;
+
+  const alvo = normName(colaboradorNome);
+
+  (dadosGlobais || []).forEach(i => {
+    const dt = parseISODateFlex(i.data_inspecao);
+    if (!dt) return;
+
+    if (getMonthKey(dt) !== mesKey) return;
+
+    const c1 = normName(i.colaborador_1);
+    const c2 = normName(i.colaborador_2);
+
+    if (c1 !== alvo && c2 !== alvo) return;
+
+    const w = weekOfMonth(dt); // 1..5
+    if (w >= 1 && w <= 5) weeks[w-1]++;
+
+    total++;
+  });
+
+  return { weeks, total };
+}
+
+  function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width = canvas.clientWidth;   // ajusta ao tamanho
+  const H = canvas.height = canvas.height;       // mantém altura definida
+
+  ctx.clearRect(0,0,W,H);
+
+  const padding = 42;
+  const chartW = W - padding*2;
+  const chartH = H - padding*2;
+
+  const maxVal = Math.max(1, metaPorSemana, ...weeks);
+  const yMax = Math.ceil(maxVal + 1);
+
+  // eixos
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#d9d9d9";
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, H - padding);
+  ctx.lineTo(W - padding, H - padding);
+  ctx.stroke();
+
+  // grid Y + labels
+  ctx.fillStyle = "#666";
+  ctx.font = "12px Segoe UI, Arial";
+  const steps = 5;
+  for (let s = 0; s <= steps; s++) {
+    const v = (yMax / steps) * s;
+    const y = (H - padding) - (v / yMax) * chartH;
+
+    ctx.strokeStyle = "#efefef";
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(W - padding, y);
+    ctx.stroke();
+
+    ctx.fillStyle = "#666";
+    ctx.fillText(v.toFixed(0), 8, y + 4);
+  }
+
+  // linha meta
+  const yMeta = (H - padding) - (metaPorSemana / yMax) * chartH;
+  ctx.strokeStyle = "#b3261e";
+  ctx.setLineDash([6,4]);
+  ctx.beginPath();
+  ctx.moveTo(padding, yMeta);
+  ctx.lineTo(W - padding, yMeta);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#b3261e";
+  ctx.fillText(`Meta: ${metaPorSemana}`, padding + 6, yMeta - 8);
+
+  // barras
+  const barGap = 14;
+  const barW = (chartW - barGap*4) / 5;
+
+  for (let i = 0; i < 5; i++) {
+    const val = weeks[i];
+    const x = padding + i*(barW + barGap);
+    const h = (val / yMax) * chartH;
+    const y = (H - padding) - h;
+
+    // barra
+    ctx.fillStyle = "rgba(0,151,206,.25)";
+    ctx.strokeStyle = "rgba(0,151,206,.35)";
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, h, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // valor em cima
+    ctx.fillStyle = "#333";
+    ctx.fillText(String(val), x + barW/2 - 4, y - 6);
+
+    // label semana
+    ctx.fillStyle = "#555";
+    ctx.fillText(`Sem ${i+1}`, x + 6, H - padding + 18);
+  }
+}
+
+// polyfill simples p/ roundRect (se precisar)
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    r = Math.min(r, w/2, h/2);
+    this.beginPath();
+    this.moveTo(x+r, y);
+    this.arcTo(x+w, y, x+w, y+h, r);
+    this.arcTo(x+w, y+h, x, y+h, r);
+    this.arcTo(x, y+h, x, y, r);
+    this.arcTo(x, y, x+w, y, r);
+    this.closePath();
+    return this;
+  }
+}
+
+  function atualizarGraficoFrequencia() {
+  const mesEl = document.getElementById("freqMes");
+  const colEl = document.getElementById("freqColaborador");
+  const canvas = document.getElementById("freqCanvas");
+  const resumo = document.getElementById("freqResumo");
+  if (!mesEl || !colEl || !canvas || !resumo) return;
+
+  const mesKey = String(mesEl.value || "").trim(); // "YYYY-MM"
+  const col = String(colEl.value || "").trim();
+
+  if (!mesKey) {
+    resumo.textContent = "Selecione um mês.";
+    return;
+  }
+  if (!col) {
+    resumo.textContent = "Selecione um colaborador.";
+    return;
+  }
+
+  const metaMensal = 10;
+  const metaSemanal = metaMensal / 4; // 2,5
+
+  const { weeks, total } = calcFrequenciaSemanalNoMes(col, mesKey);
+  drawFreqChart(canvas, weeks, metaSemanal);
+
+  resumo.innerHTML = `
+    <div class="pill">
+      <b>${col}</b> — <span>Mês:</span> ${mesKey} |
+      <span>Total no mês:</span> <b>${total}</b> |
+      <span>Meta mensal:</span> <b>${metaMensal}</b> |
+      <span>Meta semanal:</span> <b>${metaSemanal}</b>
+    </div>
+  `;
+}
 
 /* ===============================
    TABELA INSPEÇÕES
@@ -1433,13 +1694,22 @@ async function alertarPrazoDoLider() {
   console.log("matricula detectada:", getMatriculaAtual());
   await carregarLideresRanking(); // 👈 AQUI
   await alertarPrazoDoLider();
-
+  
   const rankingLiderEl = document.getElementById("rankingLider");
 if (rankingLiderEl) {
   rankingLiderEl.addEventListener("change", async () => {
     await carregarRanking();
     await alertarPrazoDoLider();
   });
+}
+  await carregarInspecoes();
+popularSelectColaboradores();
+
+// setar mês atual no input
+const mesEl = document.getElementById("freqMes");
+if (mesEl && !mesEl.value) {
+  const d = new Date();
+  mesEl.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}`;
 }
   carregarRanking();
 })();
