@@ -364,6 +364,9 @@
       <i class="bi bi-box-arrow-right"></i> Sair
     </button>
   </div>
+  <button type="button" class="secondary" id="btnAbrirFreq">
+  <i class="bi bi-graph-up"></i> Frequência
+</button>
 </header>
 
 <main>
@@ -432,6 +435,46 @@
       </button>
     </div>
   </div>
+
+  <!-- ✅ Modal FREQUÊNCIA -->
+<div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
+  <div class="modal-box" style="width:min(980px, 100%);">
+    <div class="modal-head">
+      <h3 style="margin:0; color:var(--primary); font-size:16px;">
+        Frequência de Inspeções (por gestor)
+      </h3>
+      <button type="button" class="secondary" id="btnFecharFreq">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:end;">
+      <div style="min-width:180px;">
+        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Mês</label>
+        <input id="freqMes" type="month" style="width:180px;">
+      </div>
+
+      <div style="flex:1; min-width:260px;">
+        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Gestor</label>
+        <select id="freqGestor" style="width:100%;"></select>
+      </div>
+
+      <button type="button" id="btnAtualizarFreq">
+        <i class="bi bi-arrow-repeat"></i> Atualizar
+      </button>
+    </div>
+
+    <div id="freqResumo" style="margin-top:12px;"></div>
+
+    <div style="margin-top:12px;">
+      <canvas id="freqCanvas" style="width:100%; height:280px;"></canvas>
+    </div>
+
+    <div style="margin-top:10px; font-size:12px; color:#666;">
+      Linha tracejada = meta semanal (meta mensal / 4).
+    </div>
+  </div>
+</div>
 
   <!-- ✅ Modal adicionar medida -->
   <div id="modalMedida">
@@ -634,7 +677,7 @@
 
 <script>
 
-  function getMatriculaAtual() {
+    function getMatriculaAtual() {
   // tenta vários nomes comuns no localStorage
   const keys = ["matricula", "matriculaLogin", "user", "usuario", "sub", "id"];
   for (const k of keys) {
@@ -721,6 +764,26 @@ function getMetaMensalGestor(nomeGestor) {
     return Number(META_MENSAL_POR_GESTOR[key] ?? 10);
   }
   return 10;
+}
+
+  function getNomeDoToken() {
+  const token = String(localStorage.getItem("token") || "").trim();
+  if (!token || token.split(".").length !== 3) return "";
+
+  try {
+    const payloadB64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payloadJson = decodeURIComponent(
+      atob(payloadB64)
+        .split("")
+        .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    const payload = JSON.parse(payloadJson);
+    // no seu worker, "lider" é o NOME (row.nome)
+    return String(payload.lider || "").trim();
+  } catch (e) {
+    return "";
+  }
 }
   
 /* ===============================
@@ -1696,6 +1759,88 @@ async function alertarPrazoDoLider() {
     console.error("Erro ao calcular prazo do gestor:", e);
   }
 }
+
+  function abrirModalFreq() {
+  const modal = document.getElementById("modalFreq");
+  if (!modal) return;
+
+  modal.style.display = "flex";
+
+  // mês atual se vazio
+  const mesEl = document.getElementById("freqMes");
+  if (mesEl && !mesEl.value) {
+    const d = new Date();
+    mesEl.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  }
+
+  // popular lista primeiro
+  popularSelectGestores();
+
+  const perfil = localStorage.getItem("perfil") || "user";
+  const nomeGestorLogado = getNomeDoToken(); // 👈 nome do gestor no token
+
+  const sel = document.getElementById("freqGestor");
+  const btnAtualizar = document.getElementById("btnAtualizarFreq");
+
+  // ✅ regra: gestor comum só vê o dele
+  if (perfil !== "admin") {
+    if (sel) {
+      // seta o valor dele (se existir no select)
+      const key = normName(nomeGestorLogado);
+      let achou = false;
+
+      for (const opt of sel.options) {
+        if (normName(opt.value) === key) {
+          sel.value = opt.value;
+          achou = true;
+          break;
+        }
+      }
+
+      // se por algum motivo não achou na lista, cria a opção
+      if (!achou && nomeGestorLogado) {
+        const opt = document.createElement("option");
+        opt.value = nomeGestorLogado;
+        opt.textContent = nomeGestorLogado;
+        sel.appendChild(opt);
+        sel.value = nomeGestorLogado;
+      }
+
+      // trava o select (ele não escolhe outro)
+      sel.disabled = true;
+    }
+
+    // pode deixar o botão atualizar (ok) ou esconder
+    if (btnAtualizar) btnAtualizar.style.display = "inline-flex";
+  } else {
+    // admin pode selecionar qualquer gestor
+    if (sel) sel.disabled = false;
+  }
+
+  // desenha
+  atualizarGraficoFrequenciaGestor();
+}
+
+function fecharModalFreq() {
+  const modal = document.getElementById("modalFreq");
+  if (modal) modal.style.display = "none";
+}
+
+// Botão do topo
+document.getElementById("btnAbrirFreq")?.addEventListener("click", abrirModalFreq);
+document.getElementById("btnFecharFreq")?.addEventListener("click", fecharModalFreq);
+
+// Atualizar
+document.getElementById("btnAtualizarFreq")?.addEventListener("click", atualizarGraficoFrequenciaGestor);
+
+// Atualiza automaticamente ao mudar mês/gestor
+document.getElementById("freqMes")?.addEventListener("change", atualizarGraficoFrequenciaGestor);
+document.getElementById("freqGestor")?.addEventListener("change", atualizarGraficoFrequenciaGestor);
+
+// fechar clicando fora
+document.getElementById("modalFreq")?.addEventListener("click", (e) => {
+  if (e.target.id === "modalFreq") fecharModalFreq();
+});
 /* ===============================
    UI INIT (admin fields)
 ================================ */
