@@ -993,6 +993,21 @@ function normName(s) {
     .toUpperCase();
 }
 
+  function listaGestoresPermitidosParaFrequencia() {
+  const perfil = localStorage.getItem("perfil") || "user";
+
+  // admin vê todos
+  if (perfil === "admin") return null;
+
+  const meuNome = normName(getNomeDoToken());
+  if (!meuNome) return new Set();
+
+  // pega delegados
+  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []);
+
+  return new Set([meuNome, ...delegados]);
+}
+
 // Delegações de VISUALIZAÇÃO DE INSPEÇÕES (para lançar medidas)
 const DELEGACAO_VER_INSPECOES = {
   [normName("WESLEY FERNANDES DE SOUZA")]: [normName("GERALDO PEDRO DA SILVA JUNIOR")],
@@ -1083,7 +1098,8 @@ function popularSelectGestoresModal() {
   const sel = document.getElementById("freqGestorModal");
   if (!sel) return;
 
-  const map = new Map(); // KEY -> nome original
+  // lista completa dos gestores encontrados no sistema
+  const map = new Map();
 
   (dadosGlobais || []).forEach(i => {
     [i.lider, i.auditor_1, i.auditor_2, i.auditor_3, i.cadastrante].forEach(n => {
@@ -1094,15 +1110,28 @@ function popularSelectGestoresModal() {
     });
   });
 
-  const lista = Array.from(map.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([, orig]) => orig);
+  // pega gestores permitidos pela delegação
+  const permitidos = listaGestoresPermitidosParaFrequencia();
 
-  sel.innerHTML =
-    `<option value="">Selecione…</option>` +
-    lista.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
+  const todosGestores = Array.from(map.entries())
+    .map(([, nomeOriginal]) => nomeOriginal)
+    .sort((a, b) => a.localeCompare(b));
+
+  sel.innerHTML = "";
+
+  // SEM PERMISSÃO TOTAL → lista somente os permitidos
+  if (permitidos) {
+    const lista = todosGestores.filter(n => permitidos.has(normName(n)));
+
+    sel.innerHTML = `<option value="">Selecione…</option>` +
+      lista.map(n => `<option value="${n}">${n}</option>`).join("");
+
+  } else {
+    // admin → lista tudo
+    sel.innerHTML = `<option value="">Selecione…</option>` +
+      todosGestores.map(n => `<option value="${n}">${n}</option>`).join("");
+  }
 }
-
 function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
 
@@ -1235,36 +1264,36 @@ async function abrirModalFreq() {
 
   modal.style.display = "flex";
 
+  // mês default
   const mesEl = document.getElementById("freqMesModal");
   if (mesEl && !mesEl.value) {
     const d = new Date();
     mesEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
+  // popula o select (já vai vir filtrado para delegados)
   popularSelectGestoresModal();
 
   const sel = document.getElementById("freqGestorModal");
-  const nomeGestorLogado = String(getNomeDoToken() || "").trim();
-  const podeTodos = podeVerTodosFrequencia();
+  if (!sel) return;
 
-  if (sel) {
-    if (!podeTodos && nomeGestorLogado) {
-      sel.innerHTML = `<option value="${nomeGestorLogado}">${nomeGestorLogado}</option>`;
-      sel.value = nomeGestorLogado;
-      sel.disabled = true;
-    } else {
-      sel.disabled = false;
+  const permitidosFreq = listaGestoresPermitidosParaFrequencia();
+  const nomeLogadoKey = normName(getNomeDoToken());
 
-      if (nomeGestorLogado) {
-        const key = normName(nomeGestorLogado);
-        for (const opt of sel.options) {
-          if (normName(opt.value) === key) {
-            sel.value = opt.value;
-            break;
-          }
-        }
+  if (permitidosFreq) {
+    // gestor comum → pode escolher entre ele + delegados
+    sel.disabled = false;
+
+    // seleciona o logado se existir na lista
+    for (const opt of sel.options) {
+      if (normName(opt.value) === nomeLogadoKey) {
+        sel.value = opt.value;
+        break;
       }
     }
+  } else {
+    // admin → tudo liberado
+    sel.disabled = false;
   }
 
   requestAnimationFrame(() => {
