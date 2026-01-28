@@ -965,13 +965,46 @@ document.addEventListener("click", e => {
 ============================================================ */
 // ✅ Somente esses podem ver frequência de todos (além do admin)
 // Quem pode ver a frequência de TODOS (estatística)
-const LIBERADOS_FREQ_TODOS = ["6855", "3075664", "8004", "11273"];
+// ✅ Normalização forte: tira acento, UPPER, trim, remove espaços duplicados
+function normName(s) {
+  return String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
 
 // Delegações de VISUALIZAÇÃO DE INSPEÇÕES (para lançar medidas)
 const DELEGACAO_VER_INSPECOES = {
-  "WESLEY FERNANDES DE SOUZA": ["GERALDO PEDRO DA SILVA JUNIOR"],
-  "YURI VILMAR BATISTA MELO": ["RICHARDSON SILVA DE OLIVEIRA"]
+  [normName("WESLEY FERNANDES DE SOUZA")]: [normName("GERALDO PEDRO DA SILVA JUNIOR")],
+  [normName("YURI VILMAR BATISTA MELO")]: [normName("RICHARDSON SILVA DE OLIVEIRA")]
 };
+
+// ✅ pode ver inspeções do próprio nome + delegados
+function listaGestoresPermitidosParaInspecoes() {
+  const perfil = localStorage.getItem("perfil") || "user";
+  if (perfil === "admin") return null; // null = vê tudo
+
+  const meuNome = normName(getNomeDoToken());
+  const delegados = (DELEGACAO_VER_INSPECOES[meuNome] || []);
+
+  return new Set([meuNome, ...delegados]);
+}
+
+// ✅ decide se uma inspeção “pertence” a algum gestor permitido
+function inspecaoPertenceA(permitidosSet, item) {
+  // campos onde o nome pode aparecer
+  const nomes = [
+    item?.lider,
+    item?.auditor_1,
+    item?.auditor_2,
+    item?.auditor_3,
+    item?.cadastrante
+  ].map(normName).filter(Boolean);
+
+  return nomes.some(n => permitidosSet.has(n));
+}
 
 function podeVerTodosFrequencia() {
   const perfil = localStorage.getItem("perfil") || "user";
@@ -1307,11 +1340,7 @@ async function carregarInspecoes() {
     if (!res.ok) throw new Error(text);
 
     let parsed = [];
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = [];
-    }
+    try { parsed = JSON.parse(text); } catch { parsed = []; }
 
     const arr =
       Array.isArray(parsed) ? parsed :
@@ -1320,17 +1349,19 @@ async function carregarInspecoes() {
       [];
 
     // ✅ aplica permissão de visualização de inspeções (para lançar medidas)
-const permitidos = listaGestoresPermitidosParaInspecoes();
+    const permitidos = listaGestoresPermitidosParaInspecoes();
 
-const arrFiltrado = permitidos
-  ? arr.filter(it => permitidos.has(normName(it?.lider)))
-  : arr; // admin vê tudo
-
-dadosGlobais = arrFiltrado;
-    dadosGlobais = arr;
+    const arrFiltrado = permitidos
+      ? arr.filter(it => inspecaoPertenceA(permitidos, it))
+      : arr;
+    console.log("Total bruto:", arr.length, "Total filtrado:", arrFiltrado.length);
+console.log("Meu nome (token):", normName(getNomeDoToken()));
+console.log("Delegados:", Array.from((listaGestoresPermitidosParaInspecoes() || [])));
+    dadosGlobais = arrFiltrado;
 
     renderTabela(dadosGlobais);
     return dadosGlobais;
+
   } catch (e) {
     setStatus("Erro ao carregar dados.", "error");
     console.error(e);
@@ -1338,6 +1369,7 @@ dadosGlobais = arrFiltrado;
     return [];
   }
 }
+
 
 /* ============================================================
    FILTROS
