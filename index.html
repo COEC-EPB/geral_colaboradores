@@ -1372,24 +1372,24 @@ function mostrarAlertaMeses(meses, qtdColab) {
 
 // Pega a quantidade de colaboradores do líder (usando o ranking como base)
 async function alertarPrazoDoLider() {
+  const perfil = localStorage.getItem("perfil") || "";
+  const liderToken = localStorage.getItem("lider") || "";
+
+  // ✅ só líder vê
+  if (perfil !== "user" || !liderToken) {
+    const el = document.getElementById("alertMeses");
+    if (el) el.style.display = "none";
+    return;
+  }
+
   try {
-    // Aqui: chama o ranking SEM lider param.
-    // - user comum: o worker já filtra pelo líder do token
-    // - admin/liberados: vai vir geral (aí você pode filtrar pelo select se quiser)
-    const qs = new URLSearchParams();
-    const liderEl = document.getElementById("rankingLider");
-
-    // se tiver select de líder preenchido, usa ele (só pra admin/liberados)
-    if (liderEl && liderEl.value) qs.set("lider", liderEl.value);
-
-    const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
+    const res = await fetch(`${API}/ranking-colaboradores`, {
       headers: authHeaders()
     });
 
-    const text = await res.text();
     if (!res.ok) return;
 
-    const data = JSON.parse(text);
+    const data = await res.json();
     const qtdColab = (data.results || []).length;
 
     const meses = calcularMesesParaCobrirEquipe(qtdColab);
@@ -1397,7 +1397,7 @@ async function alertarPrazoDoLider() {
 
     mostrarAlertaMeses(meses, qtdColab);
   } catch (e) {
-    // silencioso pra não atrapalhar
+    console.error("Erro no alerta de meses:", e);
   }
 }
 
