@@ -1070,8 +1070,13 @@ function listaGestoresPermitidosParaInspecoes() {
 
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
   return new Set([meuNome, ...delegados]);
+
+  console.log("getNomeDoToken():", getNomeDoToken());
+console.log("normName(getNomeDoToken()):", normName(getNomeDoToken()));
+console.log("é super?", SUPER_GESTORES_INSPECOES.has(normName(getNomeDoToken())));
 }
 
+  
 // ✅ decide se uma inspeção “pertence” a algum gestor permitido
 function inspecaoPertenceA(permitidosSet, item) {
   // campos onde o nome pode aparecer
