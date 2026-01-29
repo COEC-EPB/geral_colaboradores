@@ -2063,8 +2063,8 @@ document.getElementById("btnVoltarMinhas")?.addEventListener("click", () => {
   carregarStatsMensal();
 
   await carregarMedidasCache();
-  (async function init() {
-  aplicarMesAtualNoTopo();
+  
+ aplicarMesAtualNoTopo();
   await popularGestoresTopo();
   await carregarInspecoes();
   
