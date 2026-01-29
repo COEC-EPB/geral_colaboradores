@@ -2027,30 +2027,36 @@ async function alertarPrazoDoLider() {
 
   box.style.display = "block";
 
-  /* ============================
-   EVENTOS DOS FILTROS
-============================ */
-document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
+  // ============================
+  // EVENTOS DOS FILTROS
+  // ============================
+  document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
 
-document.getElementById("filtroGestor")?.addEventListener("change", () => {
-  const sel = document.getElementById("filtroGestor");
-  const btn = document.getElementById("btnVoltarMinhas");
-  const meu = (sel.dataset.meuNome || "").toUpperCase();
-  const atual = (sel.value || "").toUpperCase();
+  document.getElementById("filtroGestor")?.addEventListener("change", () => {
+    const sel = document.getElementById("filtroGestor");
+    const btn = document.getElementById("btnVoltarMinhas");
+    if (!sel || !btn) return;
 
-  // mostrar botão voltar somente se mudou para outro gestor
-  btn.style.display = atual && atual !== meu ? "inline-flex" : "none";
+    const meu = (sel.dataset.meuNome || "").toUpperCase();
+    const atual = (sel.value || "").toUpperCase();
 
-  carregarInspecoes();
-});
+    // mostrar botão voltar somente se mudou para outro gestor
+    btn.style.display = atual && atual !== meu ? "inline-flex" : "none";
 
-document.getElementById("btnVoltarMinhas")?.addEventListener("click", () => {
-  const sel = document.getElementById("filtroGestor");
-  const meu = sel.dataset.meuNome || "";
-  sel.value = meu;
-  document.getElementById("btnVoltarMinhas").style.display = "none";
-  carregarInspecoes();
-});
+    carregarInspecoes();
+  });
+
+  document.getElementById("btnVoltarMinhas")?.addEventListener("click", () => {
+    const sel = document.getElementById("filtroGestor");
+    const btn = document.getElementById("btnVoltarMinhas");
+    if (!sel || !btn) return;
+
+    const meu = sel.dataset.meuNome || "";
+    sel.value = meu;
+    btn.style.display = "none";
+    carregarInspecoes();
+  });
+})(); // ✅ FECHA O initRankingUI
 /* ============================================================
    INIT
 ============================================================ */
