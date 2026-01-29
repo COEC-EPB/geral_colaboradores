@@ -373,10 +373,18 @@ button.secondary:hover{ background:#f3f3f3; }
   <option value="">Carregando gestores...</option>
 </select>
 
-<input type="month" id="filtroMes">
-    <input type="text" id="filtroLider" placeholder="Filtrar por Líder">
-    <input type="text" id="filtroLocalidade" placeholder="Filtrar por Localidade">
-    <input type="date" id="filtroData">
+  <input id="filtroMes" type="month" style="width:180px;">
+  <select id="filtroGestor" style="min-width:260px;">
+    <option value="">Carregando...</option>
+  </select>
+  
+  <button id="btnVoltarMinhas" class="secondary" type="button" style="display:none;">
+    <i class="bi bi-arrow-left"></i> Voltar para minhas inspeções
+  </button>
+  
+  <button type="button" onclick="carregarInspecoes()">
+    <i class="bi bi-arrow-repeat"></i> Atualizar
+  </button>
 
     <button onclick="aplicarFiltros()"><i class="bi bi-funnel"></i> Filtrar</button>
     <button class="secondary" onclick="limparFiltros()"><i class="bi bi-x-circle"></i> Limpar</button>
@@ -654,29 +662,54 @@ function getNomeDoToken(){
   }catch(e){ return ""; }
 }
 
-async function popularGestores() {
+function mesAtualYYYYMM() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function aplicarMesAtualNoTopo() {
+  const mesEl = document.getElementById("filtroMes");
+  if (mesEl && !mesEl.value) mesEl.value = mesAtualYYYYMM();
+}
+
+function gestorPadraoDoUsuario() {
+  // super gestor começa no dele também
+  return String(getNomeDoToken() || "").trim();
+}
+
+// ✅ esta é a ÚNICA função que preenche o select do topo
+async function popularGestoresTopo() {
   const sel = document.getElementById("filtroGestor");
   if (!sel) return;
 
+  const meuNome = gestorPadraoDoUsuario();
+  sel.dataset.meuNome = meuNome;
+
+  sel.innerHTML = `<option value="">Carregando...</option>`;
+
   try {
     const res = await apiFetch("/lideres");
-    const txt = await res.text();
-    const data = JSON.parse(txt);
+    const data = await res.json().catch(() => ({}));
+    const lista = Array.isArray(data.results) ? data.results : [];
 
-    const lista = data.results || [];
+    sel.innerHTML =
+      `<option value="">Selecione…</option>` +
+      lista.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
 
-    sel.innerHTML = `<option value="">Selecione…</option>` +
-      lista.map(x => `<option value="${x}">${x}</option>`).join("");
-
-    // seleciona AUTOMATICAMENTE o usuário logado
-    const meuNome = getNomeDoToken();
-    if (meuNome) sel.value = meuNome;
+    // seleciona automaticamente o "meu"
+    if (meuNome) {
+      const found = Array.from(sel.options).find(o =>
+        String(o.value).trim().toUpperCase() === meuNome.toUpperCase()
+      );
+      if (found) sel.value = found.value;
+    }
 
   } catch (e) {
-    sel.innerHTML = `<option value="">Erro ao carregar gestores</option>`;
-    console.error("ERRO /lideres:", e);
+    console.error("Erro /lideres:", e);
+    sel.innerHTML = `<option value="">Erro ao carregar</option>`;
   }
 }
+
 
   function aplicarMesAtual() {
   const el = document.getElementById("filtroMes");
@@ -1488,32 +1521,36 @@ function renderTabela(dados) {
 ============================================================ */
 async function carregarInspecoes() {
   setStatus("Carregando inspeções...");
-
   try {
-    const gestor = document.getElementById("filtroGestor")?.value || "";
-    const mes = document.getElementById("filtroMes")?.value || "";
+    const mes = document.getElementById("filtroMes")?.value || "";      // YYYY-MM
+    const gestor = document.getElementById("filtroGestor")?.value || ""; // nome
 
     const qs = new URLSearchParams();
-
-    if (gestor) qs.set("lider", gestor);
-
-    if (mes && /^\d{4}-\d{2}$/.test(mes)) {
-      qs.set("data_ini", `${mes}-01`);
-      qs.set("data_fim", `${mes}-31`);
-    }
+    if (mes) qs.set("mes", mes);
+    if (gestor) qs.set("gestor", gestor);
 
     const res = await apiFetch(`/inspecoes?${qs.toString()}`);
-    const txt = await res.text();
-    const data = JSON.parse(txt);
+    const text = await res.text();
 
-    dadosGlobais = Array.isArray(data) ? data : (data.results ?? []);
+    if (res.status === 401) return logout();
+    if (!res.ok) throw new Error(text);
+
+    let parsed = [];
+    try { parsed = JSON.parse(text); } catch {}
+
+    const arr = Array.isArray(parsed) ? parsed :
+      Array.isArray(parsed?.results) ? parsed.results :
+      Array.isArray(parsed?.data) ? parsed.data : [];
+
+    dadosGlobais = arr;
     renderTabela(dadosGlobais);
+    return dadosGlobais;
 
-    setStatus(`Total: ${dadosGlobais.length}`, "success");
-
-  } catch (err) {
-    console.error(err);
-    setStatus("Erro ao carregar.", "error");
+  } catch (e) {
+    setStatus("Erro ao carregar dados.", "error");
+    console.error(e);
+    dadosGlobais = [];
+    return [];
   }
 }
 
@@ -1998,8 +2035,25 @@ async function alertarPrazoDoLider() {
   /* ============================
    EVENTOS DOS FILTROS
 ============================ */
-document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
 document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
+
+document.getElementById("filtroGestor")?.addEventListener("change", () => {
+  const sel = document.getElementById("filtroGestor");
+  const btn = document.getElementById("btnVoltarMinhas");
+  const meu = (sel?.dataset.meuNome || "").trim().toUpperCase();
+  const atual = (sel?.value || "").trim().toUpperCase();
+
+  if (btn) btn.style.display = (atual && atual !== meu) ? "inline-flex" : "none";
+  carregarInspecoes();
+});
+
+document.getElementById("btnVoltarMinhas")?.addEventListener("click", () => {
+  const sel = document.getElementById("filtroGestor");
+  const meu = sel?.dataset.meuNome || "";
+  if (sel && meu) sel.value = meu;
+  document.getElementById("btnVoltarMinhas").style.display = "none";
+  carregarInspecoes();
+});
 })();
 
 /* ============================================================
@@ -2009,10 +2063,11 @@ document.getElementById("filtroMes")?.addEventListener("change", carregarInspeco
   carregarStatsMensal();
 
   await carregarMedidasCache();
-  aplicarMesAtual();
-await popularGestores();
-await carregarInspecoes();
+  (async function init() {
+  aplicarMesAtualNoTopo();
+  await popularGestoresTopo();
   await carregarInspecoes();
+  
 
   if (podeVerTodosRanking()) {
     await carregarLideresRanking();
