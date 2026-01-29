@@ -1515,39 +1515,38 @@ function renderTabela(dados) {
    CARREGAR INSPEÇÕES
 ============================================================ */
 async function carregarInspecoes() {
-  setStatus("Carregando inspeções...");
-  try {
-    const mes = document.getElementById("filtroMes")?.value || "";      // YYYY-MM
-    const gestor = document.getElementById("filtroGestor")?.value || ""; // nome
+  const selGestor = document.getElementById("filtroGestor");
+  const inpMes = document.getElementById("filtroMes");
 
-    const qs = new URLSearchParams();
-    if (mes) qs.set("mes", mes);
-    if (gestor) qs.set("gestor", gestor);
+  const gestor = (selGestor?.value || "").trim();
+  const mes = (inpMes?.value || "").trim(); // YYYY-MM
 
-    const res = await apiFetch(`/inspecoes?${qs.toString()}`);
-    const text = await res.text();
+  const qs = new URLSearchParams();
 
-    if (res.status === 401) return logout();
-    if (!res.ok) throw new Error(text);
+  if (gestor) qs.set("lider", gestor);
 
-    let parsed = [];
-    try { parsed = JSON.parse(text); } catch {}
-
-    const arr = Array.isArray(parsed) ? parsed :
-      Array.isArray(parsed?.results) ? parsed.results :
-      Array.isArray(parsed?.data) ? parsed.data : [];
-
-    dadosGlobais = arr;
-    renderTabela(dadosGlobais);
-    return dadosGlobais;
-
-  } catch (e) {
-    setStatus("Erro ao carregar dados.", "error");
-    console.error(e);
-    dadosGlobais = [];
-    return [];
+  // filtro mês -> manda data_ini e data_fim
+  if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+    qs.set("data_ini", `${mes}-01`);
+    qs.set("data_fim", `${mes}-31`);
   }
+
+  console.log("URL INSPECOES:", `/inspecoes?${qs.toString()}`);
+
+  const res = await apiFetch(`/inspecoes?${qs.toString()}`);
+  if (res.status === 401) return logout();
+
+  const text = await res.text();
+  if (!res.ok) {
+    console.error("Erro /inspecoes:", text);
+    return;
+  }
+
+  const dados = JSON.parse(text);
+  dadosGlobais = Array.isArray(dados) ? dados : [];
+  renderTabela(dadosGlobais);
 }
+
 
 
 /* ============================================================
@@ -2067,7 +2066,11 @@ async function alertarPrazoDoLider() {
   aplicarMesAtualNoTopo();
 
   await popularGestoresTopo();
-  await carregarInspecoes();
+
+document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
+document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
+
+await carregarInspecoes();
 
   if (podeVerTodosRanking()) {
     await carregarLideresRanking();
