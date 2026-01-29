@@ -356,8 +356,20 @@ button.secondary:hover{ background:#f3f3f3; }
   <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
 
   <div class="top-actions" id="areaAdmin">
-  <input type="file" id="excel" accept=".xlsx" />
-    <input type="file" id="excelNC" accept=".xlsx" />
+  <!-- 📄 Importar Inspeções -->
+<label for="excel" 
+       style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">
+  Importar inspeções (.xlsx)
+</label>
+<input type="file" id="excel" accept=".xlsx" 
+       style="margin-bottom:12px;">
+
+<!-- 🚨 Importar Não Conformidades -->
+<label for="excelNC" 
+       style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">
+  Importar não conformidades (.xlsx)
+</label>
+<input type="file" id="excelNC" accept=".xlsx">
   <button type="button" class="secondary" id="btnAbrirFreq">
     <i class="bi bi-graph-up"></i> Frequência
   </button>
