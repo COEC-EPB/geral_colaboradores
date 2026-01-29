@@ -369,6 +369,11 @@ button.secondary:hover{ background:#f3f3f3; }
 <main>
 
   <div class="row">
+    <select id="filtroGestor" style="min-width:260px;">
+  <option value="">Carregando gestores...</option>
+</select>
+
+<input type="month" id="filtroMes">
     <input type="text" id="filtroLider" placeholder="Filtrar por Líder">
     <input type="text" id="filtroLocalidade" placeholder="Filtrar por Localidade">
     <input type="date" id="filtroData">
@@ -637,6 +642,51 @@ button.secondary:hover{ background:#f3f3f3; }
 </main>
 
 <script>
+  function norm(s){
+  return String(s || "").trim().toUpperCase();
+}
+
+function getNomeDoToken(){
+  try {
+    const token = localStorage.getItem("token") || "";
+    const payload = JSON.parse(atob(token.split(".")[0]));
+    return payload.lider || "";
+  }catch(e){ return ""; }
+}
+
+async function popularGestores() {
+  const sel = document.getElementById("filtroGestor");
+  if (!sel) return;
+
+  try {
+    const res = await apiFetch("/lideres");
+    const txt = await res.text();
+    const data = JSON.parse(txt);
+
+    const lista = data.results || [];
+
+    sel.innerHTML = `<option value="">Selecione…</option>` +
+      lista.map(x => `<option value="${x}">${x}</option>`).join("");
+
+    // seleciona AUTOMATICAMENTE o usuário logado
+    const meuNome = getNomeDoToken();
+    if (meuNome) sel.value = meuNome;
+
+  } catch (e) {
+    sel.innerHTML = `<option value="">Erro ao carregar gestores</option>`;
+    console.error("ERRO /lideres:", e);
+  }
+}
+
+  function aplicarMesAtual() {
+  const el = document.getElementById("filtroMes");
+  if (!el) return;
+
+  const d = new Date();
+  const mes = d.getMonth() + 1;
+  const ano = d.getFullYear();
+  el.value = `${ano}-${String(mes).padStart(2,"0")}`;
+}
 /* ============================================================
    🔎 MATRÍCULA / TOKEN HELPERS
 ============================================================ */
@@ -1438,44 +1488,32 @@ function renderTabela(dados) {
 ============================================================ */
 async function carregarInspecoes() {
   setStatus("Carregando inspeções...");
+
   try {
-    const res = await apiFetch(`/inspecoes`);
-    const text = await res.text();
+    const gestor = document.getElementById("filtroGestor")?.value || "";
+    const mes = document.getElementById("filtroMes")?.value || "";
 
-    console.log("STATUS /inspecoes:", res.status);
-    console.log("BODY /inspecoes (raw):", text.slice(0, 500));
+    const qs = new URLSearchParams();
 
-    if (res.status === 401) return logout();
-    if (!res.ok) throw new Error(text);
+    if (gestor) qs.set("lider", gestor);
 
-    let parsed = [];
-    try { parsed = JSON.parse(text); } catch { parsed = []; }
+    if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+      qs.set("data_ini", `${mes}-01`);
+      qs.set("data_fim", `${mes}-31`);
+    }
 
-    const arr =
-      Array.isArray(parsed) ? parsed :
-      Array.isArray(parsed?.results) ? parsed.results :
-      Array.isArray(parsed?.data) ? parsed.data :
-      [];
+    const res = await apiFetch(`/inspecoes?${qs.toString()}`);
+    const txt = await res.text();
+    const data = JSON.parse(txt);
 
-    // ✅ aplica permissão de visualização de inspeções (para lançar medidas)
-    const permitidos = listaGestoresPermitidosParaInspecoes();
-
-    const arrFiltrado = permitidos
-      ? arr.filter(it => inspecaoPertenceA(permitidos, it))
-      : arr;
-    console.log("Total bruto:", arr.length, "Total filtrado:", arrFiltrado.length);
-console.log("Meu nome (token):", normName(getNomeDoToken()));
-console.log("Delegados:", Array.from((listaGestoresPermitidosParaInspecoes() || [])));
-    dadosGlobais = arrFiltrado;
-
+    dadosGlobais = Array.isArray(data) ? data : (data.results ?? []);
     renderTabela(dadosGlobais);
-    return dadosGlobais;
 
-  } catch (e) {
-    setStatus("Erro ao carregar dados.", "error");
-    console.error(e);
-    dadosGlobais = [];
-    return [];
+    setStatus(`Total: ${dadosGlobais.length}`, "success");
+
+  } catch (err) {
+    console.error(err);
+    setStatus("Erro ao carregar.", "error");
   }
 }
 
@@ -1497,6 +1535,7 @@ function aplicarFiltros() {
 
   renderTabela(filtrado);
 }
+  
 
 function limparFiltros() {
   const a = document.getElementById("filtroLider");
@@ -1955,6 +1994,12 @@ async function alertarPrazoDoLider() {
   }
 
   box.style.display = "block";
+
+  /* ============================
+   EVENTOS DOS FILTROS
+============================ */
+document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
+document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
 })();
 
 /* ============================================================
@@ -1964,6 +2009,9 @@ async function alertarPrazoDoLider() {
   carregarStatsMensal();
 
   await carregarMedidasCache();
+  aplicarMesAtual();
+await popularGestores();
+await carregarInspecoes();
   await carregarInspecoes();
 
   if (podeVerTodosRanking()) {
