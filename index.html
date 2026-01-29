@@ -2058,10 +2058,7 @@ document.getElementById("btnVoltarMinhas")?.addEventListener("click", () => {
   await carregarStatsMensal();
   await carregarMedidasCache();
 
-  // ✅ mês vigente no topo (use só 1 forma)
   aplicarMesAtualNoTopo();
-  // OU, se preferir, apague a linha acima e use:
-  // document.getElementById("filtroMes").value = new Date().toISOString().slice(0, 7);
 
   await popularGestoresTopo();
   await carregarInspecoes();
