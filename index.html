@@ -453,6 +453,7 @@ button.secondary:hover{ background:#f3f3f3; }
 }
   </style>
 </head>
+<body>
 <header>
   <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
 
@@ -497,9 +498,6 @@ button.secondary:hover{ background:#f3f3f3; }
 
   </div>
 </header>
-
-<body>
-
 
 <main>
   <div id="alertaAtrasoNC" class="alerta-atraso" style="display:none;"></div>
@@ -1000,24 +998,16 @@ function decodeJwtPayload(token) {
 }
 
 function getNomeDoToken() {
-  // 1) tenta localStorage "lider" (muito comum salvar no login)
+  // 1) tenta localStorage "lider"
   const lsLider = String(localStorage.getItem("lider") || "").trim();
   if (lsLider) return lsLider;
 
-  // 2) tenta pegar do JWT
+  // 2) tenta payload compat (Worker body.sig ou JWT)
   const token = String(localStorage.getItem("token") || "").trim();
-  const payload = decodeJwtPayload(token);
+  const payload = decodeTokenPayloadCompat(token);
   if (!payload) return "";
 
-  // tenta vários campos possíveis
-  return String(
-    payload.lider ??
-    payload.nome ??
-    payload.name ??
-    payload.usuario ??
-    payload.user ??
-    ""
-  ).trim();
+  return String(payload.lider || payload.nome || payload.name || "").trim();
 }
 
 /* ============================================================
@@ -2326,10 +2316,14 @@ function getByHeader(linha, ...possiveisNomes) {
 
   async function verificarNCAtrasadas() {
   try {
-    const gestor = String(getNomeDoToken() || "").trim();
-    if (!gestor) return;
+    const lider = String(getNomeDoToken() || "").trim();
+    if (!lider) {
+      console.warn("[DEBUG] Sem líder no token/localStorage");
+      return;
+    }
 
-    const url = `/nao-conformidades?gestor=${encodeURIComponent(gestor)}&status=${encodeURIComponent("Atrasado")}`;
+    // ✅ o worker normalmente filtra por "lider"
+    const url = `/nao-conformidades?lider=${encodeURIComponent(lider)}&status=${encodeURIComponent("Atrasado")}`;
 
     const res = await apiFetch(url);
     const text = await res.text();
@@ -2341,7 +2335,12 @@ function getByHeader(linha, ...possiveisNomes) {
 
     if (!res.ok) return;
 
-    const total = Number(data.total || 0);
+    // ✅ suporta tanto {total: N} quanto array puro
+    const total =
+      Number(data.total ?? 0) ||
+      (Array.isArray(data) ? data.length : 0) ||
+      (Array.isArray(data.results) ? data.results.length : 0);
+
     const el = document.getElementById("alertaAtrasoNC");
     if (!el) return;
 
