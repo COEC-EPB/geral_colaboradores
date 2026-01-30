@@ -744,16 +744,16 @@ function isAdminByToken() {
   
  (function controleDeAcessoAdmin() {
   document.addEventListener("DOMContentLoaded", () => {
-  const area = document.getElementById("areaAdmin");
-  if (!area) return;
+    const area = document.getElementById("areaAdmin");
+    if (!area) return;
 
-  const ehAdmin = isAdminByToken(); // usando a função do token body.sig
-  area.style.display = ehAdmin ? "block" : "none";
+    const ehAdmin = isAdminByToken(); // precisa existir!
+    area.style.display = ehAdmin ? "block" : "none";
 
-  if (!ehAdmin) area.remove(); // opcional: remove mesmo
-  console.log("[DEBUG] admin by token?", ehAdmin);
-});
- }
+    if (!ehAdmin) area.remove(); // opcional
+    console.log("[DEBUG] admin by token?", ehAdmin);
+  });
+})();
 
   
   function norm(s){
