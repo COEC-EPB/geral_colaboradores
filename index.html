@@ -2071,32 +2071,37 @@ async function alertarPrazoDoLider() {
   }
 }
 
+function getByHeader(linha, ...possiveisNomes) {
+  for (const nome of possiveisNomes) {
+    if (linha[nome] !== undefined && linha[nome] !== null) {
+      return linha[nome];
+    }
+  }
+  return null;
+}
+  
   function normalizarLinhaNC(l) {
   return {
-    numero_plano: (getByHeader(l, ["Número do plano", "Numero do plano", "Numero plano"]) ?? "").toString().trim() || null,
-    localidade: getByHeader(l, ["Localidade"]) ?? null,
-    area: getByHeader(l, ["Área", "Area"]) ?? null,
-    equipe_avaliada: getByHeader(l, ["Equipe Avaliada", "Equipe Ava", "Equipe avaliada"]) ?? null,
-    contratada: getByHeader(l, ["Contratada"]) ?? null,
-    lider: getByHeader(l, ["Líder", "Lider"]) ?? null,
-    descricao: getByHeader(l, ["Descrição", "Descricao"]) ?? null,
-    observacao: getByHeader(l, ["Observação", "Observacao"]) ?? null,
-    status: getByHeader(l, ["Status"]) ?? null,
-    tipo_area: getByHeader(l, ["Tipo de Área", "Tipo de Area", "Tipo de áre", "Tipo de are"]) ?? null,
-    responsavel: getByHeader(l, ["Responsável", "Responsavel", "Responsá"]) ?? null,
-    acao: getByHeader(l, ["Ação", "Acao"]) ?? null,
-
-    // datas (pode ser número do Excel ou texto)
-    inicio: excelDateToISO(getByHeader(l, ["Início", "Inicio"])),
-    termino: excelDateToISO(getByHeader(l, ["Término", "Termino"])),
-    inicio_acao: excelDateToISO(getByHeader(l, ["Início da ação", "Inicio da ação", "Início da acao", "Inicio da acao"])),
-    termino_acao: excelDateToISO(getByHeader(l, ["Término da ação", "Termino da ação", "Término da acao", "Termino da acao"])),
-
-    justificativa: getByHeader(l, ["Justificativa", "Justificativ"]) ?? null,
-    atraso: getByHeader(l, ["Atraso", "Atras"]) ?? null
+    numero_plano: getByHeader(l, "Número do plano", "Numero do plano", "Nº do Plano", "numero_plano"),
+    localidade: getByHeader(l, "Localidade"),
+    area: getByHeader(l, "Área", "Area"),
+    equipe_avaliada: getByHeader(l, "Equipe Avaliada"),
+    contratada: getByHeader(l, "Contratada"),
+    lider: getByHeader(l, "Líder", "Lider"),
+    descricao: getByHeader(l, "Descrição", "Descricao"),
+    observacao: getByHeader(l, "Observação", "Observacao"),
+    status: getByHeader(l, "Status"),
+    tipo_area: getByHeader(l, "Tipo de Área", "Tipo de Area"),
+    responsavel: getByHeader(l, "Responsável", "Responsavel"),
+    acao: getByHeader(l, "Ação", "Acao"),
+    inicio: excelDateToISO(getByHeader(l, "Início", "Inicio")),
+    termino: excelDateToISO(getByHeader(l, "Término", "Termino")),
+    inicio_acao: excelDateToISO(getByHeader(l, "Início da ação", "Inicio da ação", "Inicio da acao")),
+    termino_acao: excelDateToISO(getByHeader(l, "Término da ação", "Termino da ação", "Termino da acao")),
+    justificativa: getByHeader(l, "Justificativa"),
+    atraso: getByHeader(l, "Atraso")
   };
 }
-
 /* ============================================================
    UI INIT
 ============================================================ */
