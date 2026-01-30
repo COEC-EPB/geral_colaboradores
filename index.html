@@ -2250,26 +2250,19 @@ async function carregarLideresRanking() {
 
   box.style.display = "block";
 
-  const res = await fetch(`${API}/lideres`, { headers: authHeaders() });
-  const text = await res.text();
-  if (!res.ok) {
-    console.error("Erro /lideres:", text);
-    setStatus(`Erro ao carregar líderes: ${text}`, "error");
-    return;
-  }
+  // ✅ lista DEOP = quem tem meta
+  const listaFinal = Object.keys(META_MENSAL_POR_GESTOR)
+    .slice()
+    .sort((a, b) => normName(a).localeCompare(normName(b)));
 
-  const data = JSON.parse(text);
-  const lideres = data.results || [];
-
-  sel.innerHTML = `<option value="">Selecione o líder...</option>`;
-  lideres.forEach(l => {
+  sel.innerHTML = `<option value="">Todos os líderes</option>`;
+  listaFinal.forEach(l => {
     const opt = document.createElement("option");
     opt.value = l;
     opt.textContent = l;
     sel.appendChild(opt);
   });
 }
-
 /* ============================================================
    ALERTA PRAZO DO LÍDER (✅ corrigido ${meses})
 ============================================================ */
