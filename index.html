@@ -2417,8 +2417,9 @@ function getByHeader(linha, ...possiveisNomes) {
 
 document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
 document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
-await verificarNCAtrasadas(); // 👈 AQUI!
+
 await carregarInspecoes();
+  await verificarNCAtrasadas(); // 👈 AQUI!
 
   if (podeVerTodosRanking()) {
     await carregarLideresRanking();
