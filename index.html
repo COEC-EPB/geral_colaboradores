@@ -370,7 +370,20 @@ button.secondary:hover{ background:#f3f3f3; }
   font-size: 16px;
 }
     /* 🔒 Por padrão, área admin fica oculta (mesmo antes do JS) */
-#areaAdmin { display: none !important; }
+/* ✅ Área do admin visível e organizada no header flex */
+#areaAdmin{
+  display:none;               /* começa escondido */
+  flex-direction:column;      /* labels + inputs em coluna */
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+  min-width: 260px;           /* evita “sumir” espremido */
+}
+#areaAdmin input[type="file"]{
+  width: 260px;               /* mantém padrão */
+}
   </style>
 </head>
 
@@ -742,16 +755,15 @@ function isAdminByToken() {
   return String(payload?.perfil || "").toLowerCase() === "admin";
 }
   
- (function controleDeAcessoAdmin() {
+ (function controleDeAcessoAdmin(){
   document.addEventListener("DOMContentLoaded", () => {
     const area = document.getElementById("areaAdmin");
     if (!area) return;
 
-    const ehAdmin = isAdminByToken(); // precisa existir!
-    area.style.display = ehAdmin ? "block" : "none";
+    const ehAdmin = isAdminByToken(); // sua função que lê o token
+    area.style.display = ehAdmin ? "flex" : "none";
 
-    if (!ehAdmin) area.remove(); // opcional
-    console.log("[DEBUG] admin by token?", ehAdmin);
+    console.log("[DEBUG] admin by token?", ehAdmin, "display:", getComputedStyle(area).display);
   });
 })();
 
