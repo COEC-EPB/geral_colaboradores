@@ -790,7 +790,7 @@ function isAdminByToken() {
   const payload = decodeTokenPayloadCompat(token);
   return String(payload?.perfil || "").toLowerCase() === "admin";
 }
-  document.addEventListener("DOMContentLoaded", () => {
+ document.addEventListener("DOMContentLoaded", () => {
   const wrap = document.getElementById("adminWrap");
   const pop = document.getElementById("adminPop");
   const btn = document.getElementById("btnAdminImport");
@@ -808,7 +808,7 @@ function isAdminByToken() {
     pop.style.display = (pop.style.display === "none" || !pop.style.display) ? "block" : "none";
   }
   function closePop(){
-    pop.style.display = "none";
+    if (pop) pop.style.display = "none";
   }
 
   btn?.addEventListener("click", (e) => {
