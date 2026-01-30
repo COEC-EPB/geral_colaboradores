@@ -377,9 +377,15 @@ button.secondary:hover{ background:#f3f3f3; }
 
 .admin-pop{
   position:absolute;
-  right:0;
   top:44px;
+
+  /* ✅ centraliza no botão */
+  left:50%;
+  transform: translateX(-50%);
+
   width: 320px;
+  max-width: min(92vw, 360px);
+
   background:#fff;
   border:1px solid var(--border);
   border-radius:14px;
@@ -391,14 +397,14 @@ button.secondary:hover{ background:#f3f3f3; }
 .admin-pop::before{
   content:"";
   position:absolute;
-  right:18px;
+  left:50%;
   top:-8px;
   width:14px;
   height:14px;
   background:#fff;
   border-left:1px solid var(--border);
   border-top:1px solid var(--border);
-  transform: rotate(45deg);
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .admin-pop-head{
@@ -805,8 +811,20 @@ function isAdminByToken() {
   if (!ehAdmin) return;
 
   function togglePop(){
-    pop.style.display = (pop.style.display === "none" || !pop.style.display) ? "block" : "none";
-  }
+  const willOpen = (pop.style.display === "none" || !pop.style.display);
+  pop.style.display = willOpen ? "block" : "none";
+  if (!willOpen) return;
+
+  // ✅ ajusta se estourar nas laterais
+  requestAnimationFrame(() => {
+    const r = pop.getBoundingClientRect();
+    const pad = 10;
+    if (r.left < pad) pop.style.transform = `translateX(calc(-50% + ${pad - r.left}px))`;
+    else if (r.right > window.innerWidth - pad)
+      pop.style.transform = `translateX(calc(-50% - ${r.right - (window.innerWidth - pad)}px))`;
+    else pop.style.transform = "translateX(-50%)";
+  });
+}
   function closePop(){
     if (pop) pop.style.display = "none";
   }
