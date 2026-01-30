@@ -370,63 +370,99 @@ button.secondary:hover{ background:#f3f3f3; }
   font-size: 16px;
 }
     /* 🔒 Por padrão, área admin fica oculta (mesmo antes do JS) */
-/* ✅ Área do admin visível e organizada no header flex */
-#areaAdmin{
-  display:none;               /* começa escondido */
-  flex-direction:column;      /* labels + inputs em coluna */
-  gap:10px;
-  padding:10px 12px;
-  border:1px solid var(--border);
-  border-radius:12px;
+/* ============================
+   ✅ ADMIN IMPORT (POPOVER)
+============================ */
+#adminWrap{ position:relative; display:none; }
+
+.admin-pop{
+  position:absolute;
+  right:0;
+  top:44px;
+  width: 320px;
   background:#fff;
-  min-width: 260px;           /* evita “sumir” espremido */
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 10px 28px rgba(0,0,0,.12);
+  padding:12px;
+  z-index:999;
 }
-#areaAdmin input[type="file"]{
-  width: 260px;               /* mantém padrão */
+
+.admin-pop::before{
+  content:"";
+  position:absolute;
+  right:18px;
+  top:-8px;
+  width:14px;
+  height:14px;
+  background:#fff;
+  border-left:1px solid var(--border);
+  border-top:1px solid var(--border);
+  transform: rotate(45deg);
+}
+
+.admin-pop-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.admin-pop-body{
+  display:grid;
+  gap:10px;
+}
+
+.admin-label{
+  font-size:12px;
+  font-weight:700;
+  color:#444;
+  margin-top:2px;
+}
+
+.admin-pop input[type="file"]{
+  width:100%;
+  height:38px;
+  padding:6px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:#fafafa;
+}
+
+.admin-x{
+  height:32px;
+  padding:0 10px;
 }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
+<!-- 🔐 ADMIN: botão + popover -->
+<!-- 🔐 ADMIN: botão Importar + popover -->
+<div id="adminWrap">
+  <button type="button" class="secondary" id="btnAdminImport">
+    <i class="bi bi-upload"></i> Importar
+  </button>
 
-  <div class="top-actions">
-
-    <!-- 🔗 Tratamento NC (visível para todos) -->
-    <a href="https://coec-epb.github.io/tratamento_NC/" class="btn-link">
-  <i class="bi bi-exclamation-triangle"></i> Tratamento NC
-</a>
-
-    <!-- 🔐 ÁREA RESTRITA AO ADMIN -->
-    <div id="areaAdmin" style="display:none;">
-
-      <label for="excel" 
-            style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">
-        Importar inspeções (.xlsx)
-      </label>
-      <input type="file" id="excel" accept=".xlsx" style="margin-bottom:12px;">
-
-      <label for="excelNC" 
-            style="font-size:13px; font-weight:600; display:block; margin-bottom:4px;">
-        Importar não conformidades (.xlsx)
-      </label>
-      <input type="file" id="excelNC" accept=".xlsx">
-
+  <div class="admin-pop" id="adminPop" style="display:none;">
+    <div class="admin-pop-head">
+      <b>Importações (admin)</b>
+      <button type="button" class="secondary admin-x" id="btnFecharAdminPop">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
 
-    <button type="button" class="secondary" id="btnAbrirFreq">
-      <i class="bi bi-graph-up"></i> Frequência
-    </button>
+    <div class="admin-pop-body">
+      <label class="admin-label" for="excel">Inspeções (.xlsx)</label>
+      <input type="file" id="excel" accept=".xlsx">
 
-    <button onclick="logout()">
-      <i class="bi bi-box-arrow-right"></i> Sair
-    </button>
-
+      <label class="admin-label" for="excelNC">Não conformidades (.xlsx)</label>
+      <input type="file" id="excelNC" accept=".xlsx">
+    </div>
   </div>
-</header>
-
+</div>
 
 <main>
 
@@ -754,6 +790,47 @@ function isAdminByToken() {
   const payload = decodeTokenPayloadCompat(token);
   return String(payload?.perfil || "").toLowerCase() === "admin";
 }
+  document.addEventListener("DOMContentLoaded", () => {
+  const wrap = document.getElementById("adminWrap");
+  const pop = document.getElementById("adminPop");
+  const btn = document.getElementById("btnAdminImport");
+  const btnClose = document.getElementById("btnFecharAdminPop");
+
+  if (!wrap) return;
+
+  const ehAdmin = isAdminByToken();
+  wrap.style.display = ehAdmin ? "inline-flex" : "none";
+  console.log("[DEBUG] admin by token?", ehAdmin);
+
+  if (!ehAdmin) return;
+
+  function togglePop(){
+    pop.style.display = (pop.style.display === "none" || !pop.style.display) ? "block" : "none";
+  }
+  function closePop(){
+    pop.style.display = "none";
+  }
+
+  btn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePop();
+  });
+
+  btnClose?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closePop();
+  });
+
+  // clicar fora fecha
+  document.addEventListener("click", (e) => {
+    if (!wrap.contains(e.target)) closePop();
+  });
+
+  // ESC fecha
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePop();
+  });
+});
   
  (function controleDeAcessoAdmin(){
   document.addEventListener("DOMContentLoaded", () => {
