@@ -442,6 +442,50 @@ button.secondary:hover{ background:#f3f3f3; }
 }
   </style>
 </head>
+<header>
+  <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
+
+  <div class="top-actions">
+
+    <!-- 🔗 Tratamento NC -->
+    <a href="https://coec-epb.github.io/tratamento_NC/" class="btn-link">
+      <i class="bi bi-exclamation-triangle"></i> Tratamento NC
+    </a>
+
+    <!-- 🔐 ADMIN: botão Importar + popover -->
+    <div id="adminWrap">
+      <button type="button" class="secondary" id="btnAdminImport">
+        <i class="bi bi-upload"></i> Importar
+      </button>
+
+      <div class="admin-pop" id="adminPop" style="display:none;">
+        <div class="admin-pop-head">
+          <b>Importações (admin)</b>
+          <button type="button" class="secondary admin-x" id="btnFecharAdminPop">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="admin-pop-body">
+          <label class="admin-label" for="excel">Inspeções (.xlsx)</label>
+          <input type="file" id="excel" accept=".xlsx">
+
+          <label class="admin-label" for="excelNC">Não conformidades (.xlsx)</label>
+          <input type="file" id="excelNC" accept=".xlsx">
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="secondary" id="btnAbrirFreq">
+      <i class="bi bi-graph-up"></i> Frequência
+    </button>
+
+    <button type="button" onclick="logout()">
+      <i class="bi bi-box-arrow-right"></i> Sair
+    </button>
+
+  </div>
+</header>
 
 <body>
 
