@@ -698,19 +698,23 @@ button.secondary:hover{ background:#f3f3f3; }
 </main>
 
 <script>
-
+  function isAdminByToken() {
+  const token = String(localStorage.getItem("token") || "").trim();
+  const payload = decodeJwtPayload(token);
+  return String(payload?.perfil || "").toLowerCase() === "admin";
+}
+  
   (function controleDeAcessoAdmin() {
-  const perfil = (localStorage.getItem("perfil") || "user").toLowerCase();
   const area = document.getElementById("areaAdmin");
   if (!area) return;
 
-  if (perfil === "admin") {
-    area.style.display = "block";
-  } else {
-    // ✅ some com TUDO (labels + inputs)
-    area.remove();
-  }
+  const ehAdmin = isAdminByToken();
+
+  area.style.display = ehAdmin ? "block" : "none";
+  console.log("[DEBUG] admin by token?", ehAdmin);
 })();
+
+  
   function norm(s){
   return String(s || "").trim().toUpperCase();
 }
