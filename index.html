@@ -698,19 +698,57 @@ button.secondary:hover{ background:#f3f3f3; }
 </main>
 
 <script>
-  function isAdminByToken() {
+  function b64urlToString(b64url) {
+  try {
+    let b64 = String(b64url || "").replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    return atob(b64);
+  } catch {
+    return "";
+  }
+}
+
+function decodeTokenPayloadCompat(token) {
+  try {
+    const parts = String(token || "").split(".");
+    if (parts.length < 2) return null;
+
+    // ✅ seu Worker: body.sig  -> payload está no parts[0]
+    // ✅ JWT clássico: header.payload.sig -> payload está no parts[1]
+    const maybeWorkerBody = parts[0];
+    const maybeJwtPayload = parts[1];
+
+    // tenta primeiro formato do Worker
+    const workerJson = b64urlToString(maybeWorkerBody);
+    if (workerJson && workerJson.trim().startsWith("{")) {
+      return JSON.parse(workerJson);
+    }
+
+    // se não der, tenta JWT clássico
+    const jwtJson = b64urlToString(maybeJwtPayload);
+    if (jwtJson && jwtJson.trim().startsWith("{")) {
+      return JSON.parse(jwtJson);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function isAdminByToken() {
   const token = String(localStorage.getItem("token") || "").trim();
-  const payload = decodeJwtPayload(token);
+  const payload = decodeTokenPayloadCompat(token);
   return String(payload?.perfil || "").toLowerCase() === "admin";
 }
   
-  (function controleDeAcessoAdmin() {
+ (function controleDeAcessoAdmin() {
   const area = document.getElementById("areaAdmin");
   if (!area) return;
 
   const ehAdmin = isAdminByToken();
-
   area.style.display = ehAdmin ? "block" : "none";
+
   console.log("[DEBUG] admin by token?", ehAdmin);
 })();
 
