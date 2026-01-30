@@ -929,22 +929,44 @@ async function popularGestoresTopo() {
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
   try {
+    // ✅ (opcional) ainda busca do backend, mas vamos usar só como referência
     const res = await apiFetch("/lideres");
     const data = await res.json();
-    const lista = Array.isArray(data.results) ? data.results : [];
+    const listaApi = Array.isArray(data.results) ? data.results : [];
+
+    // ✅ lista DEOP = quem tem meta
+    const listaDeop = Object.keys(META_MENSAL_POR_GESTOR);
+
+    // ✅ (recomendado) mostra só quem está no DEOP
+    // Se quiser garantir que existe na API também, use o filtro abaixo:
+    // const listaFinal = listaDeop.filter(n => listaApi.some(x => normName(x) === normName(n)));
+    const listaFinal = listaDeop
+      .slice()
+      .sort((a, b) => normName(a).localeCompare(normName(b)));
 
     sel.innerHTML =
       `<option value="">Selecione…</option>` +
-      lista.map(n => `<option value="${n}">${n}</option>`).join("");
+      listaFinal.map(n => `<option value="${n}">${n}</option>`).join("");
 
-    // seleciona automaticamente o nome do usuário logado
-    const meu = lista.find(x => x.trim().toUpperCase() === meuNome.toUpperCase());
+    // ✅ seleciona automaticamente o nome do usuário logado (se estiver no DEOP)
+    const meu = listaFinal.find(x => normName(x) === normName(meuNome));
     if (meu) sel.value = meu;
 
   } catch (e) {
-    sel.innerHTML = `<option value="">Erro ao carregar</option>`;
+    // fallback: mesmo se a API falhar, ainda dá pra montar pelo DEOP
+    const listaFinal = Object.keys(META_MENSAL_POR_GESTOR)
+      .slice()
+      .sort((a, b) => normName(a).localeCompare(normName(b)));
+
+    sel.innerHTML =
+      `<option value="">Selecione…</option>` +
+      listaFinal.map(n => `<option value="${n}">${n}</option>`).join("");
+
+    const meu = listaFinal.find(x => normName(x) === normName(meuNome));
+    if (meu) sel.value = meu;
   }
 }
+
 
 
 
