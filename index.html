@@ -785,36 +785,7 @@ button.secondary:hover{ background:#f3f3f3; }
 
 <script>
 
-  async function verificarNCAtrasadas() {
-  try {
-    const nome = getNomeDoToken();
-    if (!nome) return;
-
-    const res = await apiFetch(`/nao-conformidades?gestor=${encodeURIComponent(nome)}&status=ATRASADO`);
-    const texto = await res.text();
-
-    if (!res.ok) return;
-
-    const data = JSON.parse(texto);
-    const total = data.total || 0;
-
-    if (total > 0) {
-      const alerta = document.getElementById("alertaAtrasoNC");
-      if (alerta) {
-        alerta.innerHTML = `
-          ⚠ Você tem <b>${total}</b> ação(ões) atrasada(s)!
-          <a href="https://coec-epb.github.io/tratamento_NC/" 
-             style="margin-left:10px; color:#b3261e; text-decoration:underline;">
-            Ver agora →
-          </a>
-        `;
-        alerta.style.display = "block";
-      }
-    }
-  } catch (e) {
-    console.error("Erro ao verificar NC atrasadas:", e);
-  }
-}
+  
   function b64urlToString(b64url) {
   try {
     let b64 = String(b64url || "").replace(/-/g, "+").replace(/_/g, "/");
@@ -2350,6 +2321,37 @@ function getByHeader(linha, ...possiveisNomes) {
     justificativa: getByHeader(l, "Justificativa"),
     atraso: getByHeader(l, "Atraso")
   };
+}
+
+  async function verificarNCAtrasadas() {
+  try {
+    const nome = getNomeDoToken();
+    if (!nome) return;
+
+    const res = await apiFetch(`/nao-conformidades?gestor=${encodeURIComponent(nome)}&status=ATRASADO`);
+    const texto = await res.text();
+
+    if (!res.ok) return;
+
+    const data = JSON.parse(texto);
+    const total = data.total || 0;
+
+    if (total > 0) {
+      const alerta = document.getElementById("alertaAtrasoNC");
+      if (alerta) {
+        alerta.innerHTML = `
+          ⚠ Você tem <b>${total}</b> ação(ões) atrasada(s)!
+          <a href="https://coec-epb.github.io/tratamento_NC/" 
+             style="margin-left:10px; color:#b3261e; text-decoration:underline;">
+            Ver agora →
+          </a>
+        `;
+        alerta.style.display = "block";
+      }
+    }
+  } catch (e) {
+    console.error("Erro ao verificar NC atrasadas:", e);
+  }
 }
 /* ============================================================
    UI INIT
