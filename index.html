@@ -440,6 +440,17 @@ button.secondary:hover{ background:#f3f3f3; }
   height:32px;
   padding:0 10px;
 }
+    .alerta-atraso{
+  display:none;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(179,38,30,.30);
+  background: rgba(179,38,30,.08);
+  color:#b3261e;
+  font-weight:800;
+  font-size:14px;
+  max-width: 520px;
+}
   </style>
 </head>
 <header>
@@ -491,17 +502,7 @@ button.secondary:hover{ background:#f3f3f3; }
 
 
 <main>
-  <div id="alertaAtrasoNC" 
-     style="display:none; 
-            background:#ffe5e5; 
-            border:1px solid #ffb3b3; 
-            padding:12px 16px; 
-            border-radius:10px; 
-            color:#b30000; 
-            font-weight:700; 
-            margin-bottom:16px;
-            font-size:15px;">
-</div>
+  <div id="alertaAtrasoNC" class="alerta-atraso" style="display:none;"></div>
 
  <div class="row">
   <select id="filtroGestor" style="min-width:200px;">
@@ -2325,29 +2326,30 @@ function getByHeader(linha, ...possiveisNomes) {
 
   async function verificarNCAtrasadas() {
   try {
-    const nome = getNomeDoToken();
-    if (!nome) return;
+    const gestor = String(getNomeDoToken() || "").trim();
+    if (!gestor) return;
 
-    const res = await apiFetch(`/nao-conformidades?gestor=${encodeURIComponent(nome)}&status=ATRASADO`);
-    const texto = await res.text();
+    const url = `/nao-conformidades?gestor=${encodeURIComponent(gestor)}&status=${encodeURIComponent("Atrasado")}`;
+
+    const res = await apiFetch(url);
+    const text = await res.text();
+
+    let data = {};
+    try { data = JSON.parse(text); } catch {}
+
+    console.log("[DEBUG] NC atrasadas:", url, "HTTP", res.status, data);
 
     if (!res.ok) return;
 
-    const data = JSON.parse(texto);
-    const total = data.total || 0;
+    const total = Number(data.total || 0);
+    const el = document.getElementById("alertaAtrasoNC");
+    if (!el) return;
 
     if (total > 0) {
-      const alerta = document.getElementById("alertaAtrasoNC");
-      if (alerta) {
-        alerta.innerHTML = `
-          ⚠ Você tem <b>${total}</b> ação(ões) atrasada(s)!
-          <a href="https://coec-epb.github.io/tratamento_NC/" 
-             style="margin-left:10px; color:#b3261e; text-decoration:underline;">
-            Ver agora →
-          </a>
-        `;
-        alerta.style.display = "block";
-      }
+      el.innerHTML = `🚨 Você tem <b>${total}</b> ação(ões) atrasada(s)!`;
+      el.style.display = "block";
+    } else {
+      el.style.display = "none";
     }
   } catch (e) {
     console.error("Erro ao verificar NC atrasadas:", e);
@@ -2416,12 +2418,13 @@ function getByHeader(linha, ...possiveisNomes) {
   aplicarMesAtualNoTopo();
 
   await popularGestoresTopo();
+  await verificarNCAtrasadas(); // 👈 AQUI!
 
 document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
 document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
 
 await carregarInspecoes();
-  await verificarNCAtrasadas(); // 👈 AQUI!
+  
 
   if (podeVerTodosRanking()) {
     await carregarLideresRanking();
