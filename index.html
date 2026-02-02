@@ -508,7 +508,7 @@ button.secondary:hover{ background:#f3f3f3; }
   <div id="alertaAtrasoNC" class="alerta-atraso" style="display:none;"></div>
 
    <!-- 🔗 Mostrando os atrasados das NC -->
-  <div id="alertAtraso" class="alert" style="display:none;">
+  <div id="alertAtraso" class="alert" style="display:none; margin-bottom:12px;">
   <b id="alertAtrasoTxt"></b>
 
   <button id="btnVerGestoresAtraso" class="secondary" type="button" style="margin-left:10px; display:none;">
@@ -516,7 +516,8 @@ button.secondary:hover{ background:#f3f3f3; }
   </button>
 </div>
 
-<div id="listaGestoresAtraso" class="card" style="display:none; margin-top:10px; padding:12px;">
+<div id="listaGestoresAtraso" class="card" 
+     style="display:none; margin-top:10px; padding:12px;">
   <div style="font-weight:800; margin-bottom:8px;">Gestores com ações atrasadas</div>
   <div id="listaGestoresAtrasoBody"></div>
 </div>
@@ -2394,30 +2395,30 @@ function getByHeader(linha, ...possiveisNomes) {
   }
 }
 
+// ✅ aQUI SÃO FUNCOES PARA VERIFICAR OS GESTORES COM AÇÕES ATRASADAS
+  
   function isAtrasada(r){
   const st = String(r.status || "").trim().toUpperCase();
   if (st === "ATRASADO") return true;
 
-  // fallback: se você usa a coluna "atraso" com número/dias
   const at = String(r.atraso ?? "").trim();
-  if (!at) return false;
-
-  const n = Number(String(at).replace(",", "."));
+  const n = Number(at.replace(",", "."));
   return Number.isFinite(n) && n > 0;
 }
 
 function renderGestoresAtrasados(lista){
   const box = document.getElementById("listaGestoresAtraso");
   const body = document.getElementById("listaGestoresAtrasoBody");
+
   if (!box || !body) return;
 
+  // continua oculto até clicar
+  box.style.display = "none";
+  
   if (!lista.length){
-    box.style.display = "none";
     body.innerHTML = "";
     return;
   }
-
-  box.style.display = "block";
 
   body.innerHTML = lista.map(item => `
     <div style="display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid #eee;">
@@ -2428,32 +2429,23 @@ function renderGestoresAtrasados(lista){
 }
 
 async function carregarGestoresComAtraso(){
-  // pega mês do filtro
   const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
 
   const qs = new URLSearchParams();
   if (mes) qs.set("mes", mes);
 
-  // ⚠️ IMPORTANTÍSSIMO:
-  // NÃO mande gestor aqui, senão você só enxerga 1 líder por vez.
   const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
   const text = await res.text();
   let data = {};
   try { data = JSON.parse(text); } catch {}
 
-  if (!res.ok){
-    console.log("Erro ao carregar gestores atraso:", text);
-    renderGestoresAtrasados([]);
-    return;
-  }
-
   const rows = data.results || [];
   const atrasadas = rows.filter(isAtrasada);
 
-  // agrupa por lider
+  // Agrupar por líder
   const map = new Map();
   for (const r of atrasadas){
-    const lider = String(r.lider || "SEM LÍDER").trim() || "SEM LÍDER";
+    const lider = String(r.lider || "SEM LÍDER").trim();
     map.set(lider, (map.get(lider) || 0) + 1);
   }
 
@@ -2461,37 +2453,40 @@ async function carregarGestoresComAtraso(){
     .map(([lider, qtd]) => ({ lider, qtd }))
     .sort((a,b) => b.qtd - a.qtd);
 
-  // Atualiza o alerta (total geral)
+  // Atualizar alerta
   const alertBox = document.getElementById("alertAtraso");
   const alertTxt = document.getElementById("alertAtrasoTxt");
   const btn = document.getElementById("btnVerGestoresAtraso");
 
-  if (alertBox && alertTxt){
-    if (atrasadas.length > 0){
-      alertBox.style.display = "block";
-      alertTxt.textContent = `Você tem ${atrasadas.length} ação(ões) atrasada(s)!`;
+  if (atrasadas.length > 0){
+    alertBox.style.display = "block";
+    alertTxt.textContent = `Você tem ${atrasadas.length} ação(ões) atrasada(s)!`;
 
-      // Se tem mais de 1 gestor na lista, mostra botão
-      if (btn){
-        btn.style.display = (lista.length > 1) ? "inline-flex" : "none";
-      }
+    // mostra botão apenas se tiver mais de 1 gestor
+    if (lista.length > 1){
+      btn.style.display = "inline-flex";
     } else {
-      alertBox.style.display = "none";
-      if (btn) btn.style.display = "none";
+      btn.style.display = "none";
     }
+  } else {
+    alertBox.style.display = "none";
+    btn.style.display = "none";
   }
 
-  // renderiza lista (deixa escondida e abre no botão)
+  // render list (continua oculta)
   renderGestoresAtrasados(lista);
 
-  // botão abre/fecha
-  if (btn){
-    btn.onclick = () => {
-      const box = document.getElementById("listaGestoresAtraso");
-      if (!box) return;
-      box.style.display = (box.style.display === "none" ? "block" : "none");
-    };
-  }
+  // botão toggle
+  btn.onclick = () => {
+    const box = document.getElementById("listaGestoresAtraso");
+    if (box.style.display === "none") {
+      box.style.display = "block";   // abre
+      btn.textContent = "Ocultar";
+    } else {
+      box.style.display = "none";    // fecha
+      btn.textContent = "Ver gestores";
+    }
+  };
 }
 /* ============================================================
    UI INIT
