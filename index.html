@@ -788,9 +788,9 @@ button.secondary:hover{ background:#f3f3f3; }
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Polo</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Líder</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Data da última auditoria</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções 2026 (Gestor imediato)</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções no colaborador em 2026</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Qtd dias sem auditoria</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções 2026 (Gestor imediato)</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções no colaborador em 2026</th>            
           </tr>
         </thead>
         <tbody id="rankingTbody"></tbody>
@@ -2408,13 +2408,15 @@ async function carregarRanking() {
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + formatarDataBR(r.ultima_auditoria) + "</td>" +
 
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>" +
+
         // ✅ NOVA COLUNA: só pelo gestor imediato
         "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + total2026Gestor + "</td>" +
 
         // ✅ COLUNA ANTIGA/GERAL: total do colaborador em 2026
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + total2026 + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + total2026 + "</td>" ;
 
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>";
+        
 
       tbody.appendChild(tr);
     }
