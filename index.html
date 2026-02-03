@@ -2355,6 +2355,10 @@ function renderChart(porMes) {
 ============================================================ */
 async function carregarRanking() {
   try {
+
+    // 🔵 Mostra mensagem ANTES de carregar qualquer coisa
+    setStatus("⏳ Aguarde… carregando ranking...", "info");
+
     const podeGeral = podeVerTodosRanking();
     const liderEl = document.getElementById("rankingLider");
     const qs = new URLSearchParams();
@@ -2383,41 +2387,46 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    // ✅ carrega UMA vez só, fora do loop
     const base2026 = await garantirCacheInspecoes2026();
 
-    for (let idx = 0; idx < rows.length; idx++) {
-      const r = rows[idx];
-
+    // 1) calcula total2026 e total2026Gestor
+    const computed = rows.map(r => {
       const colab = r.colaborador ?? "";
-
-      // ✅ prefira a coluna certa; fallback pro lider se sua query ainda não traz gestor_imediato
       const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
 
-      const total2026 = countInspecoes2026Colaborador(colab, base2026);
       const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
+      const total2026 = countInspecoes2026Colaborador(colab, base2026);
 
+      return { ...r, total2026Gestor, total2026 };
+    });
+
+    // 2) ordena usando o valor "total2026Gestor"
+    computed.sort((a, b) => {
+      const A = Number(a.total2026Gestor || 0);
+      const B = Number(b.total2026Gestor || 0);
+      if (B !== A) return B - A;
+      return normName(a.colaborador).localeCompare(normName(b.colaborador));
+    });
+
+    // 3) renderiza a tabela
+    computed.forEach((r, idx) => {
       const tr = document.createElement("tr");
       tr.innerHTML =
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.colaborador ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + formatarDataBR(r.ultima_auditoria) + "</td>" +
-
-        // ✅ NOVA COLUNA: só pelo gestor imediato
-        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + total2026Gestor + "</td>" +
-
-        // ✅ COLUNA ANTIGA/GERAL: total do colaborador em 2026
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + total2026 + "</td>" +
-
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>";
-
+        `<td>${idx + 1}</td>
+         <td>${r.colaborador ?? ""}</td>
+         <td>${r.base ?? ""}</td>
+         <td>${r.polo ?? ""}</td>
+         <td>${r.lider ?? ""}</td>
+         <td>${formatarDataBR(r.ultima_auditoria)}</td>
+         <td style="font-weight:900;">${r.total2026Gestor ?? 0}</td>
+         <td>${r.total2026 ?? 0}</td>
+         <td>${r.dias_desde ?? "-"}</td>`;
       tbody.appendChild(tr);
-    }
+    });
 
-    setStatus(`Ranking carregado: ${rows.length} colaboradores`, "success");
+    // 🟢 Finalizado
+    setStatus(`Ranking carregado: ${computed.length} colaboradores ✔`, "success");
+
   } catch (e) {
     console.error(e);
     setStatus("Erro ao carregar ranking.", "error");
