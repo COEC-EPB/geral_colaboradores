@@ -802,6 +802,25 @@ button.secondary:hover{ background:#f3f3f3; }
 
 <script>
 
+  window._inspecoes2026Cache = null;
+
+async function garantirCacheInspecoes2026() {
+  if (Array.isArray(window._inspecoes2026Cache)) return window._inspecoes2026Cache;
+
+  // ⚠️ pega o ano todo
+  const qs = new URLSearchParams();
+  qs.set("data_ini", "2026-01-01");
+  qs.set("data_fim", "2026-12-31");
+
+  const res = await apiFetch(`/inspecoes?${qs.toString()}`);
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+
+  const dados = JSON.parse(text);
+  window._inspecoes2026Cache = Array.isArray(dados) ? dados : [];
+  return window._inspecoes2026Cache;
+}
+
   function samePerson(a, b){
   return normName(a) && normName(a) === normName(b);
 }
@@ -811,74 +830,66 @@ function isAno2026(dataInspecao){
   return dt && dt.getFullYear() === 2026;
 }
 
+function listaNomesColabDaInspecao(i){
+  // melhora: auditados às vezes vem como string grande
+  const partes = [];
+
+  const pushParts = (v) => {
+    if (!v) return;
+    const s = String(v);
+    // separadores comuns: ; , | / \n
+    s.split(/[\n;,|/]+/g).forEach(p => {
+      const n = normName(p);
+      if (n) partes.push(n);
+    });
+  };
+
+  pushParts(i.colaborador_1);
+  pushParts(i.colaborador_2);
+  pushParts(i.auditados);
+  pushParts(i.colaborador);
+
+  return partes;
+}
+
 // Conta inspeções do colaborador em 2026 (todas)
-function countInspecoes2026Colaborador(colaboradorNome){
+function countInspecoes2026Colaborador(colaboradorNome, base) {
   const alvo = normName(colaboradorNome);
   if (!alvo) return 0;
 
   let c = 0;
-  for (const i of (dadosGlobais || [])){
+  for (const i of (base || [])) {
     if (!isAno2026(i.data_inspecao)) continue;
 
-    // depende do nome estar em algum campo da inspeção
-    const envolvidos = [
-      i.colaborador_1,
-      i.colaborador_2,
-      i.auditados, // se às vezes vem como string
-      i.colaborador
-    ];
-
-    const hit = envolvidos
-      .map(normName)
-      .filter(Boolean)
-      .some(n => n.includes(alvo) || alvo.includes(n)); // tolerante
-
-    if (hit) c++;
+    const nomes = listaNomesColabDaInspecao(i);
+    const temColab = nomes.some(n => n === alvo || n.includes(alvo) || alvo.includes(n));
+    if (temColab) c++;
   }
   return c;
 }
 
 // Conta inspeções do colaborador em 2026 feitas pelo gestor imediato
-function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome){
+function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base){
   const alvoColab = normName(colaboradorNome);
   const alvoGestor = normName(gestorImediatoNome);
   if (!alvoColab || !alvoGestor) return 0;
 
   let c = 0;
-
-  for (const i of (dadosGlobais || [])){
+  for (const i of (base || [])) {
     if (!isAno2026(i.data_inspecao)) continue;
 
-    // 1) inspeção tem o colaborador?
-    const envolvidos = [
-      i.colaborador_1,
-      i.colaborador_2,
-      i.auditados,
-      i.colaborador
-    ];
-
-    const temColab = envolvidos
-      .map(normName)
-      .filter(Boolean)
-      .some(n => n.includes(alvoColab) || alvoColab.includes(n));
-
+    // 1) tem colaborador?
+    const nomes = listaNomesColabDaInspecao(i);
+    const temColab = nomes.some(n => n === alvoColab || n.includes(alvoColab) || alvoColab.includes(n));
     if (!temColab) continue;
 
-    // 2) foi feita pelo gestor imediato?
+    // 2) feito pelo gestor imediato (lider/auditores/cadastrante)
     const quemFez = [
-      i.lider,
-      i.auditor_1,
-      i.auditor_2,
-      i.auditor_3,
-      i.cadastrante
+      i.lider, i.auditor_1, i.auditor_2, i.auditor_3, i.cadastrante
     ].map(normName).filter(Boolean);
 
-    const feitaPeloGestor = quemFez.some(n => n === alvoGestor);
-    if (!feitaPeloGestor) continue;
-
-    c++;
+    if (quemFez.some(n => n === alvoGestor)) c++;
   }
-
   return c;
 }
 
@@ -2318,28 +2329,39 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-        rows.forEach((r, idx) => {
-      
-          const colab = r.colaborador ?? "";
-  const gestorImediato = r.lider ?? "";
+    // ✅ carrega UMA vez só, fora do loop
+    const base2026 = await garantirCacheInspecoes2026();
 
-  const total2026 = Number(r.qtd_ano ?? 0); // coluna antiga
-  const total2026GestorImediato = countInspecoes2026GestorImediato(colab, gestorImediato);
-          const tr = document.createElement("tr");
+    for (let idx = 0; idx < rows.length; idx++) {
+      const r = rows[idx];
+
+      const colab = r.colaborador ?? "";
+
+      // ✅ prefira a coluna certa; fallback pro lider se sua query ainda não traz gestor_imediato
+      const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
+
+      const total2026 = countInspecoes2026Colaborador(colab, base2026);
+      const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
+
+      const tr = document.createElement("tr");
       tr.innerHTML =
-        
-        
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.colaborador ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + formatarDataBR(r.ultima_auditoria) + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + total2026GestorImediato + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.qtd_ano ?? 0) + "</td>" +
+
+        // ✅ NOVA COLUNA: só pelo gestor imediato
+        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + total2026Gestor + "</td>" +
+
+        // ✅ COLUNA ANTIGA/GERAL: total do colaborador em 2026
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + total2026 + "</td>" +
+
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>";
+
       tbody.appendChild(tr);
-    });
+    }
 
     setStatus(`Ranking carregado: ${rows.length} colaboradores`, "success");
   } catch (e) {
