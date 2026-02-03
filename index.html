@@ -846,6 +846,9 @@ function listaNomesColabDaInspecao(i){
 
   pushParts(i.colaborador_1);
   pushParts(i.colaborador_2);
+  pushParts(i.colaborador_3);
+  pushParts(i.colaborador_4);
+  pushParts(i.colaborador_5);
   pushParts(i.auditados);
   pushParts(i.colaborador);
 
@@ -885,7 +888,7 @@ function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, b
 
     // 2) feito pelo gestor imediato (lider/auditores/cadastrante)
     const quemFez = [
-      i.lider, i.auditor_1, i.auditor_2, i.auditor_3, i.cadastrante
+      i.lider, i.auditor_1, i.auditor_2, i.auditor_3,i.auditor_4,i.auditor_5,i.auditor_6, i.cadastrante
     ].map(normName).filter(Boolean);
 
     if (quemFez.some(n => n === alvoGestor)) c++;
@@ -1520,6 +1523,9 @@ function inspecaoPertenceA(permitidosSet, item) {
     item?.auditor_1,
     item?.auditor_2,
     item?.auditor_3,
+    item?.auditor_4,
+    item?.auditor_5,
+    item?.auditor_6,
     item?.cadastrante
   ].map(normName).filter(Boolean);
 
@@ -1553,6 +1559,9 @@ function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
       normName(i.auditor_1) === alvo ||
       normName(i.auditor_2) === alvo ||
       normName(i.auditor_3) === alvo ||
+      normName(i.auditor_4) === alvo ||
+      normName(i.auditor_5) === alvo ||
+      normName(i.auditor_6) === alvo ||
       normName(i.cadastrante) === alvo;
 
     if (!match) return;
@@ -1871,9 +1880,15 @@ function renderTabela(dados) {
       <td>${item.responsavel_area ?? ""}</td>
       <td>${item.colaborador_1 ?? ""}</td>
       <td>${item.colaborador_2 ?? ""}</td>
+      <td>${item.colaborador_3 ?? ""}</td>
+      <td>${item.colaborador_4 ?? ""}</td>
+      <td>${item.colaborador_5 ?? ""}</td>
       <td>${item.auditor_1 ?? ""}</td>
       <td>${item.auditor_2 ?? ""}</td>
       <td>${item.auditor_3 ?? ""}</td>
+      <td>${item.auditor_4 ?? ""}</td>
+      <td>${item.auditor_5 ?? ""}</td>
+      <td>${item.auditor_6 ?? ""}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -1978,9 +1993,15 @@ function normalizarLinha(l) {
     responsavel_area: l["Responsável pela área"] || null,
     colaborador_1: l["COLABORADOR 1"] || null,
     colaborador_2: l["COLABORADOR 2"] || null,
+    colaborador_3: l["COLABORADOR 3"] || null,
+    colaborador_4: l["COLABORADOR 4"] || null,
+    colaborador_5: l["COLABORADOR 5"] || null,
     auditor_1: l["AUDITOR 1"] || null,
     auditor_2: l["AUDITOR 2"] || null,
-    auditor_3: l["AUDITOR 3"] || null
+    auditor_3: l["AUDITOR 3"] || null,
+    auditor_4: l["AUDITOR 4"] || null,
+    auditor_5: l["AUDITOR 5"] || null,
+    auditor_6: l["AUDITOR 6"] || null
   };
 }
 
