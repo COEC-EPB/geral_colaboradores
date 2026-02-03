@@ -802,12 +802,12 @@ button.secondary:hover{ background:#f3f3f3; }
 
 <script>
 
-  window._inspecoes2026Cache = null;
 
-async function garantirCacheInspecoes2026() {
-  if (Array.isArray(window._inspecoes2026Cache)) return window._inspecoes2026Cache;
+let _cacheInspecoes2026 = null;
 
-  // ⚠️ pega o ano todo
+async function garantirCacheInspecoes2026(){
+  if (_cacheInspecoes2026) return _cacheInspecoes2026;
+
   const qs = new URLSearchParams();
   qs.set("data_ini", "2026-01-01");
   qs.set("data_fim", "2026-12-31");
@@ -816,13 +816,26 @@ async function garantirCacheInspecoes2026() {
   const text = await res.text();
   if (!res.ok) throw new Error(text);
 
-  const dados = JSON.parse(text);
-  window._inspecoes2026Cache = Array.isArray(dados) ? dados : [];
-  return window._inspecoes2026Cache;
+  const arr = JSON.parse(text);
+  _cacheInspecoes2026 = Array.isArray(arr) ? arr : [];
+  return _cacheInspecoes2026;
 }
 
-  function samePerson(a, b){
-  return normName(a) && normName(a) === normName(b);
+function splitNomesLista(v){
+  const s = String(v || "").trim();
+  if (!s) return [];
+
+  // separadores comuns: ; , | quebra de linha e " - "
+  return s
+    .split(/[\n;|,]+/g)
+    .map(x => x.trim())
+    .filter(Boolean);
+}
+
+function pessoaIgual(a, b){
+  const A = normName(a);
+  const B = normName(b);
+  return A && B && A === B;
 }
 
 function isAno2026(dataInspecao){
@@ -830,69 +843,72 @@ function isAno2026(dataInspecao){
   return dt && dt.getFullYear() === 2026;
 }
 
-function listaNomesColabDaInspecao(i){
-  // melhora: auditados às vezes vem como string grande
-  const partes = [];
+// ✅ pega todos os nomes do colaborador que possam aparecer na inspeção
+function nomesDoColaboradorNaInspecao(i){
+  const out = [];
 
-  const pushParts = (v) => {
-    if (!v) return;
-    const s = String(v);
-    // separadores comuns: ; , | / \n
-    s.split(/[\n;,|/]+/g).forEach(p => {
-      const n = normName(p);
-      if (n) partes.push(n);
-    });
-  };
+  // campos "diretos"
+  if (i.colaborador_1) out.push(i.colaborador_1);
+  if (i.colaborador_2) out.push(i.colaborador_2);
 
-  pushParts(i.colaborador_1);
-  pushParts(i.colaborador_2);
-  pushParts(i.colaborador_3);
-  pushParts(i.colaborador_4);
-  pushParts(i.colaborador_5);
-  pushParts(i.auditados);
-  pushParts(i.colaborador);
+  // campo que vem como lista (muito comum)
+  splitNomesLista(i.auditados).forEach(n => out.push(n));
 
-  return partes;
+  // caso exista algum campo alternativo
+  if (i.colaborador) out.push(i.colaborador);
+
+  return out.map(normName).filter(Boolean);
 }
 
-// Conta inspeções do colaborador em 2026 (todas)
-function countInspecoes2026Colaborador(colaboradorNome, base) {
+// ✅ quem “executou” a inspeção (para filtro do gestor imediato)
+function nomesDeQuemFez(i){
+  return [
+    i.lider,
+    i.auditor_1,
+    i.auditor_2,
+    i.auditor_3,
+    i.cadastrante
+  ].map(normName).filter(Boolean);
+}
+
+// ✅ total geral do colaborador em 2026
+function countInspecoes2026Colaborador(colaboradorNome, base2026){
   const alvo = normName(colaboradorNome);
   if (!alvo) return 0;
 
   let c = 0;
-  for (const i of (base || [])) {
+  for (const i of (base2026 || [])){
     if (!isAno2026(i.data_inspecao)) continue;
 
-    const nomes = listaNomesColabDaInspecao(i);
-    const temColab = nomes.some(n => n === alvo || n.includes(alvo) || alvo.includes(n));
+    const lista = nomesDoColaboradorNaInspecao(i);
+    const temColab = lista.some(n => n === alvo);
+
     if (temColab) c++;
   }
   return c;
 }
 
-// Conta inspeções do colaborador em 2026 feitas pelo gestor imediato
-function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base){
+// ✅ total em 2026 somente quando foi feita pelo gestor imediato
+function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base2026){
   const alvoColab = normName(colaboradorNome);
   const alvoGestor = normName(gestorImediatoNome);
   if (!alvoColab || !alvoGestor) return 0;
 
   let c = 0;
-  for (const i of (base || [])) {
+
+  for (const i of (base2026 || [])){
     if (!isAno2026(i.data_inspecao)) continue;
 
-    // 1) tem colaborador?
-    const nomes = listaNomesColabDaInspecao(i);
-    const temColab = nomes.some(n => n === alvoColab || n.includes(alvoColab) || alvoColab.includes(n));
+    const lista = nomesDoColaboradorNaInspecao(i);
+    const temColab = lista.some(n => n === alvoColab);
     if (!temColab) continue;
 
-    // 2) feito pelo gestor imediato (lider/auditores/cadastrante)
-    const quemFez = [
-      i.lider, i.auditor_1, i.auditor_2, i.auditor_3,i.auditor_4,i.auditor_5,i.auditor_6, i.cadastrante
-    ].map(normName).filter(Boolean);
+    const fez = nomesDeQuemFez(i).some(n => n === alvoGestor);
+    if (!fez) continue;
 
-    if (quemFez.some(n => n === alvoGestor)) c++;
+    c++;
   }
+
   return c;
 }
 
@@ -2354,8 +2370,8 @@ function renderChart(porMes) {
    RANKING
 ============================================================ */
 async function carregarRanking() {
-  // 🔵 Mostra mensagem ANTES de carregar qualquer coisa
-    setStatus("⏳ Aguarde… carregando ranking...", "info");
+  setStatus("⏳ Aguarde… carregando ranking...", "info");
+
   try {
     const podeGeral = podeVerTodosRanking();
     const liderEl = document.getElementById("rankingLider");
@@ -2385,20 +2401,23 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    // ✅ carrega UMA vez só, fora do loop
+    // ✅ carrega UMA vez só
     const base2026 = await garantirCacheInspecoes2026();
 
-    for (let idx = 0; idx < rows.length; idx++) {
-      const r = rows[idx];
-
+    // ✅ calcula uma vez só
+    const computed = rows.map(r => {
       const colab = r.colaborador ?? "";
-
-      // ✅ prefira a coluna certa; fallback pro lider se sua query ainda não traz gestor_imediato
       const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
-
       const total2026 = countInspecoes2026Colaborador(colab, base2026);
       const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
+      return { ...r, total2026, total2026Gestor };
+    });
 
+    // ✅ ranking pelo "2026 gestor imediato" (do menor pro maior? aqui está do maior pro menor)
+    computed.sort((a, b) => (b.total2026Gestor - a.total2026Gestor));
+
+    // ✅ renderiza a lista ORDENADA
+    computed.forEach((r, idx) => {
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
@@ -2407,26 +2426,22 @@ async function carregarRanking() {
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + formatarDataBR(r.ultima_auditoria) + "</td>" +
-
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>" +
-
-        // ✅ COLUNA ANTIGA/GERAL: total do colaborador em 2026
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + total2026 + "</td>" +
-
-      // ✅ NOVA COLUNA: só pelo gestor imediato
-        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + total2026Gestor + "</td>" ;
-
-        
+        // ✅ Geral 2026
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.total2026 ?? 0) + "</td>" +
+        // ✅ 2026 pelo gestor imediato
+        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.total2026Gestor ?? 0) + "</td>";
 
       tbody.appendChild(tr);
-    }
+    });
 
-    setStatus(`Ranking carregado: ${rows.length} colaboradores`, "success");
+    setStatus(`Ranking carregado: ${computed.length} colaboradores`, "success");
   } catch (e) {
     console.error(e);
     setStatus("Erro ao carregar ranking.", "error");
   }
 }
+
 
 async function carregarLideresRanking() {
   const podeGeral = podeVerTodosRanking();
