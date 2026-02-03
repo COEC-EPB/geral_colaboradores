@@ -2318,15 +2318,17 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    const colab = r.colaborador ?? "";
-const gestorImediato = r.lider ?? "";
+        rows.forEach((r, idx) => {
+      
+          const colab = r.colaborador ?? "";
+  const gestorImediato = r.lider ?? "";
 
-const total2026 = Number(r.qtd_ano ?? 0); // coluna atual continua do backend
-const total2026GestorImediato = countInspecoes2026GestorImediato(colab, gestorImediato);
-
-    rows.forEach((r, idx) => {
-      const tr = document.createElement("tr");
+  const total2026 = Number(r.qtd_ano ?? 0); // coluna antiga
+  const total2026GestorImediato = countInspecoes2026GestorImediato(colab, gestorImediato);
+          const tr = document.createElement("tr");
       tr.innerHTML =
+        
+        
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.colaborador ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
