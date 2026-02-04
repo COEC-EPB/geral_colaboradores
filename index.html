@@ -804,30 +804,29 @@ button.secondary:hover{ background:#f3f3f3; }
 
 let _cacheInspecoes2026 = null;
   // cache por líder
-const _cacheInspecoes2026 = new Map();
+const _cache2026PorLider = new Map();
 
-async function garantirCacheInspecoes2026(liderFiltro){
+async function garantirCacheInspecoes2026(liderFiltro = "") {
   const key = (liderFiltro || "__ALL__").trim();
-  if (_cacheInspecoes2026.has(key)) return _cacheInspecoes2026.get(key);
+  if (_cache2026PorLider.has(key)) return _cache2026PorLider.get(key);
 
   const qs = new URLSearchParams();
   if (liderFiltro) qs.set("lider", liderFiltro);
-
-  // puxa o ano inteiro de 2026
   qs.set("data_ini", "2026-01-01");
   qs.set("data_fim", "2026-12-31");
 
   const res = await apiFetch(`/inspecoes?${qs.toString()}`);
   const text = await res.text();
+
   if (!res.ok) {
-    console.error("[base2026] erro /inspecoes:", res.status, text);
-    _cacheInspecoes2026.set(key, []);
+    console.error("[cache2026] erro:", res.status, text);
+    _cache2026PorLider.set(key, []);
     return [];
   }
 
   const data = JSON.parse(text);
   const arr = Array.isArray(data) ? data : (data.results || []);
-  _cacheInspecoes2026.set(key, arr);
+  _cache2026PorLider.set(key, arr);
   return arr;
 }
 
