@@ -803,21 +803,32 @@ button.secondary:hover{ background:#f3f3f3; }
 <script>
 
 let _cacheInspecoes2026 = null;
+  // cache por líder
+const _cacheInspecoes2026 = new Map();
 
-async function garantirCacheInspecoes2026(){
-  if (_cacheInspecoes2026) return _cacheInspecoes2026;
+async function garantirCacheInspecoes2026(liderFiltro){
+  const key = (liderFiltro || "__ALL__").trim();
+  if (_cacheInspecoes2026.has(key)) return _cacheInspecoes2026.get(key);
 
   const qs = new URLSearchParams();
+  if (liderFiltro) qs.set("lider", liderFiltro);
+
+  // puxa o ano inteiro de 2026
   qs.set("data_ini", "2026-01-01");
   qs.set("data_fim", "2026-12-31");
 
   const res = await apiFetch(`/inspecoes?${qs.toString()}`);
   const text = await res.text();
-  if (!res.ok) throw new Error(text);
+  if (!res.ok) {
+    console.error("[base2026] erro /inspecoes:", res.status, text);
+    _cacheInspecoes2026.set(key, []);
+    return [];
+  }
 
-  const arr = JSON.parse(text);
-  _cacheInspecoes2026 = Array.isArray(arr) ? arr : [];
-  return _cacheInspecoes2026;
+  const data = JSON.parse(text);
+  const arr = Array.isArray(data) ? data : (data.results || []);
+  _cacheInspecoes2026.set(key, arr);
+  return arr;
 }
 
 function splitNomesLista(v){
@@ -2369,7 +2380,6 @@ function renderChart(porMes) {
    RANKING
 ============================================================ */
 async function carregarRanking() {
-  // ✅ Mostra mensagem antes de qualquer coisa
   setStatus("⏳ Aguarde… carregando ranking...", "info");
 
   try {
@@ -2377,8 +2387,11 @@ async function carregarRanking() {
     const liderEl = document.getElementById("rankingLider");
     const qs = new URLSearchParams();
 
-    if (podeGeral && liderEl && liderEl.value) {
-      qs.set("lider", liderEl.value);
+    // ✅ pega o mesmo líder do filtro
+    const liderFiltro = (podeGeral && liderEl && liderEl.value) ? liderEl.value.trim() : "";
+
+    if (liderFiltro) {
+      qs.set("lider", liderFiltro);
     }
 
     const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
@@ -2401,82 +2414,57 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    // ✅ carrega UMA vez só a base de inspeções 2026 (evita ficar pesado)
-    const base2026 = await garantirCacheInspecoes2026();
+    // ✅ IMPORTANTÍSSIMO: base 2026 do MESMO líder filtrado
+    const base2026 = await garantirCacheInspecoes2026(liderFiltro);
 
-    // ============================
-    // 1) COMPUTA COLUNAS NOVAS
-    // ============================
     const computed = rows.map(r => {
       const colab = r.colaborador ?? "";
-
-      // ✅ se existir no backend, use gestor_imediato; senão, fallback em lider
       const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
 
-      // total de inspeções do colaborador em 2026 (qualquer auditor/gestor)
       const total2026 = countInspecoes2026Colaborador(colab, base2026);
-
-      // total de inspeções em 2026 feitas pelo gestor imediato
       const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
 
       return { ...r, total2026, total2026Gestor };
     });
 
-    // ============================
-    // 2) ORDENAÇÃO DO JEITO QUE VOCÊ QUER
-    //    1º: quem NÃO teve inspeção (total2026 = 0) -> primeiro
-    //    2º: depois por MAIS dias sem auditoria (dias_desde DESC)
-    //    3º: empate -> quem NÃO teve pelo gestor imediato (total2026Gestor = 0) fica acima
-    // ============================
-    function toDias(v){
-      const s = String(v ?? "").trim();
-      if (!s || s === "-") return null; // null = "Sem auditoria em 2025/2026" (trata como maior prioridade)
-      const n = Number(s.replace(",", "."));
-      return Number.isFinite(n) ? n : null;
-    }
-
     computed.sort((a, b) => {
-  const aTot = Number(a.total2026 || 0);
-  const bTot = Number(b.total2026 || 0);
+      const aTot = Number(a.total2026 || 0);
+      const bTot = Number(b.total2026 || 0);
 
-  // (1) Quem não teve inspeção em 2026 primeiro
-  const aSem = aTot === 0;
-  const bSem = bTot === 0;
-  if (aSem !== bSem) return aSem ? -1 : 1;
+      // (1) Quem não teve inspeção em 2026 primeiro
+      const aSem = aTot === 0;
+      const bSem = bTot === 0;
+      if (aSem !== bSem) return aSem ? -1 : 1;
 
-  // (2) Dentro do grupo (já teve inspeção em 2026):
-  //     quem NÃO teve pelo gestor imediato fica acima
-  if (!aSem && !bSem) {
-    const aG = Number(a.total2026Gestor || 0);
-    const bG = Number(b.total2026Gestor || 0);
+      // (2) Dentro do grupo (já teve inspeção em 2026):
+      //     quem NÃO teve pelo gestor imediato fica acima
+      if (!aSem && !bSem) {
+        const aG = Number(a.total2026Gestor || 0);
+        const bG = Number(b.total2026Gestor || 0);
 
-    const aNaoTeveGestor = aG === 0;
-    const bNaoTeveGestor = bG === 0;
-    if (aNaoTeveGestor !== bNaoTeveGestor) return aNaoTeveGestor ? -1 : 1;
-  }
+        const aNaoTeveGestor = aG === 0;
+        const bNaoTeveGestor = bG === 0;
+        if (aNaoTeveGestor !== bNaoTeveGestor) return aNaoTeveGestor ? -1 : 1;
+      }
 
-  // (3) Depois por MAIS dias sem auditoria (DESC)
-  function toDias(v){
-    const s = String(v ?? "").trim();
-    if (!s || s === "-") return null;
-    const n = Number(s.replace(",", "."));
-    return Number.isFinite(n) ? n : null;
-  }
+      // (3) Depois por MAIS dias sem auditoria (DESC)
+      const toDias = (v) => {
+        const s = String(v ?? "").trim();
+        if (!s || s === "-") return null;
+        const n = Number(s.replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+      };
 
-  const da = toDias(a.dias_desde);
-  const db = toDias(b.dias_desde);
+      const da = toDias(a.dias_desde);
+      const db = toDias(b.dias_desde);
 
-  if (da === null && db !== null) return -1;
-  if (da !== null && db === null) return 1;
-  if (da !== null && db !== null && da !== db) return db - da;
+      if (da === null && db !== null) return -1;
+      if (da !== null && db === null) return 1;
+      if (da !== null && db !== null && da !== db) return db - da;
 
-  // (4) Desempate final
-  return normName(a.colaborador).localeCompare(normName(b.colaborador));
-});
+      return normName(a.colaborador).localeCompare(normName(b.colaborador));
+    });
 
-    // ============================
-    // 3) RENDER (usa computed, não rows!)
-    // ============================
     for (let idx = 0; idx < computed.length; idx++) {
       const r = computed[idx];
 
@@ -2489,11 +2477,7 @@ async function carregarRanking() {
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + formatarDataBR(r.ultima_auditoria) + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>" +
-
-        // ✅ total geral 2026
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.total2026 ?? 0) + "</td>" +
-
-        // ✅ total 2026 só gestor imediato
         "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.total2026Gestor ?? 0) + "</td>";
 
       tbody.appendChild(tr);
@@ -2505,6 +2489,7 @@ async function carregarRanking() {
     setStatus("Erro ao carregar ranking.", "error");
   }
 }
+
 
 
 async function carregarLideresRanking() {
