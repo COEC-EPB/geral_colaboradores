@@ -803,31 +803,36 @@ button.secondary:hover{ background:#f3f3f3; }
 <script>
 
   function toDias(v){
-  const n = Number(String(v ?? "").replace(",", "."));
-  return Number.isFinite(n) ? n : null; // null = "sem auditoria"
+  const s = String(v ?? "").trim();
+  if (!s || s === "-") return null;          // null = nunca auditado
+  const n = Number(s.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
 
 
 computed.sort((a, b) => {
   const da = toDias(a.dias_desde);
   const db = toDias(b.dias_desde);
 
-  // 1) sem auditoria vem primeiro
+  // 1) nunca auditado primeiro
   if (da === null && db !== null) return -1;
   if (da !== null && db === null) return 1;
 
-  // 2) maior dias_desde vem primeiro
+  // 2) mais dias sem auditoria primeiro (DESC)
   if (da !== null && db !== null && da !== db) return db - da;
 
-  // 3) desempate: menos inspeções pelo gestor imediato vem primeiro
+  // 3) empate em dias -> quem NÃO teve inspeção pelo gestor imediato vem primeiro
   const ga = Number(a.total2026Gestor || 0);
   const gb = Number(b.total2026Gestor || 0);
-  if (ga !== gb) return ga - gb;
 
-  // 4) desempate final: nome
+  const aTem = ga > 0;
+  const bTem = gb > 0;
+
+  if (aTem !== bTem) return aTem ? 1 : -1; // false (0) antes de true (>0)
+
+  // 4) desempate final (opcional)
   return normName(a.colaborador).localeCompare(normName(b.colaborador));
 });
-
-  }
+    }
 let _cacheInspecoes2026 = null;
 
 async function garantirCacheInspecoes2026(){
