@@ -2400,6 +2400,7 @@ function renderChart(porMes) {
    RANKING
 ============================================================ */
 async function carregarRanking() {
+  // ✅ Mostra mensagem antes de qualquer coisa
   setStatus("⏳ Aguarde… carregando ranking...", "info");
 
   try {
@@ -2431,24 +2432,77 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    // ✅ carrega UMA vez só
+    // ✅ carrega UMA vez só a base de inspeções 2026 (evita ficar pesado)
     const base2026 = await garantirCacheInspecoes2026();
 
-    // ✅ calcula uma vez só
-    toDias();
+    // ============================
+    // 1) COMPUTA COLUNAS NOVAS
+    // ============================
     const computed = rows.map(r => {
       const colab = r.colaborador ?? "";
+
+      // ✅ se existir no backend, use gestor_imediato; senão, fallback em lider
       const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
+
+      // total de inspeções do colaborador em 2026 (qualquer auditor/gestor)
       const total2026 = countInspecoes2026Colaborador(colab, base2026);
+
+      // total de inspeções em 2026 feitas pelo gestor imediato
       const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
+
       return { ...r, total2026, total2026Gestor };
     });
 
-    // ✅ ranking pelo "2026 gestor imediato" (do menor pro maior? aqui está do maior pro menor)
-    computed.sort((a, b) => (b.total2026Gestor - a.total2026Gestor));
+    // ============================
+    // 2) ORDENAÇÃO DO JEITO QUE VOCÊ QUER
+    //    1º: quem NÃO teve inspeção (total2026 = 0) -> primeiro
+    //    2º: depois por MAIS dias sem auditoria (dias_desde DESC)
+    //    3º: empate -> quem NÃO teve pelo gestor imediato (total2026Gestor = 0) fica acima
+    // ============================
+    function toDias(v){
+      const s = String(v ?? "").trim();
+      if (!s || s === "-") return null; // null = "Sem auditoria em 2025/2026" (trata como maior prioridade)
+      const n = Number(s.replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    }
 
-    // ✅ renderiza a lista ORDENADA
-    computed.forEach((r, idx) => {
+    computed.sort((a, b) => {
+      const aTot = Number(a.total2026 || 0);
+      const bTot = Number(b.total2026 || 0);
+
+      // (1) Quem não teve inspeção primeiro
+      const aSem = aTot === 0;
+      const bSem = bTot === 0;
+      if (aSem !== bSem) return aSem ? -1 : 1;
+
+      // (2) Depois, quem tem mais dias sem auditoria (DESC)
+      const da = toDias(a.dias_desde);
+      const db = toDias(b.dias_desde);
+
+      // se um é "sem auditoria" (null), ele vem antes
+      if (da === null && db !== null) return -1;
+      if (da !== null && db === null) return 1;
+
+      if (da !== null && db !== null && da !== db) return db - da;
+
+      // (3) Empate -> quem NÃO teve inspeção pelo gestor imediato fica acima
+      const aG = Number(a.total2026Gestor || 0);
+      const bG = Number(b.total2026Gestor || 0);
+
+      const aTemG = aG > 0;
+      const bTemG = bG > 0;
+      if (aTemG !== bTemG) return aTemG ? 1 : -1;
+
+      // (4) desempate final
+      return normName(a.colaborador).localeCompare(normName(b.colaborador));
+    });
+
+    // ============================
+    // 3) RENDER (usa computed, não rows!)
+    // ============================
+    for (let idx = 0; idx < computed.length; idx++) {
+      const r = computed[idx];
+
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
@@ -2458,13 +2512,15 @@ async function carregarRanking() {
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + formatarDataBR(r.ultima_auditoria) + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>" +
-        // ✅ Geral 2026
+
+        // ✅ total geral 2026
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.total2026 ?? 0) + "</td>" +
-        // ✅ 2026 pelo gestor imediato
+
+        // ✅ total 2026 só gestor imediato
         "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.total2026Gestor ?? 0) + "</td>";
 
       tbody.appendChild(tr);
-    });
+    }
 
     setStatus(`Ranking carregado: ${computed.length} colaboradores`, "success");
   } catch (e) {
