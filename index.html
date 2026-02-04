@@ -890,7 +890,7 @@ function countInspecoes2026Colaborador(colaboradorNome, base2026){
     if (!isAno2026(i.data_inspecao)) continue;
 
     const lista = nomesDoColaboradorNaInspecao(i);
-    const temColab = lista.some(n => n === alvo);
+    const temColab = lista.some(n => n.includes(alvo) || alvo.includes(n));
 
     if (temColab) c++;
   }
@@ -912,7 +912,7 @@ function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, b
     const temColab = lista.some(n => n === alvoColab);
     if (!temColab) continue;
 
-    const fez = nomesDeQuemFez(i).some(n => n === alvoGestor);
+    const fez = nomesDeQuemFez(i).some(n => n.includes(alvoGestor) || alvoGestor.includes(n));
     if (!fez) continue;
 
     c++;
@@ -2413,18 +2413,18 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    // ✅ IMPORTANTÍSSIMO: base 2026 do MESMO líder filtrado
-    const base2026 = await garantirCacheInspecoes2026(liderFiltro);
+    // ✅ base 2026 SEM filtro (para não perder inspeções feitas por outros campos)
+    const base2026All = await garantirCacheInspecoes2026(""); 
 
     const computed = rows.map(r => {
-      const colab = r.colaborador ?? "";
-      const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
+  const colab = r.colaborador ?? "";
+  const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
 
-      const total2026 = countInspecoes2026Colaborador(colab, base2026);
-      const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
+  const total2026 = countInspecoes2026Colaborador(colab, base2026All);
+  const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026All);
 
-      return { ...r, total2026, total2026Gestor };
-    });
+  return { ...r, total2026, total2026Gestor };
+});
 
     computed.sort((a, b) => {
       const aTot = Number(a.total2026 || 0);
