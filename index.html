@@ -805,7 +805,7 @@ button.secondary:hover{ background:#f3f3f3; }
   function toDias(v){
   const n = Number(String(v ?? "").replace(",", "."));
   return Number.isFinite(n) ? n : null; // null = "sem auditoria"
-}
+
 
 computed.sort((a, b) => {
   const da = toDias(a.dias_desde);
@@ -827,7 +827,7 @@ computed.sort((a, b) => {
   return normName(a.colaborador).localeCompare(normName(b.colaborador));
 });
 
-
+  }
 let _cacheInspecoes2026 = null;
 
 async function garantirCacheInspecoes2026(){
