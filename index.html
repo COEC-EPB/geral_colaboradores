@@ -2480,8 +2480,8 @@ async function carregarRanking() {
           formatarDataBR(r.ultima_inspecao) + labelFonte +
         "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + diasParaMostrar(r.dias_desde) + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + Number(r.qtd_inspecoes || 0) + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + Number(r.insp_gestor || 0) + "</td>";
+       "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.qtd_inspecoes ?? 0) + "</td>" +
+"<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.insp_gestor ?? 0) + "</td>"
 
       tbody.appendChild(tr);
     }
