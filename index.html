@@ -915,10 +915,12 @@ function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, b
   for (const i of (base2026 || [])){
     if (!isAno2026(i.data_inspecao)) continue;
 
+    // colaborador aparece como auditado/colaborador_1/2/...
     const lista = nomesDoColaboradorNaInspecao(i);
     const temColab = lista.some(n => n === alvoColab);
     if (!temColab) continue;
 
+    // quem fez a inspeção
     const fez = nomesDeQuemFez(i).some(n => n === alvoGestor);
     if (!fez) continue;
 
@@ -2380,14 +2382,7 @@ function renderChart(porMes) {
   });
 }
 
-  function getExecutoresDoGestor(gestorNome){
-  const g = normName(gestorNome);
-  if (!g) return new Set();
-  const delegados = DELEGACAO_VER_INSPECOES[g] || [];
-  return new Set([g, ...delegados]);
-}
-
-function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base2026){
+  function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base2026){
   const alvoColab = normName(colaboradorNome);
   if (!alvoColab) return 0;
 
