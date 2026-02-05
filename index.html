@@ -850,6 +850,18 @@ function pessoaIgual(a, b){
   const B = normName(b);
   return A && B && A === B;
 }
+  function getGestoresMetaArray() {
+  // META_MENSAL_POR_GESTOR é objeto -> pega as chaves
+  if (META_MENSAL_POR_GESTOR && typeof META_MENSAL_POR_GESTOR === "object" && !Array.isArray(META_MENSAL_POR_GESTOR)) {
+    return Object.keys(META_MENSAL_POR_GESTOR);
+  }
+  // se algum dia virar array, ainda funciona
+  return Array.isArray(META_MENSAL_POR_GESTOR) ? META_MENSAL_POR_GESTOR : [];
+}
+
+function getGestoresMetaSet() {
+  return new Set(getGestoresMetaArray().map(n => normName(n)));
+}
 
 function isAno2026(dataInspecao){
   const dt = parseISODateFlex(dataInspecao);
@@ -1240,11 +1252,7 @@ const META_MENSAL_POR_GESTOR = {
   "JOSE MARIO DE ALEXANDRE SARAIVA":4
 };
 
-  const META_MENSAL_POR_GESTOR_SET = new Set(
-  META_MENSAL_POR_GESTOR.map(n => normName(n))
-);
-
-function getMetaMensalGestor(nomeGestor) {
+ function getMetaMensalGestor(nomeGestor) {
   const key = normName(nomeGestor);
   if (Object.prototype.hasOwnProperty.call(META_MENSAL_POR_GESTOR, key)) {
     return Number(META_MENSAL_POR_GESTOR[key] ?? 10);
@@ -1652,44 +1660,39 @@ async function popularSelectGestoresModal() {
 
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
-  // 1) Lista oficial da META
-  const metaArray = META_MENSAL_POR_GESTOR;
-  const metaSet = META_MENSAL_POR_GESTOR_SET;
+  const metaArray = getGestoresMetaArray();     // ✅ só da META
+  const metaSet = getGestoresMetaSet();         // ✅ normalizado
 
-  // 2) Busca backend (opcional)
+  // (opcional) tenta backend, mas NÃO deixa entrar quem não está na meta
   let lideresBackend = [];
   try {
     lideresBackend = await carregarLideresParaFrequencia();
   } catch (e) {
     console.error("Erro ao carregar /lideres:", e);
-    lideresBackend = [];
   }
 
-  // 3) Junta backend + meta, mas mantém somente os da meta
-  const candidatos = new Map();
+  // monta lista final: sempre inclui os da meta
+  const map = new Map(); // normKey -> nome exibido
 
-  // meta sempre entra
   metaArray.forEach(n => {
     const k = normName(n);
-    if (k) candidatos.set(k, n);
+    if (k) map.set(k, n);
   });
 
-  // backend só entra se também estiver na meta
+  // backend só entra se estiver na meta (ajuda a manter nomes “do jeito do banco”)
   lideresBackend.forEach(n => {
     const k = normName(n);
-    if (metaSet.has(k)) candidatos.set(k, n);
+    if (metaSet.has(k)) map.set(k, n);
   });
 
-  // 4) Ordenar e renderizar
-  const listaFinal = Array.from(candidatos.values())
+  const listaFinal = Array.from(map.values())
     .sort((a, b) => normName(a).localeCompare(normName(b)));
 
   sel.innerHTML =
     `<option value="">Selecione…</option>` +
-    listaFinal.map(n =>
-      `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`
-    ).join("");
+    listaFinal.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
 }
+
   
 function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
