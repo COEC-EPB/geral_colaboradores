@@ -2386,12 +2386,11 @@ async function carregarRanking() {
     const liderEl = document.getElementById("rankingLider");
     const qs = new URLSearchParams();
 
-    // ✅ pega o mesmo líder do filtro
-    const liderFiltro = (podeGeral && liderEl && liderEl.value) ? liderEl.value.trim() : "";
+    const liderFiltro = (podeGeral && liderEl && liderEl.value)
+      ? liderEl.value.trim()
+      : "";
 
-    if (liderFiltro) {
-      qs.set("lider", liderFiltro);
-    }
+    if (liderFiltro) qs.set("lider", liderFiltro);
 
     const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
       method: "GET",
@@ -2407,24 +2406,21 @@ async function carregarRanking() {
       return;
     }
 
-    const rows = data.results || [];
+    const rows = Array.isArray(data.results) ? data.results : [];
     const tbody = document.getElementById("rankingTbody");
     if (!tbody) return;
 
     tbody.innerHTML = "";
 
-    // ✅ base 2026 SEM filtro (para não perder inspeções feitas por outros campos)
-    const base2026All = await garantirCacheInspecoes2026(""); 
+    // ✅ Ordenação (mantém sua regra)
+    const computed = rows.slice();
 
-    const computed = rows.map(r => {
-  const colab = r.colaborador ?? "";
-  const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
-
-  const total2026 = countInspecoes2026Colaborador(colab, base2026All);
-  const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026All);
-
-  return { ...r, total2026, total2026Gestor };
-});
+    const toDias = (v) => {
+      const s = String(v ?? "").trim();
+      if (!s || s === "-") return null;
+      const n = Number(s.replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    };
 
     computed.sort((a, b) => {
       const aTot = Number(a.total2026 || 0);
@@ -2447,13 +2443,6 @@ async function carregarRanking() {
       }
 
       // (3) Depois por MAIS dias sem auditoria (DESC)
-      const toDias = (v) => {
-        const s = String(v ?? "").trim();
-        if (!s || s === "-") return null;
-        const n = Number(s.replace(",", "."));
-        return Number.isFinite(n) ? n : null;
-      };
-
       const da = toDias(a.dias_desde);
       const db = toDias(b.dias_desde);
 
@@ -2461,6 +2450,7 @@ async function carregarRanking() {
       if (da !== null && db === null) return 1;
       if (da !== null && db !== null && da !== db) return db - da;
 
+      // (4) desempate por nome
       return normName(a.colaborador).localeCompare(normName(b.colaborador));
     });
 
@@ -2488,7 +2478,6 @@ async function carregarRanking() {
     setStatus("Erro ao carregar ranking.", "error");
   }
 }
-
 
 
 async function carregarLideresRanking() {
