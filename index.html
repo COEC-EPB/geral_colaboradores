@@ -1240,6 +1240,10 @@ const META_MENSAL_POR_GESTOR = {
   "JOSE MARIO DE ALEXANDRE SARAIVA":4
 };
 
+  const META_MENSAL_POR_GESTOR_SET = new Set(
+  META_MENSAL_POR_GESTOR.map(n => normName(n))
+);
+
 function getMetaMensalGestor(nomeGestor) {
   const key = normName(nomeGestor);
   if (Object.prototype.hasOwnProperty.call(META_MENSAL_POR_GESTOR, key)) {
@@ -1648,51 +1652,41 @@ async function popularSelectGestoresModal() {
 
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
-  // ============================
-  // 1) Lista-oficial: META_MENSAL_POR_GESTOR
-  // ============================
-  // IMPORTANTE: manter um conjunto normalizado
-  const metaSet = new Set(META_MENSAL_POR_GESTOR.map(n => normName(n)));
+  // 1) Lista oficial da META
+  const metaArray = META_MENSAL_POR_GESTOR;
+  const metaSet = META_MENSAL_POR_GESTOR_SET;
 
-  // ============================
-  // 2) Tenta pegar líderes do backend (se existirem)
-  // ============================
+  // 2) Busca backend (opcional)
   let lideresBackend = [];
   try {
-    lideresBackend = await carregarLideresParaFrequencia(); // array de nomes
+    lideresBackend = await carregarLideresParaFrequencia();
   } catch (e) {
     console.error("Erro ao carregar /lideres:", e);
     lideresBackend = [];
   }
 
-  // ============================
-  // 3) Combina backend + META, mas NO FINAL
-  //    SÓ MANTÉM QUEM ESTÁ NA META
-  // ============================
+  // 3) Junta backend + meta, mas mantém somente os da meta
   const candidatos = new Map();
 
-  // adiciona os da META
-  META_MENSAL_POR_GESTOR.forEach(n => {
+  // meta sempre entra
+  metaArray.forEach(n => {
     const k = normName(n);
     if (k) candidatos.set(k, n);
   });
 
-  // backend: só entra se estiver na META
+  // backend só entra se também estiver na meta
   lideresBackend.forEach(n => {
     const k = normName(n);
     if (metaSet.has(k)) candidatos.set(k, n);
   });
 
-  // ============================
-  // 4) Ordena e popula select
-  // ============================
-  const listaFinal = Array
-    .from(candidatos.values())
+  // 4) Ordenar e renderizar
+  const listaFinal = Array.from(candidatos.values())
     .sort((a, b) => normName(a).localeCompare(normName(b)));
 
   sel.innerHTML =
     `<option value="">Selecione…</option>` +
-    listaFinal.map(n => 
+    listaFinal.map(n =>
       `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`
     ).join("");
 }
