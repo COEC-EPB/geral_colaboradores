@@ -2380,6 +2380,38 @@ function renderChart(porMes) {
   });
 }
 
+  function getExecutoresDoGestor(gestorNome){
+  const g = normName(gestorNome);
+  if (!g) return new Set();
+  const delegados = DELEGACAO_VER_INSPECOES[g] || [];
+  return new Set([g, ...delegados]);
+}
+
+function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base2026){
+  const alvoColab = normName(colaboradorNome);
+  if (!alvoColab) return 0;
+
+  const executores = getExecutoresDoGestor(gestorImediatoNome);
+  if (executores.size === 0) return 0;
+
+  let c = 0;
+
+  for (const i of (base2026 || [])){
+    if (!isAno2026(i.data_inspecao)) continue;
+
+    const lista = nomesDoColaboradorNaInspecao(i);
+    const temColab = lista.some(n => n === alvoColab);
+    if (!temColab) continue;
+
+    const fez = nomesDeQuemFez(i).some(n => executores.has(n));
+    if (!fez) continue;
+
+    c++;
+  }
+
+  return c;
+}
+
 /* ============================================================
    RANKING
 ============================================================ */
@@ -2391,12 +2423,9 @@ async function carregarRanking() {
     const liderEl = document.getElementById("rankingLider");
     const qs = new URLSearchParams();
 
-    // ✅ pega o mesmo líder do filtro
+    // filtro de líder só para LISTA do ranking (quem aparece)
     const liderFiltro = (podeGeral && liderEl && liderEl.value) ? liderEl.value.trim() : "";
-
-    if (liderFiltro) {
-      qs.set("lider", liderFiltro);
-    }
+    if (liderFiltro) qs.set("lider", liderFiltro);
 
     const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
       method: "GET",
@@ -2418,19 +2447,35 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    // ✅ IMPORTANTÍSSIMO: base 2026 do MESMO líder filtrado
-    const base2026 = await garantirCacheInspecoes2026(liderFiltro);
+    // ✅ CONTAGENS SEMPRE NO GERAL (não pode depender do filtro do ranking)
+    const base2026Geral = await garantirCacheInspecoes2026("");
+
+    // ✅ helpers dias (não mostrar 999999, mas manter ordenação)
+    const diasParaOrdenar = (v) => {
+      const s = String(v ?? "").trim();
+      if (!s || s === "-" || s === "999999" || s === "99999") return 999999;
+      const n = Number(s.replace(",", "."));
+      return Number.isFinite(n) ? n : 999999;
+    };
+
+    const diasParaMostrar = (v) => {
+      const s = String(v ?? "").trim();
+      if (!s || s === "-" || s === "999999" || s === "99999") return 0; // ✅ mostra 0
+      const n = Number(s.replace(",", "."));
+      return Number.isFinite(n) ? n : 0;
+    };
 
     const computed = rows.map(r => {
       const colab = r.colaborador ?? "";
       const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
 
-      const total2026 = countInspecoes2026Colaborador(colab, base2026);
-      const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
+      const total2026 = countInspecoes2026Colaborador(colab, base2026Geral);
+      const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026Geral);
 
       return { ...r, total2026, total2026Gestor };
     });
 
+    // ✅ ordenação (do jeito que você queria)
     computed.sort((a, b) => {
       const aTot = Number(a.total2026 || 0);
       const bTot = Number(b.total2026 || 0);
@@ -2452,46 +2497,36 @@ async function carregarRanking() {
       }
 
       // (3) Depois por MAIS dias sem auditoria (DESC)
-      const toDias = (v) => {
-        const s = String(v ?? "").trim();
-        if (!s || s === "-") return null;
-        const n = Number(s.replace(",", "."));
-        return Number.isFinite(n) ? n : null;
-      };
-
-      const da = toDias(a.dias_desde);
-      const db = toDias(b.dias_desde);
-
-      if (da === null && db !== null) return -1;
-      if (da !== null && db === null) return 1;
-      if (da !== null && db !== null && da !== db) return db - da;
+      const da = diasParaOrdenar(a.dias_desde);
+      const db = diasParaOrdenar(b.dias_desde);
+      if (da !== db) return db - da;
 
       return normName(a.colaborador).localeCompare(normName(b.colaborador));
     });
 
     for (let idx = 0; idx < computed.length; idx++) {
-  const r = computed[idx];
+      const r = computed[idx];
 
-  const labelFonte =
-    r.fonte_ultima === "inspecoes" ? " (inspeções)" :
-    r.fonte_ultima === "dados" ? " (dados)" : "";
+      const labelFonte =
+        r.fonte_ultima === "inspecoes" ? " (inspeções)" :
+        r.fonte_ultima === "dados" ? " (dados)" : "";
 
-  const tr = document.createElement("tr");
-  tr.innerHTML =
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.colaborador ?? "") + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" +
-      formatarDataBR(r.ultima_inspecao) + labelFonte +
-    "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.total2026 ?? 0) + "</td>" +
-    "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.total2026Gestor ?? 0) + "</td>";
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.colaborador ?? "") + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" +
+          formatarDataBR(r.ultima_inspecao) + labelFonte +
+        "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + diasParaMostrar(r.dias_desde) + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.total2026 ?? 0) + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.total2026Gestor ?? 0) + "</td>";
 
-  tbody.appendChild(tr);
-}
+      tbody.appendChild(tr);
+    }
 
     setStatus(`Ranking carregado: ${computed.length} colaboradores`, "success");
   } catch (e) {
@@ -2499,7 +2534,6 @@ async function carregarRanking() {
     setStatus("Erro ao carregar ranking.", "error");
   }
 }
-
 
 
 async function carregarLideresRanking() {
