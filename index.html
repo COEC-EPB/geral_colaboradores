@@ -2479,7 +2479,13 @@ async function carregarRanking() {
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + formatarDataBR(r.ultima_auditoria) + "</td>" +
+        const labelFonte =
+  r.fonte_ultima === "inspecoes" ? " (inspeções)" :
+  r.fonte_ultima === "dados" ? " (dados)" : "";
+
+"<td style='padding:10px; border-bottom:1px solid var(--border);'>" +
+  formatarDataBR(r.ultima_inspecao) + labelFonte +
+"</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.dias_desde ?? "-") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.total2026 ?? 0) + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.total2026Gestor ?? 0) + "</td>";
