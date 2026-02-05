@@ -890,7 +890,7 @@ function countInspecoes2026Colaborador(colaboradorNome, base2026){
     if (!isAno2026(i.data_inspecao)) continue;
 
     const lista = nomesDoColaboradorNaInspecao(i);
-    const temColab = lista.some(n => n.includes(alvo) || alvo.includes(n));
+    const temColab = lista.some(n => n === alvo);
 
     if (temColab) c++;
   }
@@ -912,7 +912,7 @@ function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, b
     const temColab = lista.some(n => n === alvoColab);
     if (!temColab) continue;
 
-    const fez = nomesDeQuemFez(i).some(n => n.includes(alvoGestor) || alvoGestor.includes(n));
+    const fez = nomesDeQuemFez(i).some(n => n === alvoGestor);
     if (!fez) continue;
 
     c++;
@@ -2386,11 +2386,12 @@ async function carregarRanking() {
     const liderEl = document.getElementById("rankingLider");
     const qs = new URLSearchParams();
 
-    const liderFiltro = (podeGeral && liderEl && liderEl.value)
-      ? liderEl.value.trim()
-      : "";
+    // ✅ pega o mesmo líder do filtro
+    const liderFiltro = (podeGeral && liderEl && liderEl.value) ? liderEl.value.trim() : "";
 
-    if (liderFiltro) qs.set("lider", liderFiltro);
+    if (liderFiltro) {
+      qs.set("lider", liderFiltro);
+    }
 
     const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
       method: "GET",
@@ -2406,21 +2407,24 @@ async function carregarRanking() {
       return;
     }
 
-    const rows = Array.isArray(data.results) ? data.results : [];
+    const rows = data.results || [];
     const tbody = document.getElementById("rankingTbody");
     if (!tbody) return;
 
     tbody.innerHTML = "";
 
-    // ✅ Ordenação (mantém sua regra)
-    const computed = rows.slice();
+    // ✅ IMPORTANTÍSSIMO: base 2026 do MESMO líder filtrado
+    const base2026 = await garantirCacheInspecoes2026(liderFiltro);
 
-    const toDias = (v) => {
-      const s = String(v ?? "").trim();
-      if (!s || s === "-") return null;
-      const n = Number(s.replace(",", "."));
-      return Number.isFinite(n) ? n : null;
-    };
+    const computed = rows.map(r => {
+      const colab = r.colaborador ?? "";
+      const gestorImediato = (r.gestor_imediato ?? r.lider ?? "");
+
+      const total2026 = countInspecoes2026Colaborador(colab, base2026);
+      const total2026Gestor = countInspecoes2026GestorImediato(colab, gestorImediato, base2026);
+
+      return { ...r, total2026, total2026Gestor };
+    });
 
     computed.sort((a, b) => {
       const aTot = Number(a.total2026 || 0);
@@ -2443,6 +2447,13 @@ async function carregarRanking() {
       }
 
       // (3) Depois por MAIS dias sem auditoria (DESC)
+      const toDias = (v) => {
+        const s = String(v ?? "").trim();
+        if (!s || s === "-") return null;
+        const n = Number(s.replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+      };
+
       const da = toDias(a.dias_desde);
       const db = toDias(b.dias_desde);
 
@@ -2450,7 +2461,6 @@ async function carregarRanking() {
       if (da !== null && db === null) return 1;
       if (da !== null && db !== null && da !== db) return db - da;
 
-      // (4) desempate por nome
       return normName(a.colaborador).localeCompare(normName(b.colaborador));
     });
 
@@ -2478,6 +2488,7 @@ async function carregarRanking() {
     setStatus("Erro ao carregar ranking.", "error");
   }
 }
+
 
 
 async function carregarLideresRanking() {
