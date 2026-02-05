@@ -905,29 +905,29 @@ function countInspecoes2026Colaborador(colaboradorNome, base2026){
 }
 
 // ✅ total em 2026 somente quando foi feita pelo gestor imediato
-function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base2026){
+function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base2026) {
   const alvoColab = normName(colaboradorNome);
   const alvoGestor = normName(gestorImediatoNome);
+
   if (!alvoColab || !alvoGestor) return 0;
 
-  let c = 0;
+  let total = 0;
 
-  for (const i of (base2026 || [])){
+  for (const i of (base2026 || [])) {
     if (!isAno2026(i.data_inspecao)) continue;
 
-    // colaborador aparece como auditado/colaborador_1/2/...
-    const lista = nomesDoColaboradorNaInspecao(i);
-    const temColab = lista.some(n => n === alvoColab);
-    if (!temColab) continue;
+    // --- verifica se colaborador aparece ---
+    const listaColabs = nomesDoColaboradorNaInspecao(i);
+    if (!listaColabs.some(n => n === alvoColab)) continue;
 
-    // quem fez a inspeção
-    const fez = nomesDeQuemFez(i).some(n => n === alvoGestor);
-    if (!fez) continue;
+    // --- verifica se o LÍDER imediato foi o auditor/líder ---
+    const executores = nomesDeQuemFez(i);
+    if (!executores.some(n => n === alvoGestor)) continue;
 
-    c++;
+    total++;
   }
 
-  return c;
+  return total;
 }
 
   
