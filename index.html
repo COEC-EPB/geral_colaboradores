@@ -1646,60 +1646,55 @@ async function popularSelectGestoresModal() {
   const sel = document.getElementById("freqGestorModal");
   if (!sel) return;
 
-  const perfil = localStorage.getItem("perfil") || "user";
-  const meuNomeKey = normName(getNomeDoToken());
-
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
-  // Pode ver todos: admin OU super gestor
-  const podeVerTodos = (perfil === "admin") || SUPER_GESTORES_INSPECOES.has(meuNomeKey);
+  // ============================
+  // 1) Lista-oficial: META_MENSAL_POR_GESTOR
+  // ============================
+  // IMPORTANTE: manter um conjunto normalizado
+  const metaSet = new Set(META_MENSAL_POR_GESTOR.map(n => normName(n)));
 
-  // 1) sempre tenta pegar os líderes do backend
-  let lideres = [];
+  // ============================
+  // 2) Tenta pegar líderes do backend (se existirem)
+  // ============================
+  let lideresBackend = [];
   try {
-    lideres = await carregarLideresParaFrequencia(); // retorna array de strings
+    lideresBackend = await carregarLideresParaFrequencia(); // array de nomes
   } catch (e) {
     console.error("Erro ao carregar /lideres:", e);
-    lideres = [];
+    lideresBackend = [];
   }
 
-  // 2) monta lista final (sem duplicar): backend + super
-  const map = new Map(); // key normalizada -> nome exibido
+  // ============================
+  // 3) Combina backend + META, mas NO FINAL
+  //    SÓ MANTÉM QUEM ESTÁ NA META
+  // ============================
+  const candidatos = new Map();
 
-  // backend
-  lideres.forEach(n => {
-    const key = normName(n);
-    if (key) map.set(key, n);
+  // adiciona os da META
+  META_MENSAL_POR_GESTOR.forEach(n => {
+    const k = normName(n);
+    if (k) candidatos.set(k, n);
   });
 
-  // garante que super gestores sempre apareçam
-  (SUPER_GESTORES_INSPECOES_RAW || []).forEach(n => {
-    const key = normName(n);
-    if (key && !map.has(key)) map.set(key, n);
+  // backend: só entra se estiver na META
+  lideresBackend.forEach(n => {
+    const k = normName(n);
+    if (metaSet.has(k)) candidatos.set(k, n);
   });
 
-  // 3) se não pode ver todos, restringe a ele + delegados
-  if (!podeVerTodos) {
-    const delegados = DELEGACAO_VER_INSPECOES[meuNomeKey] || [];
-    const permitidos = new Set([meuNomeKey, ...delegados]);
-
-    // filtra o map pra só permitidos
-    for (const [k] of map) {
-      if (!permitidos.has(k)) map.delete(k);
-    }
-
-    // se por algum motivo ele não estiver no map, adiciona
-    if (meuNomeKey && !map.has(meuNomeKey)) {
-      map.set(meuNomeKey, String(getNomeDoToken() || meuNomeKey));
-    }
-  }
-
-  const listaFinal = Array.from(map.values())
+  // ============================
+  // 4) Ordena e popula select
+  // ============================
+  const listaFinal = Array
+    .from(candidatos.values())
     .sort((a, b) => normName(a).localeCompare(normName(b)));
 
   sel.innerHTML =
     `<option value="">Selecione…</option>` +
-    listaFinal.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
+    listaFinal.map(n => 
+      `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`
+    ).join("");
 }
   
 function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
