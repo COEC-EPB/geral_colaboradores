@@ -2594,7 +2594,7 @@ function isAtrasada(r){
   if (isConcluida(r)) return false; // ✅ se concluiu, não conta mais
 
   const st = normUp(r.status);
-  if (st === "ATRASADO" || st === "ATRASADA") return true;
+  if (st === "ATRASADO" || st === "ATRASADA" || st === "Atrasado" || st === "Atrasada") return true;
 
   // fallback: atraso numérico
   return atrasoNumero(r) > 0;
