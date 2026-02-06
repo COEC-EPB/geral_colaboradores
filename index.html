@@ -2591,13 +2591,7 @@ function atrasoNumero(r){
 }
 
 function isAtrasada(r){
-  if (isConcluida(r)) return false; // ✅ se concluiu, não conta mais
-
-  const st = normUp(r.status);
-  if (st === "ATRASADO" || st === "ATRASADA" || st === "Atrasado" || st === "Atrasada") return true;
-
-  // fallback: atraso numérico
-  return atrasoNumero(r) > 0;
+  return String(r.status || "").trim().toUpperCase() === "ATRASADO";
 }
 
 // evita duplicar contagem do mesmo plano/ação (ajuste a chave se precisar)
@@ -2644,13 +2638,16 @@ function uniqueByKey(rows){
 
   async function verificarNCAtrasadas() {
   try {
-    const lider = String(getNomeDoToken() || "").trim();
-    if (!lider) return;
+    const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
+    const gestor = (document.getElementById("filtroGestorNC")?.value || "").trim();
 
-    // pega tudo do líder e filtra no front
-    const url = `/nao-conformidades?lider=${encodeURIComponent(lider)}`;
+    const qs = new URLSearchParams();
+    if (mes) qs.set("mes", mes);
+    if (gestor) qs.set("gestor", gestor);
 
-    const res = await apiFetch(url);
+    qs.set("status", "Atrasado"); // ✅ mesma regra da tela
+
+    const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
     const text = await res.text();
 
     let data = {};
@@ -2658,14 +2655,10 @@ function uniqueByKey(rows){
 
     if (!res.ok) return;
 
-    const rowsRaw =
-      Array.isArray(data) ? data :
-      Array.isArray(data.results) ? data.results :
-      [];
-
-    const rows = uniqueByKey(rowsRaw);
-    const atrasadas = rows.filter(isAtrasada);
-    const total = atrasadas.length;
+    const total =
+      Number(data.total ?? 0) ||
+      (Array.isArray(data.results) ? data.results.length : 0) ||
+      (Array.isArray(data) ? data.length : 0);
 
     const el = document.getElementById("alertaAtrasoNC");
     if (!el) return;
@@ -2715,65 +2708,63 @@ function renderGestoresAtrasados(lista){
 }
 
 async function carregarGestoresComAtraso(){
-  try{
-    const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
+  const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
+  const gestor = (document.getElementById("filtroGestorNC")?.value || "").trim();
 
-    const qs = new URLSearchParams();
-    if (mes) qs.set("mes", mes);
+  const qs = new URLSearchParams();
 
-    const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
-    const text = await res.text();
+  // se estiver filtrando por mês/gestor na tela, reaproveita aqui:
+  if (mes) qs.set("mes", mes);
+  if (gestor) qs.set("gestor", gestor);
 
-    let data = {};
-    try { data = JSON.parse(text); } catch {}
+  // ✅ o que faz bater com a tela:
+  qs.set("status", "Atrasado");
 
-    const rowsRaw = Array.isArray(data.results) ? data.results : [];
-    const rows = uniqueByKey(rowsRaw);
+  const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
+  const text = await res.text();
 
-    const atrasadas = rows.filter(isAtrasada);
+  let data = {};
+  try { data = JSON.parse(text); } catch {}
 
-    // agrupa por líder
-    const map = new Map();
-    for (const r of atrasadas){
-      const lider = String(r.lider || "SEM LÍDER").trim();
-      map.set(lider, (map.get(lider) || 0) + 1);
-    }
+  const rows = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
+  const totalAtrasadas = Number(data.total ?? rows.length ?? 0);
 
-    const lista = Array.from(map.entries())
-      .map(([lider, qtd]) => ({ lider, qtd }))
-      .sort((a,b) => b.qtd - a.qtd);
-
-    // Atualizar alerta (GERAL)
-    const alertBox = document.getElementById("alertAtraso");
-    const alertTxt = document.getElementById("alertAtrasoTxt");
-    const btn = document.getElementById("btnVerGestoresAtraso");
-
-    if (alertBox && alertTxt && btn){
-      if (atrasadas.length > 0){
-        alertBox.style.display = "block";
-        alertTxt.textContent = `Você tem ${atrasadas.length} ação(ões) atrasada(s)!`;
-
-        btn.style.display = (lista.length > 1) ? "inline-flex" : "none";
-      } else {
-        alertBox.style.display = "none";
-        btn.style.display = "none";
-      }
-
-      renderGestoresAtrasados(lista);
-
-      btn.onclick = () => {
-        const box = document.getElementById("listaGestoresAtraso");
-        if (!box) return;
-        const aberto = box.style.display !== "none";
-        box.style.display = aberto ? "none" : "block";
-        btn.textContent = aberto ? "Ver gestores" : "Ocultar";
-      };
-    }
-  } catch(e){
-    console.error("Erro ao carregar gestores com atraso:", e);
+  // Agrupar por líder (gestores atrasados)
+  const map = new Map();
+  for (const r of rows){
+    const lider = String(r.lider || "SEM LÍDER").trim();
+    map.set(lider, (map.get(lider) || 0) + 1);
   }
-}
 
+  const lista = Array.from(map.entries())
+    .map(([lider, qtd]) => ({ lider, qtd }))
+    .sort((a,b) => b.qtd - a.qtd);
+
+  // Atualizar alerta
+  const alertBox = document.getElementById("alertAtraso");
+  const alertTxt = document.getElementById("alertAtrasoTxt");
+  const btn = document.getElementById("btnVerGestoresAtraso");
+
+  if (totalAtrasadas > 0){
+    alertBox.style.display = "block";
+    alertTxt.textContent = `Você tem ${totalAtrasadas} ação(ões) atrasada(s)!`;
+
+    btn.style.display = (lista.length > 1) ? "inline-flex" : "none";
+  } else {
+    alertBox.style.display = "none";
+    btn.style.display = "none";
+  }
+
+  renderGestoresAtrasados(lista);
+
+  btn.onclick = () => {
+    const box = document.getElementById("listaGestoresAtraso");
+    if (!box) return;
+    const open = box.style.display !== "none";
+    box.style.display = open ? "none" : "block";
+    btn.textContent = open ? "Ver gestores" : "Ocultar";
+  };
+}
 /* ============================================================
    UI INIT
 ============================================================ */
