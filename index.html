@@ -2566,6 +2566,58 @@ function getByHeader(linha, ...possiveisNomes) {
   }
   return null;
 }
+
+  function normUp(s){
+  return String(s || "").trim().toUpperCase();
+}
+
+function isConcluida(r){
+  const st = normUp(r.status);
+  return (
+    st === "CONCLUIDO" ||
+    st === "CONCLUÍDO" ||
+    st === "FINALIZADO" ||
+    st === "FINALIZADA" ||
+    st === "ENCERRADO" ||
+    st === "ENCERRADA"
+  );
+}
+
+function atrasoNumero(r){
+  const at = String(r.atraso ?? "").trim();
+  if (!at) return 0;
+  const n = Number(at.replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isAtrasada(r){
+  if (isConcluida(r)) return false; // ✅ se concluiu, não conta mais
+
+  const st = normUp(r.status);
+  if (st === "ATRASADO" || st === "ATRASADA") return true;
+
+  // fallback: atraso numérico
+  return atrasoNumero(r) > 0;
+}
+
+// evita duplicar contagem do mesmo plano/ação (ajuste a chave se precisar)
+function uniqueByKey(rows){
+  const seen = new Set();
+  const out = [];
+  for (const r of (rows || [])){
+    const key = [
+      String(r.numero_plano ?? "").trim(),
+      String(r.acao ?? "").trim(),
+      String(r.descricao ?? "").trim(),
+      String(r.lider ?? "").trim()
+    ].join("|");
+
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
+}
   
   function normalizarLinhaNC(l) {
   return {
@@ -2593,13 +2645,10 @@ function getByHeader(linha, ...possiveisNomes) {
   async function verificarNCAtrasadas() {
   try {
     const lider = String(getNomeDoToken() || "").trim();
-    if (!lider) {
-      console.warn("[DEBUG] Sem líder no token/localStorage");
-      return;
-    }
+    if (!lider) return;
 
-    // ✅ o worker normalmente filtra por "lider"
-    const url = `/nao-conformidades?lider=${encodeURIComponent(lider)}&status=${encodeURIComponent("Atrasado")}`;
+    // pega tudo do líder e filtra no front
+    const url = `/nao-conformidades?lider=${encodeURIComponent(lider)}`;
 
     const res = await apiFetch(url);
     const text = await res.text();
@@ -2607,15 +2656,16 @@ function getByHeader(linha, ...possiveisNomes) {
     let data = {};
     try { data = JSON.parse(text); } catch {}
 
-    console.log("[DEBUG] NC atrasadas:", url, "HTTP", res.status, data);
-
     if (!res.ok) return;
 
-    // ✅ suporta tanto {total: N} quanto array puro
-    const total =
-      Number(data.total ?? 0) ||
-      (Array.isArray(data) ? data.length : 0) ||
-      (Array.isArray(data.results) ? data.results.length : 0);
+    const rowsRaw =
+      Array.isArray(data) ? data :
+      Array.isArray(data.results) ? data.results :
+      [];
+
+    const rows = uniqueByKey(rowsRaw);
+    const atrasadas = rows.filter(isAtrasada);
+    const total = atrasadas.length;
 
     const el = document.getElementById("alertaAtrasoNC");
     if (!el) return;
@@ -2665,65 +2715,65 @@ function renderGestoresAtrasados(lista){
 }
 
 async function carregarGestoresComAtraso(){
-  const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
+  try{
+    const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
 
-  const qs = new URLSearchParams();
-  if (mes) qs.set("mes", mes);
+    const qs = new URLSearchParams();
+    if (mes) qs.set("mes", mes);
 
-  const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
-  const text = await res.text();
-  let data = {};
-  try { data = JSON.parse(text); } catch {}
+    const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
+    const text = await res.text();
 
-  const rows = data.results || [];
-  const atrasadas = rows.filter(isAtrasada);
+    let data = {};
+    try { data = JSON.parse(text); } catch {}
 
-  // Agrupar por líder
-  const map = new Map();
-  for (const r of atrasadas){
-    const lider = String(r.lider || "SEM LÍDER").trim();
-    map.set(lider, (map.get(lider) || 0) + 1);
-  }
+    const rowsRaw = Array.isArray(data.results) ? data.results : [];
+    const rows = uniqueByKey(rowsRaw);
 
-  const lista = Array.from(map.entries())
-    .map(([lider, qtd]) => ({ lider, qtd }))
-    .sort((a,b) => b.qtd - a.qtd);
+    const atrasadas = rows.filter(isAtrasada);
 
-  // Atualizar alerta
-  const alertBox = document.getElementById("alertAtraso");
-  const alertTxt = document.getElementById("alertAtrasoTxt");
-  const btn = document.getElementById("btnVerGestoresAtraso");
-
-  if (atrasadas.length > 0){
-    alertBox.style.display = "block";
-    alertTxt.textContent = `Você tem ${atrasadas.length} ação(ões) atrasada(s)!`;
-
-    // mostra botão apenas se tiver mais de 1 gestor
-    if (lista.length > 1){
-      btn.style.display = "inline-flex";
-    } else {
-      btn.style.display = "none";
+    // agrupa por líder
+    const map = new Map();
+    for (const r of atrasadas){
+      const lider = String(r.lider || "SEM LÍDER").trim();
+      map.set(lider, (map.get(lider) || 0) + 1);
     }
-  } else {
-    alertBox.style.display = "none";
-    btn.style.display = "none";
-  }
 
-  // render list (continua oculta)
-  renderGestoresAtrasados(lista);
+    const lista = Array.from(map.entries())
+      .map(([lider, qtd]) => ({ lider, qtd }))
+      .sort((a,b) => b.qtd - a.qtd);
 
-  // botão toggle
-  btn.onclick = () => {
-    const box = document.getElementById("listaGestoresAtraso");
-    if (box.style.display === "none") {
-      box.style.display = "block";   // abre
-      btn.textContent = "Ocultar";
-    } else {
-      box.style.display = "none";    // fecha
-      btn.textContent = "Ver gestores";
+    // Atualizar alerta (GERAL)
+    const alertBox = document.getElementById("alertAtraso");
+    const alertTxt = document.getElementById("alertAtrasoTxt");
+    const btn = document.getElementById("btnVerGestoresAtraso");
+
+    if (alertBox && alertTxt && btn){
+      if (atrasadas.length > 0){
+        alertBox.style.display = "block";
+        alertTxt.textContent = `Você tem ${atrasadas.length} ação(ões) atrasada(s)!`;
+
+        btn.style.display = (lista.length > 1) ? "inline-flex" : "none";
+      } else {
+        alertBox.style.display = "none";
+        btn.style.display = "none";
+      }
+
+      renderGestoresAtrasados(lista);
+
+      btn.onclick = () => {
+        const box = document.getElementById("listaGestoresAtraso");
+        if (!box) return;
+        const aberto = box.style.display !== "none";
+        box.style.display = aberto ? "none" : "block";
+        btn.textContent = aberto ? "Ver gestores" : "Ocultar";
+      };
     }
-  };
+  } catch(e){
+    console.error("Erro ao carregar gestores com atraso:", e);
+  }
 }
+
 /* ============================================================
    UI INIT
 ============================================================ */
