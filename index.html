@@ -62,14 +62,14 @@
       flex-wrap: wrap;
     }
 
-  input, select, textarea {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
-  font-size: 14px;
-  outline: none;
-}
+    input, select, textarea {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 14px;
+      outline: none;
+    }
 
     button {
       padding: 9px 14px;
@@ -88,11 +88,11 @@
     button:hover { background: var(--primary-dark); }
 
     button.secondary{
-  background:#fff;
-  color:#333;
-  border:1px solid var(--border);
-}
-button.secondary:hover{ background:#f3f3f3; }
+      background:#fff;
+      color:#333;
+      border:1px solid var(--border);
+    }
+    button.secondary:hover{ background:#f3f3f3; }
 
     main { padding: 24px; }
 
@@ -295,7 +295,6 @@ button.secondary:hover{ background:#f3f3f3; }
     .dot.inspecoes { background: rgba(0,151,206,.25); border-color: rgba(0,151,206,.35); }
     .dot.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
 
-    /* ✅ Link vermelho "VER MEDIDA" */
     .medida-link{
       margin-left: 10px;
       color: #b3261e;
@@ -308,7 +307,6 @@ button.secondary:hover{ background:#f3f3f3; }
     }
     .medida-link:hover{ text-decoration: underline; }
 
-    /* ✅ Modal VER MEDIDAS */
     #modalVerMedidas{
       display:none;
       position:fixed;
@@ -319,138 +317,188 @@ button.secondary:hover{ background:#f3f3f3; }
       padding:16px;
       z-index:9999;
     }
-      .alerta-meses{
-  display:none;
-  padding:10px 12px;
-  border-radius:12px;
-  border:1px solid rgba(179,38,30,.30);
-  background: rgba(179,38,30,.08);
-  color:#b3261e;
-  font-weight:800;
-  font-size:14px;
-  max-width: 520px;
-}
 
-.piscar{
-  animation: piscar 0.85s linear infinite;
-}
-  @keyframes piscar{
-    0%, 100% { opacity: 1; }
-    50% { opacity: .25; }
-  }
+    .alerta-meses{
+      display:none;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(179,38,30,.30);
+      background: rgba(179,38,30,.08);
+      color:#b3261e;
+      font-weight:800;
+      font-size:14px;
+      max-width: 520px;
+    }
+
+    .piscar{
+      animation: piscar 0.85s linear infinite;
+    }
+    @keyframes piscar{
+      0%, 100% { opacity: 1; }
+      50% { opacity: .25; }
+    }
+
     .pill {
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 10px;
-  border:1px solid var(--border);
-  border-radius:999px;
-  background:#fff;
-}/* Link estilo "botão" igual ao Frequência */
-.btn-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
-  color: #333;
-  font-size: 14px;
-  text-decoration: none;
-  cursor: pointer;
-  white-space: nowrap;
-}
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:#fff;
+    }
 
-.btn-link:hover {
-  background: #f3f3f3;
-}
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: #333;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
 
-.btn-link i {
-  font-size: 16px;
-}
-    /* 🔒 Por padrão, área admin fica oculta (mesmo antes do JS) */
-/* ============================
-   ✅ ADMIN IMPORT (POPOVER)
-============================ */
-#adminWrap{ position:relative; display:none; }
+    .btn-link:hover {
+      background: #f3f3f3;
+    }
 
-.admin-pop{
-  position:absolute;
-  top:44px;
+    .btn-link i {
+      font-size: 16px;
+    }
 
-  /* ✅ centraliza no botão */
-  left:50%;
-  transform: translateX(-50%);
+    #adminWrap{ position:relative; display:none; }
 
-  width: 320px;
-  max-width: min(92vw, 360px);
+    .admin-pop{
+      position:absolute;
+      top:44px;
+      left:50%;
+      transform: translateX(-50%);
+      width: 320px;
+      max-width: min(92vw, 360px);
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:0 10px 28px rgba(0,0,0,.12);
+      padding:12px;
+      z-index:999;
+    }
 
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:14px;
-  box-shadow:0 10px 28px rgba(0,0,0,.12);
-  padding:12px;
-  z-index:999;
-}
+    .admin-pop::before{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:-8px;
+      width:14px;
+      height:14px;
+      background:#fff;
+      border-left:1px solid var(--border);
+      border-top:1px solid var(--border);
+      transform: translateX(-50%) rotate(45deg);
+    }
 
-.admin-pop::before{
-  content:"";
-  position:absolute;
-  left:50%;
-  top:-8px;
-  width:14px;
-  height:14px;
-  background:#fff;
-  border-left:1px solid var(--border);
-  border-top:1px solid var(--border);
-  transform: translateX(-50%) rotate(45deg);
-}
+    .admin-pop-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
 
-.admin-pop-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:10px;
-}
+    .admin-pop-body{
+      display:grid;
+      gap:10px;
+    }
 
-.admin-pop-body{
-  display:grid;
-  gap:10px;
-}
+    .admin-label{
+      font-size:12px;
+      font-weight:700;
+      color:#444;
+      margin-top:2px;
+    }
 
-.admin-label{
-  font-size:12px;
-  font-weight:700;
-  color:#444;
-  margin-top:2px;
-}
+    .admin-pop input[type="file"]{
+      width:100%;
+      height:38px;
+      padding:6px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#fafafa;
+    }
 
-.admin-pop input[type="file"]{
-  width:100%;
-  height:38px;
-  padding:6px;
-  border:1px solid var(--border);
-  border-radius:10px;
-  background:#fafafa;
-}
+    .admin-x{
+      height:32px;
+      padding:0 10px;
+    }
 
-.admin-x{
-  height:32px;
-  padding:0 10px;
-}
     .alerta-atraso{
-  display:none;
-  padding:10px 12px;
-  border-radius:12px;
-  border:1px solid rgba(179,38,30,.30);
-  background: rgba(179,38,30,.08);
-  color:#b3261e;
-  font-weight:800;
-  font-size:14px;
-  max-width: 520px;
-}
+      display:none;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(179,38,30,.30);
+      background: rgba(179,38,30,.08);
+      color:#b3261e;
+      font-weight:800;
+      font-size:14px;
+      max-width: 520px;
+    }
+
+    /* NOVO: ativo/inativo no ranking */
+    .row-inativo {
+      background: rgba(179,38,30,.10) !important;
+    }
+
+    .row-inativo:hover {
+      background: rgba(179,38,30,.14) !important;
+    }
+
+    .badge-situacao {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .badge-situacao.ativo {
+      background: rgba(19,115,51,.10);
+      color: #137333;
+      border-color: rgba(19,115,51,.25);
+    }
+
+    .badge-situacao.inativo {
+      background: rgba(179,38,30,.10);
+      color: #b3261e;
+      border-color: rgba(179,38,30,.25);
+    }
+
+    .btn-status {
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .btn-status:hover {
+      background: #f5f5f5;
+    }
+
+    .texto-inativo {
+      color: #b3261e;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -458,17 +506,14 @@ button.secondary:hover{ background:#f3f3f3; }
   <h2><i class="bi bi-clipboard-check"></i> Controle de Inspeções</h2>
 
   <div class="top-actions">
-    <!-- 🔗 Dashboard -->
     <a href="https://coec-epb.github.io/dashboard/" class="btn-link">
       <i class="bi bi-speedometer2"></i> Dashboard
     </a>
 
-    <!-- 🔗 Tratamento NC -->
     <a href="https://coec-epb.github.io/tratamento_NC/" class="btn-link">
       <i class="bi bi-exclamation-triangle"></i> Tratamento NC
     </a>
 
-    <!-- 🔐 ADMIN: botão Importar + popover -->
     <div id="adminWrap">
       <button type="button" class="secondary" id="btnAdminImport">
         <i class="bi bi-upload"></i> Importar
@@ -499,48 +544,44 @@ button.secondary:hover{ background:#f3f3f3; }
     <button type="button" onclick="logout()">
       <i class="bi bi-box-arrow-right"></i> Sair
     </button>
-
   </div>
 </header>
 
 <main>
-      <!-- 🔗 Mostrando os atrasados das NC -->
   <div id="alertAtraso" class="alert" style="display:none; margin-bottom:12px;">
-  <b id="alertAtrasoTxt"></b>
+    <b id="alertAtrasoTxt"></b>
 
-  <button id="btnVerGestoresAtraso" class="secondary" type="button" style="margin-left:10px; display:none;">
-    Ver gestores
-  </button>
-</div>
+    <button id="btnVerGestoresAtraso" class="secondary" type="button" style="margin-left:10px; display:none;">
+      Ver gestores
+    </button>
+  </div>
 
-<div id="listaGestoresAtraso" class="card" 
-     style="display:none; margin-top:10px; padding:12px;">
-  <div style="font-weight:800; margin-bottom:8px;">Gestores com ações atrasadas</div>
-  <div id="listaGestoresAtrasoBody"></div>
-</div>
+  <div id="listaGestoresAtraso" class="card" style="display:none; margin-top:10px; padding:12px;">
+    <div style="font-weight:800; margin-bottom:8px;">Gestores com ações atrasadas</div>
+    <div id="listaGestoresAtrasoBody"></div>
+  </div>
 
- <div class="row">
-  <select id="filtroGestor" style="min-width:200px;">
-    <option value="">Carregando...</option>
-  </select>
+  <div class="row">
+    <select id="filtroGestor" style="min-width:200px;">
+      <option value="">Carregando...</option>
+    </select>
 
-  <input id="filtroMes" type="month" style="width:180px;">
+    <input id="filtroMes" type="month" style="width:180px;">
 
-  <button id="btnVoltarMinhas" class="secondary" type="button" style="display:none;">
-    <i class="bi bi-arrow-left"></i> Voltar
-  </button>
+    <button id="btnVoltarMinhas" class="secondary" type="button" style="display:none;">
+      <i class="bi bi-arrow-left"></i> Voltar
+    </button>
 
-  <button type="button" onclick="carregarInspecoes()">
-    <i class="bi bi-arrow-repeat"></i> Atualizar
-  </button>
+    <button type="button" onclick="carregarInspecoes()">
+      <i class="bi bi-arrow-repeat"></i> Atualizar
+    </button>
 
-  <button class="secondary" onclick="limparFiltros()">
-    <i class="bi bi-x-circle"></i> Limpar
-  </button>
+    <button class="secondary" onclick="limparFiltros()">
+      <i class="bi bi-x-circle"></i> Limpar
+    </button>
 
-  <div id="status" class="status"></div>
-</div>
-
+    <div id="status" class="status"></div>
+  </div>
 
   <div class="card table-wrap">
     <table>
@@ -584,7 +625,6 @@ button.secondary:hover{ background:#f3f3f3; }
     </table>
   </div>
 
-  <!-- ✅ Card Medida Disciplinar -->
   <div class="card pad" style="margin-top:16px;">
     <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
       <div>
@@ -600,49 +640,48 @@ button.secondary:hover{ background:#f3f3f3; }
     </div>
   </div>
 
- <!-- ✅ Modal FREQUÊNCIA (CORRIGIDO) -->
-<div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
-  <div class="modal-box" style="width:min(980px, 100%);">
-    <div class="modal-head">
-      <h3 style="margin:0; color:var(--primary); font-size:16px;">
-        Frequência de Inspeções (por gestor)
-      </h3>
+  <div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
+    <div class="modal-box" style="width:min(980px, 100%);">
+      <div class="modal-head">
+        <h3 style="margin:0; color:var(--primary); font-size:16px;">
+          Frequência de Inspeções (por gestor)
+        </h3>
 
-      <button type="button" class="secondary" id="btnFecharFreq">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:end;">
-      <div style="min-width:180px;">
-        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Mês</label>
-        <input id="freqMesModal" type="month" style="width:180px;">
+        <button type="button" class="secondary" id="btnFecharFreq">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
 
-      <div style="flex:1; min-width:260px;">
-        <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Gestor</label>
-        <select id="freqGestorModal" style="width:100%;">
-          <option value="">Selecione…</option>
-        </select>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:end;">
+        <div style="min-width:180px;">
+          <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Mês</label>
+          <input id="freqMesModal" type="month" style="width:180px;">
+        </div>
+
+        <div style="flex:1; min-width:260px;">
+          <label style="font-weight:600; font-size:13px; display:block; margin-bottom:6px;">Gestor</label>
+          <select id="freqGestorModal" style="width:100%;">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+
+        <button type="button" id="btnAtualizarFreqModal">
+          <i class="bi bi-arrow-repeat"></i> Atualizar
+        </button>
       </div>
 
-      <button type="button" id="btnAtualizarFreqModal">
-        <i class="bi bi-arrow-repeat"></i> Atualizar
-      </button>
-    </div>
+      <div id="freqResumoModal" style="margin-top:12px;"></div>
 
-    <div id="freqResumoModal" style="margin-top:12px;"></div>
+      <div style="margin-top:12px;">
+        <canvas id="freqCanvasModal" style="width:100%; height:380px;"></canvas>
+      </div>
 
-    <div style="margin-top:12px;">
-      <canvas id="freqCanvasModal" style="width:100%; height:380px;"></canvas>
-    </div>
-
-    <div style="margin-top:10px; font-size:12px; color:#666;">
-      Linha tracejada = meta semanal (meta mensal / 4).
+      <div style="margin-top:10px; font-size:12px; color:#666;">
+        Linha tracejada = meta semanal (meta mensal / 4).
+      </div>
     </div>
   </div>
-</div>
-  <!-- ✅ Modal adicionar medida -->
+
   <div id="modalMedida">
     <div class="modal-box">
       <div class="modal-head">
@@ -677,7 +716,6 @@ button.secondary:hover{ background:#f3f3f3; }
     </div>
   </div>
 
-  <!-- ✅ Modal VER MEDIDAS -->
   <div id="modalVerMedidas">
     <div class="modal-box" style="width:min(720px, 100%);">
       <div class="modal-head">
@@ -691,7 +729,6 @@ button.secondary:hover{ background:#f3f3f3; }
     </div>
   </div>
 
-  <!-- 📊 Estatísticas -->
   <div class="card" style="margin-top:16px; margin-bottom:16px; padding:16px;">
     <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
       <div>
@@ -757,7 +794,6 @@ button.secondary:hover{ background:#f3f3f3; }
     </div>
   </div>
 
-    <!-- Ranking -->
   <div class="card" style="margin-top:16px; padding:16px;">
     <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
       <div>
@@ -770,10 +806,9 @@ button.secondary:hover{ background:#f3f3f3; }
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
         <div id="boxRankingLider" style="display:none;">
           <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Líder</div>
-            <select id="rankingLider"
-    style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
-    <option value="">Todos os líderes</option>
-  </select>
+          <select id="rankingLider" style="padding:8px; border:1px solid var(--border); border-radius:8px; width:260px;">
+            <option value="">Todos os líderes</option>
+          </select>
         </div>
 
         <button type="button" onclick="carregarRanking()">
@@ -788,13 +823,15 @@ button.secondary:hover{ background:#f3f3f3; }
           <tr>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Rank</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Colaborador</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Situação</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Base</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Polo</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Líder</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Data da última auditoria</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Qtd dias sem auditoria</th>
-            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções no colaborador em 2026</th>   
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções no colaborador em 2026</th>
             <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Inspeções 2026 (Gestor imediato)</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Alterar situação</th>
           </tr>
         </thead>
         <tbody id="rankingTbody"></tbody>
@@ -805,9 +842,7 @@ button.secondary:hover{ background:#f3f3f3; }
 </main>
 
 <script>
-
 let _cacheInspecoes2026 = null;
-  // cache por líder
 const _cache2026PorLider = new Map();
 
 async function garantirCacheInspecoes2026(liderFiltro = "") {
@@ -837,8 +872,6 @@ async function garantirCacheInspecoes2026(liderFiltro = "") {
 function splitNomesLista(v){
   const s = String(v || "").trim();
   if (!s) return [];
-
-  // separadores comuns: ; , | quebra de linha e " - "
   return s
     .split(/[\n;|,]+/g)
     .map(x => x.trim())
@@ -850,12 +883,11 @@ function pessoaIgual(a, b){
   const B = normName(b);
   return A && B && A === B;
 }
-  function getGestoresMetaArray() {
-  // META_MENSAL_POR_GESTOR é objeto -> pega as chaves
+
+function getGestoresMetaArray() {
   if (META_MENSAL_POR_GESTOR && typeof META_MENSAL_POR_GESTOR === "object" && !Array.isArray(META_MENSAL_POR_GESTOR)) {
     return Object.keys(META_MENSAL_POR_GESTOR);
   }
-  // se algum dia virar array, ainda funciona
   return Array.isArray(META_MENSAL_POR_GESTOR) ? META_MENSAL_POR_GESTOR : [];
 }
 
@@ -868,24 +900,16 @@ function isAno2026(dataInspecao){
   return dt && dt.getFullYear() === 2026;
 }
 
-// ✅ pega todos os nomes do colaborador que possam aparecer na inspeção
 function nomesDoColaboradorNaInspecao(i){
   const out = [];
-
-  // campos "diretos"
   if (i.colaborador_1) out.push(i.colaborador_1);
   if (i.colaborador_2) out.push(i.colaborador_2);
-
-  // campo que vem como lista (muito comum)
+  if (i.colaborador_3) out.push(i.colaborador_3);
   splitNomesLista(i.auditados).forEach(n => out.push(n));
-
-  // caso exista algum campo alternativo
   if (i.colaborador) out.push(i.colaborador);
-
   return out.map(normName).filter(Boolean);
 }
 
-// ✅ quem “executou” a inspeção (para filtro do gestor imediato)
 function nomesDeQuemFez(i){
   return [
     i.lider,
@@ -899,7 +923,6 @@ function nomesDeQuemFez(i){
   ].map(normName).filter(Boolean);
 }
 
-// ✅ total geral do colaborador em 2026
 function countInspecoes2026Colaborador(colaboradorNome, base2026){
   const alvo = normName(colaboradorNome);
   if (!alvo) return 0;
@@ -907,43 +930,31 @@ function countInspecoes2026Colaborador(colaboradorNome, base2026){
   let c = 0;
   for (const i of (base2026 || [])){
     if (!isAno2026(i.data_inspecao)) continue;
-
     const lista = nomesDoColaboradorNaInspecao(i);
     const temColab = lista.some(n => n === alvo);
-
     if (temColab) c++;
   }
   return c;
 }
 
-// ✅ total em 2026 somente quando foi feita pelo gestor imediato
 function countInspecoes2026GestorImediato(colaboradorNome, gestorImediatoNome, base2026) {
   const alvoColab = normName(colaboradorNome);
   const alvoGestor = normName(gestorImediatoNome);
-
   if (!alvoColab || !alvoGestor) return 0;
 
   let total = 0;
-
   for (const i of (base2026 || [])) {
     if (!isAno2026(i.data_inspecao)) continue;
-
-    // --- verifica se colaborador aparece ---
     const listaColabs = nomesDoColaboradorNaInspecao(i);
     if (!listaColabs.some(n => n === alvoColab)) continue;
-
-    // --- verifica se o LÍDER imediato foi o auditor/líder ---
     const executores = nomesDeQuemFez(i);
     if (!executores.some(n => n === alvoGestor)) continue;
-
     total++;
   }
-
   return total;
 }
 
-  
-  function b64urlToString(b64url) {
+function b64urlToString(b64url) {
   try {
     let b64 = String(b64url || "").replace(/-/g, "+").replace(/_/g, "/");
     while (b64.length % 4) b64 += "=";
@@ -958,18 +969,14 @@ function decodeTokenPayloadCompat(token) {
     const parts = String(token || "").split(".");
     if (parts.length < 2) return null;
 
-    // ✅ seu Worker: body.sig  -> payload está no parts[0]
-    // ✅ JWT clássico: header.payload.sig -> payload está no parts[1]
     const maybeWorkerBody = parts[0];
     const maybeJwtPayload = parts[1];
 
-    // tenta primeiro formato do Worker
     const workerJson = b64urlToString(maybeWorkerBody);
     if (workerJson && workerJson.trim().startsWith("{")) {
       return JSON.parse(workerJson);
     }
 
-    // se não der, tenta JWT clássico
     const jwtJson = b64urlToString(maybeJwtPayload);
     if (jwtJson && jwtJson.trim().startsWith("{")) {
       return JSON.parse(jwtJson);
@@ -986,7 +993,8 @@ function isAdminByToken() {
   const payload = decodeTokenPayloadCompat(token);
   return String(payload?.perfil || "").toLowerCase() === "admin";
 }
- document.addEventListener("DOMContentLoaded", () => {
+
+document.addEventListener("DOMContentLoaded", () => {
   const wrap = document.getElementById("adminWrap");
   const pop = document.getElementById("adminPop");
   const btn = document.getElementById("btnAdminImport");
@@ -1001,20 +1009,20 @@ function isAdminByToken() {
   if (!ehAdmin) return;
 
   function togglePop(){
-  const willOpen = (pop.style.display === "none" || !pop.style.display);
-  pop.style.display = willOpen ? "block" : "none";
-  if (!willOpen) return;
+    const willOpen = (pop.style.display === "none" || !pop.style.display);
+    pop.style.display = willOpen ? "block" : "none";
+    if (!willOpen) return;
 
-  // ✅ ajusta se estourar nas laterais
-  requestAnimationFrame(() => {
-    const r = pop.getBoundingClientRect();
-    const pad = 10;
-    if (r.left < pad) pop.style.transform = `translateX(calc(-50% + ${pad - r.left}px))`;
-    else if (r.right > window.innerWidth - pad)
-      pop.style.transform = `translateX(calc(-50% - ${r.right - (window.innerWidth - pad)}px))`;
-    else pop.style.transform = "translateX(-50%)";
-  });
-}
+    requestAnimationFrame(() => {
+      const r = pop.getBoundingClientRect();
+      const pad = 10;
+      if (r.left < pad) pop.style.transform = `translateX(calc(-50% + ${pad - r.left}px))`;
+      else if (r.right > window.innerWidth - pad)
+        pop.style.transform = `translateX(calc(-50% - ${r.right - (window.innerWidth - pad)}px))`;
+      else pop.style.transform = "translateX(-50%)";
+    });
+  }
+
   function closePop(){
     if (pop) pop.style.display = "none";
   }
@@ -1029,31 +1037,28 @@ function isAdminByToken() {
     closePop();
   });
 
-  // clicar fora fecha
   document.addEventListener("click", (e) => {
     if (!wrap.contains(e.target)) closePop();
   });
 
-  // ESC fecha
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closePop();
   });
 });
-  
- (function controleDeAcessoAdmin(){
+
+(function controleDeAcessoAdmin(){
   document.addEventListener("DOMContentLoaded", () => {
     const area = document.getElementById("areaAdmin");
     if (!area) return;
 
-    const ehAdmin = isAdminByToken(); // sua função que lê o token
+    const ehAdmin = isAdminByToken();
     area.style.display = ehAdmin ? "flex" : "none";
 
     console.log("[DEBUG] admin by token?", ehAdmin, "display:", getComputedStyle(area).display);
   });
 })();
 
-  
-  function norm(s){
+function norm(s){
   return String(s || "").trim().toUpperCase();
 }
 
@@ -1068,11 +1073,9 @@ function aplicarMesAtualNoTopo() {
 }
 
 function gestorPadraoDoUsuario() {
-  // super gestor começa no dele também
   return String(getNomeDoToken() || "").trim();
 }
 
-// ✅ esta é a ÚNICA função que preenche o select do topo
 async function popularGestoresTopo() {
   const sel = document.getElementById("filtroGestor");
   if (!sel) return;
@@ -1083,17 +1086,12 @@ async function popularGestoresTopo() {
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
   try {
-    // ✅ (opcional) ainda busca do backend, mas vamos usar só como referência
     const res = await apiFetch("/lideres");
     const data = await res.json();
     const listaApi = Array.isArray(data.results) ? data.results : [];
 
-    // ✅ lista DEOP = quem tem meta
     const listaDeop = Object.keys(META_MENSAL_POR_GESTOR);
 
-    // ✅ (recomendado) mostra só quem está no DEOP
-    // Se quiser garantir que existe na API também, use o filtro abaixo:
-    // const listaFinal = listaDeop.filter(n => listaApi.some(x => normName(x) === normName(n)));
     const listaFinal = listaDeop
       .slice()
       .sort((a, b) => normName(a).localeCompare(normName(b)));
@@ -1102,12 +1100,10 @@ async function popularGestoresTopo() {
       `<option value="">Selecione…</option>` +
       listaFinal.map(n => `<option value="${n}">${n}</option>`).join("");
 
-    // ✅ seleciona automaticamente o nome do usuário logado (se estiver no DEOP)
     const meu = listaFinal.find(x => normName(x) === normName(meuNome));
     if (meu) sel.value = meu;
 
   } catch (e) {
-    // fallback: mesmo se a API falhar, ainda dá pra montar pelo DEOP
     const listaFinal = Object.keys(META_MENSAL_POR_GESTOR)
       .slice()
       .sort((a, b) => normName(a).localeCompare(normName(b)));
@@ -1121,10 +1117,7 @@ async function popularGestoresTopo() {
   }
 }
 
-
-
-
-  function aplicarMesAtual() {
+function aplicarMesAtual() {
   const el = document.getElementById("filtroMes");
   if (!el) return;
 
@@ -1133,9 +1126,7 @@ async function popularGestoresTopo() {
   const ano = d.getFullYear();
   el.value = `${ano}-${String(mes).padStart(2,"0")}`;
 }
-/* ============================================================
-   🔎 MATRÍCULA / TOKEN HELPERS
-============================================================ */
+
 function getMatriculaAtual() {
   const keys = ["matricula", "matriculaLogin", "user", "usuario", "sub", "id"];
   for (const k of keys) {
@@ -1167,7 +1158,6 @@ function decodeJwtPayload(token) {
     if (parts.length !== 3) return null;
 
     let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    // ✅ padding
     while (b64.length % 4) b64 += "=";
 
     const json = atob(b64);
@@ -1178,11 +1168,9 @@ function decodeJwtPayload(token) {
 }
 
 function getNomeDoToken() {
-  // 1) tenta localStorage "lider"
   const lsLider = String(localStorage.getItem("lider") || "").trim();
   if (lsLider) return lsLider;
 
-  // 2) tenta payload compat (Worker body.sig ou JWT)
   const token = String(localStorage.getItem("token") || "").trim();
   const payload = decodeTokenPayloadCompat(token);
   if (!payload) return "";
@@ -1190,13 +1178,9 @@ function getNomeDoToken() {
   return String(payload.lider || payload.nome || payload.name || "").trim();
 }
 
-/* ============================================================
-   CONFIG / SESSÃO
-============================================================ */
 const API = "https://inspecoes.pedro-fillype.workers.dev";
 const statusEl = document.getElementById("status");
 let dadosGlobais = [];
-
 window.medidasPorNumero = {};
 
 if (localStorage.getItem("logado") !== "true") {
@@ -1206,12 +1190,8 @@ if (localStorage.getItem("logado") !== "true") {
 const perfil = localStorage.getItem("perfil") || "user";
 const token = localStorage.getItem("token") || "";
 
-/* Se não tiver token, desloga */
 if (!token) logout();
 
-/* ============================================================
-   ✅ META MENSAL POR GESTOR
-============================================================ */
 const META_MENSAL_POR_GESTOR = {
   "ANDERSON DE ARAUJO VASCONCELOS": 10,
   "EDEVALDO FELICIANO DA SILVA": 10,
@@ -1258,7 +1238,7 @@ const META_MENSAL_POR_GESTOR = {
   "JOSE MARIO DE ALEXANDRE SARAIVA":4
 };
 
- function getMetaMensalGestor(nomeGestor) {
+function getMetaMensalGestor(nomeGestor) {
   const key = normName(nomeGestor);
   if (Object.prototype.hasOwnProperty.call(META_MENSAL_POR_GESTOR, key)) {
     return Number(META_MENSAL_POR_GESTOR[key] ?? 10);
@@ -1266,9 +1246,6 @@ const META_MENSAL_POR_GESTOR = {
   return 10;
 }
 
-/* ============================================================
-   HELPERS
-============================================================ */
 function setStatus(msg, type = "") {
   if (!statusEl) return;
   statusEl.textContent = msg;
@@ -1349,12 +1326,9 @@ function getMonthKey(d) {
 }
 
 function weekOfMonth(d) {
-  return Math.floor((d.getDate() - 1) / 7) + 1; // 1..5
+  return Math.floor((d.getDate() - 1) / 7) + 1;
 }
 
-/* ============================================================
-   ✅ PERMISSÕES (Ranking) - (Opção C)
-============================================================ */
 function podeVerTodosRanking() {
   const perfil = localStorage.getItem("perfil") || "user";
   const matricula = String(getMatriculaAtual() || "").trim();
@@ -1362,9 +1336,6 @@ function podeVerTodosRanking() {
   return perfil === "admin" || LIBERADOS_GERAL.includes(matricula);
 }
 
-/* ============================================================
-   MEDIDAS: CACHE + MODAL VER
-============================================================ */
 async function carregarMedidasCache() {
   const res = await apiFetch(`/medidas`);
   if (res.status === 401) return logout();
@@ -1395,10 +1366,9 @@ function abrirModalVerMedidas(numero) {
   const body = document.getElementById("vmBody");
   if (!modal || !titulo || !body) return;
 
-  const medidas =
-    window.medidasPorNumero && window.medidasPorNumero[numero]
-      ? window.medidasPorNumero[numero]
-      : [];
+  const medidas = window.medidasPorNumero && window.medidasPorNumero[numero]
+    ? window.medidasPorNumero[numero]
+    : [];
 
   titulo.textContent = `Medidas da inspeção: ${numero}`;
   body.innerHTML = "";
@@ -1478,21 +1448,15 @@ document.addEventListener("click", e => {
   if (numero) abrirModalVerMedidas(numero);
 });
 
-
 async function carregarLideresParaFrequencia() {
   const res = await fetch(`${API}/lideres`, { headers: authHeaders() });
   const text = await res.text();
   if (!res.ok) throw new Error(text);
 
   const data = JSON.parse(text);
-  // seu /lideres retorna { results: [...] }
   return (data.results || []).map(n => String(n || "").trim()).filter(Boolean);
 }
 
-
-
-  
-// ✅ Normalização forte: tira acento, UPPER, trim, remove espaços duplicados
 function normName(s) {
   return String(s || "")
     .normalize("NFD")
@@ -1502,7 +1466,6 @@ function normName(s) {
     .toUpperCase();
 }
 
-// ✅ SUPER gestores (cru)
 const SUPER_GESTORES_INSPECOES_RAW = [
   "NATHALIA HOLANDA VILHENA",
   "EDIVALDO DA SILVA BRANDAO NETO",
@@ -1510,10 +1473,8 @@ const SUPER_GESTORES_INSPECOES_RAW = [
   "RENAN IGOR MENEZES DA SILVA"
 ];
 
-// ✅ SUPER gestores (normalizado)
 const SUPER_GESTORES_INSPECOES = new Set(SUPER_GESTORES_INSPECOES_RAW.map(normName));
 
-// ✅ Delegações (para inspeções e também para frequência)
 const DELEGACAO_VER_INSPECOES = {
   [normName("WESLEY FERNANDES DE SOUZA")]: [
     normName("GERALDO PEDRO DA SILVA JUNIOR")
@@ -1549,17 +1510,17 @@ const DELEGACAO_VER_INSPECOES = {
   [normName("JANSEN LACERDA DE OLIVEIRA JUNIOR")]: [
     normName("FRANCISCO BATISTA DE LIMA"),
     normName("GIESY LAMOUNIER DE OLIVEIRA MACIEL")
-    ],
+  ],
   [normName("ANDERSON DE ARAUJO VASCONCELOS")]: [
     normName("HAROLDO QUARESMA GOMES"),
     normName("ANDERSON BARROS VELEZ"),
     normName("ANGELO FLAVIO DA SILVA")
-    ],
+  ],
   [normName("ANTONIO PEREIRA GOMES")]: [
     normName("JOSE MARIO DE ALEXANDRE SARAIVA"),
     normName("ANTONIO CESAR PEREIRA ROCHA"),
     normName("IRIALLESON DA SILVA LIMA")
-    ],
+  ],
   [normName("MACIEL GOMES DE AGUIAR")]: [
     normName("JOSE LUIS ALVES DE LIMA")
   ],
@@ -1571,7 +1532,6 @@ const DELEGACAO_VER_INSPECOES = {
   ]
 };
 
-// ✅ Permissão para FREQUÊNCIA: logado + delegados, e super gestores veem todos
 function listaGestoresPermitidosParaFrequencia() {
   const perfil = localStorage.getItem("perfil") || "user";
   if (perfil === "admin") return null;
@@ -1579,13 +1539,12 @@ function listaGestoresPermitidosParaFrequencia() {
   const meuNome = normName(getNomeDoToken());
   if (!meuNome) return new Set();
 
-  if (SUPER_GESTORES_INSPECOES.has(meuNome)) return null; // vê todos
+  if (SUPER_GESTORES_INSPECOES.has(meuNome)) return null;
 
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
   return new Set([meuNome, ...delegados]);
 }
 
-// ✅ Permissão para INSPEÇÕES: logado + delegados, e super gestores veem todos
 function listaGestoresPermitidosParaInspecoes() {
   const perfil = localStorage.getItem("perfil") || "user";
   if (perfil === "admin") return null;
@@ -1593,16 +1552,13 @@ function listaGestoresPermitidosParaInspecoes() {
   const meuNome = normName(getNomeDoToken());
   if (!meuNome) return new Set();
 
-  if (SUPER_GESTORES_INSPECOES.has(meuNome)) return null; // vê todos
+  if (SUPER_GESTORES_INSPECOES.has(meuNome)) return null;
 
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
   return new Set([meuNome, ...delegados]);
 }
 
-  
-// ✅ decide se uma inspeção “pertence” a algum gestor permitido
 function inspecaoPertenceA(permitidosSet, item) {
-  // campos onde o nome pode aparecer
   const nomes = [
     item?.lider,
     item?.auditor_1,
@@ -1617,19 +1573,16 @@ function inspecaoPertenceA(permitidosSet, item) {
   return nomes.some(n => permitidosSet.has(n));
 }
 
-// Quem pode ver a frequência de TODOS (estatística)
 const LIBERADOS_FREQ_TODOS = ["6855", "3075664", "8004", "11273"];
-  
+
 function podeVerTodosFrequencia() {
   const perfil = localStorage.getItem("perfil") || "user";
   const matricula = String(getMatriculaAtual() || "").trim();
   return (perfil === "admin") || LIBERADOS_FREQ_TODOS.includes(matricula);
 }
 
-
-// ✅ (Opção C) Recriada: calcula frequência do gestor no mês
 function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
-  const weeks = [0,0,0,0]; // semana 1..5
+  const weeks = [0,0,0,0];
   let total = 0;
 
   const alvo = normName(gestorNome);
@@ -1666,10 +1619,9 @@ async function popularSelectGestoresModal() {
 
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
-  const metaArray = getGestoresMetaArray();     // ✅ só da META
-  const metaSet = getGestoresMetaSet();         // ✅ normalizado
+  const metaArray = getGestoresMetaArray();
+  const metaSet = getGestoresMetaSet();
 
-  // (opcional) tenta backend, mas NÃO deixa entrar quem não está na meta
   let lideresBackend = [];
   try {
     lideresBackend = await carregarLideresParaFrequencia();
@@ -1677,15 +1629,13 @@ async function popularSelectGestoresModal() {
     console.error("Erro ao carregar /lideres:", e);
   }
 
-  // monta lista final: sempre inclui os da meta
-  const map = new Map(); // normKey -> nome exibido
+  const map = new Map();
 
   metaArray.forEach(n => {
     const k = normName(n);
     if (k) map.set(k, n);
   });
 
-  // backend só entra se estiver na meta (ajuda a manter nomes “do jeito do banco”)
   lideresBackend.forEach(n => {
     const k = normName(n);
     if (metaSet.has(k)) map.set(k, n);
@@ -1699,7 +1649,6 @@ async function popularSelectGestoresModal() {
     listaFinal.map(n => `<option value="${String(n).replaceAll('"', "&quot;")}">${n}</option>`).join("");
 }
 
-  
 function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
 
@@ -1761,7 +1710,7 @@ function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const barW = (chartW - barGap * 4) / 5;
 
   for (let i = 0; i < 5; i++) {
-    const val = weeks[i];
+    const val = weeks[i] ?? 0;
     const x = padding + i * (barW + barGap);
     const h = (val / yMax) * chartH;
     const y = (H - padding) - h;
@@ -1791,7 +1740,7 @@ async function atualizarGraficoFrequenciaGestorModal() {
   const resumo = document.getElementById("freqResumoModal");
   if (!mesEl || !gestorEl || !canvas || !resumo) return;
 
-  const mesKey = String(mesEl.value || "").trim(); // YYYY-MM
+  const mesKey = String(mesEl.value || "").trim();
   const gestor = String(gestorEl.value || "").trim();
 
   if (!mesKey) { resumo.textContent = "Selecione um mês."; return; }
@@ -1800,7 +1749,6 @@ async function atualizarGraficoFrequenciaGestorModal() {
   const metaMensal = getMetaMensalGestor(gestor);
   const metaSemanal = metaMensal / 4;
 
-  // ✅ pega do Worker (Jeito B)
   const res = await fetch(`${API}/frequencia?mes=${encodeURIComponent(mesKey)}&gestor=${encodeURIComponent(gestor)}`, {
     headers: authHeaders()
   });
@@ -1830,6 +1778,7 @@ async function atualizarGraficoFrequenciaGestorModal() {
     </div>
   `;
 }
+
 async function abrirModalFreq() {
   const modal = document.getElementById("modalFreq");
   if (!modal) return;
@@ -1840,15 +1789,13 @@ async function abrirModalFreq() {
 
   modal.style.display = "flex";
 
-  // mês default
   const mesEl = document.getElementById("freqMesModal");
   if (mesEl && !mesEl.value) {
     const d = new Date();
     mesEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  // popula o select (já vai vir filtrado para delegados)
- await popularSelectGestoresModal();
+  await popularSelectGestoresModal();
 
   const sel = document.getElementById("freqGestorModal");
   if (!sel) return;
@@ -1857,10 +1804,7 @@ async function abrirModalFreq() {
   const nomeLogadoKey = normName(getNomeDoToken());
 
   if (permitidosFreq) {
-    // gestor comum → pode escolher entre ele + delegados
     sel.disabled = false;
-
-    // seleciona o logado se existir na lista
     for (const opt of sel.options) {
       if (normName(opt.value) === nomeLogadoKey) {
         sel.value = opt.value;
@@ -1868,7 +1812,6 @@ async function abrirModalFreq() {
       }
     }
   } else {
-    // admin → tudo liberado
     sel.disabled = false;
   }
 
@@ -1893,9 +1836,6 @@ document.getElementById("modalFreq")?.addEventListener("click", e => {
   if (e.target.id === "modalFreq") fecharModalFreq();
 });
 
-/* ============================================================
-   TABELA INSPEÇÕES
-============================================================ */
 function renderTabela(dados) {
   const tbody = document.getElementById("tbody");
   if (!tbody) return;
@@ -1959,21 +1899,17 @@ function renderTabela(dados) {
   setStatus(`Registros exibidos: ${dados.length}`, "success");
 }
 
-/* ============================================================
-   CARREGAR INSPEÇÕES
-============================================================ */
 async function carregarInspecoes() {
   const selGestor = document.getElementById("filtroGestor");
   const inpMes = document.getElementById("filtroMes");
 
   const gestor = (selGestor?.value || "").trim();
-  const mes = (inpMes?.value || "").trim(); // YYYY-MM
+  const mes = (inpMes?.value || "").trim();
 
   const qs = new URLSearchParams();
 
   if (gestor) qs.set("lider", gestor);
 
-  // filtro mês -> manda data_ini e data_fim
   if (mes && /^\d{4}-\d{2}$/.test(mes)) {
     qs.set("data_ini", `${mes}-01`);
     qs.set("data_fim", `${mes}-31`);
@@ -1995,11 +1931,6 @@ async function carregarInspecoes() {
   renderTabela(dadosGlobais);
 }
 
-
-
-/* ============================================================
-   FILTROS
-============================================================ */
 function aplicarFiltros() {
   const lider = document.getElementById("filtroLider")?.value.toLowerCase().trim() || "";
   const localidade = document.getElementById("filtroLocalidade")?.value.toLowerCase().trim() || "";
@@ -2014,21 +1945,23 @@ function aplicarFiltros() {
 
   renderTabela(filtrado);
 }
-  
 
 function limparFiltros() {
-  const a = document.getElementById("filtroLider");
-  const b = document.getElementById("filtroLocalidade");
-  const c = document.getElementById("filtroData");
-  if (a) a.value = "";
-  if (b) b.value = "";
-  if (c) c.value = "";
-  renderTabela(dadosGlobais);
+  const selGestor = document.getElementById("filtroGestor");
+  const mesEl = document.getElementById("filtroMes");
+  const btn = document.getElementById("btnVoltarMinhas");
+
+  if (selGestor) {
+    const meu = selGestor.dataset.meuNome || "";
+    selGestor.value = meu;
+  }
+
+  if (mesEl) mesEl.value = mesAtualYYYYMM();
+  if (btn) btn.style.display = "none";
+
+  carregarInspecoes();
 }
 
-/* ============================================================
-   IMPORTAR EXCEL (somente admin)
-============================================================ */
 function normalizarLinha(l) {
   return {
     numero: l["Número"]?.toString().trim() || null,
@@ -2072,9 +2005,6 @@ function chunkArray(arr, size) {
   return chunks;
 }
 
-/* ============================================================
-   IMPORTAR EXCEL (somente admin) - INSPEÇÕES
-============================================================ */
 const excelInput = document.getElementById("excel");
 if (excelInput && perfil === "admin") {
   excelInput.addEventListener("change", async e => {
@@ -2119,11 +2049,6 @@ if (excelInput && perfil === "admin") {
   });
 }
 
-
-
-/* ============================================================
-   IMPORTAR NÃO CONFORMIDADES (somente admin)
-============================================================ */
 const excelNC = document.getElementById("excelNC");
 if (excelNC && perfil === "admin") {
   excelNC.addEventListener("change", async (e) => {
@@ -2171,9 +2096,6 @@ if (excelNC && perfil === "admin") {
   });
 }
 
-/* ============================================================
-   MEDIDAS DISCIPLINARES (✅ sem duplicação de salvarMedida)
-============================================================ */
 function abrirModalMedida() {
   const modal = document.getElementById("modalMedida");
   if (!modal) return;
@@ -2282,9 +2204,6 @@ async function salvarMedida() {
   setStatus(idEdit ? "Medida atualizada ✔" : "Medida registrada ✔", "success");
 }
 
-/* ============================================================
-   STATS MENSAL
-============================================================ */
 function nomeMes(mm) {
   const map = {
     "01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr", "05": "Mai", "06": "Jun",
@@ -2379,10 +2298,65 @@ function renderChart(porMes) {
   });
 }
 
- 
-/* ============================================================
-   RANKING
-============================================================ */
+/* NOVO: status ativo/inativo do colaborador */
+function getChaveStatusColaborador() {
+  const gestor = normName(getNomeDoToken() || "SEM_GESTOR");
+  return `status_colaboradores_inspecoes__${gestor}`;
+}
+
+function getMapaStatusColaboradores() {
+  try {
+    const raw = localStorage.getItem(getChaveStatusColaborador());
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function salvarMapaStatusColaboradores(map) {
+  localStorage.setItem(getChaveStatusColaborador(), JSON.stringify(map || {}));
+}
+
+function getStatusColaborador(nomeColaborador) {
+  const map = getMapaStatusColaboradores();
+  const key = normName(nomeColaborador);
+  return map[key] || "ATIVO";
+}
+
+function isColaboradorInativo(nomeColaborador) {
+  return getStatusColaborador(nomeColaborador) === "INATIVO";
+}
+
+function setStatusColaborador(nomeColaborador, status) {
+  const map = getMapaStatusColaboradores();
+  const key = normName(nomeColaborador);
+  map[key] = status === "INATIVO" ? "INATIVO" : "ATIVO";
+  salvarMapaStatusColaboradores(map);
+}
+
+async function alternarStatusColaborador(nomeColaborador) {
+  const atual = getStatusColaborador(nomeColaborador);
+  const novo = atual === "ATIVO" ? "INATIVO" : "ATIVO";
+
+  const msg =
+    novo === "INATIVO"
+      ? `Deseja marcar "${nomeColaborador}" como INATIVO (afastado)?`
+      : `Deseja marcar "${nomeColaborador}" como ATIVO novamente?`;
+
+  if (!confirm(msg)) return;
+
+  setStatusColaborador(nomeColaborador, novo);
+
+  setStatus(
+    novo === "INATIVO"
+      ? `Colaborador ${nomeColaborador} marcado como inativo.`
+      : `Colaborador ${nomeColaborador} marcado como ativo novamente.`,
+    "success"
+  );
+
+  await carregarRanking();
+}
+
 async function carregarRanking() {
   setStatus("⏳ Aguarde… carregando ranking...", "info");
 
@@ -2391,7 +2365,6 @@ async function carregarRanking() {
     const liderEl = document.getElementById("rankingLider");
     const qs = new URLSearchParams();
 
-    // filtro opcional (só admin/liberados)
     const liderFiltro = (podeGeral && liderEl && liderEl.value) ? liderEl.value.trim() : "";
     if (liderFiltro) qs.set("lider", liderFiltro);
 
@@ -2415,7 +2388,6 @@ async function carregarRanking() {
 
     tbody.innerHTML = "";
 
-    // ✅ helpers de "dias_desde" (não mostrar 99999/999999)
     const diasParaOrdenar = (v) => {
       const s = String(v ?? "").trim();
       if (!s || s === "-" || s === "999999" || s === "99999") return 999999;
@@ -2430,13 +2402,13 @@ async function carregarRanking() {
       return Number.isFinite(n) ? n : 0;
     };
 
-    // ✅ ordenação (mantendo seu padrão)
-    // 1) quem tem 0 inspeções primeiro
-    // 2) depois quem tem 0 pelo gestor imediato
-    // 3) depois por mais dias sem auditoria (DESC)
     const computed = rows.slice();
 
     computed.sort((a, b) => {
+      const aInativo = isColaboradorInativo(a.colaborador);
+      const bInativo = isColaboradorInativo(b.colaborador);
+      if (aInativo !== bInativo) return aInativo ? 1 : -1;
+
       const aTot = Number(a.qtd_inspecoes || 0);
       const bTot = Number(b.qtd_inspecoes || 0);
 
@@ -2460,27 +2432,53 @@ async function carregarRanking() {
       return normName(a.colaborador).localeCompare(normName(b.colaborador));
     });
 
-    // ✅ render
+    let rankVisivel = 0;
+
     for (let idx = 0; idx < computed.length; idx++) {
       const r = computed[idx];
+      const inativo = isColaboradorInativo(r.colaborador);
 
       const labelFonte =
         r.fonte_ultima === "inspecoes" ? " (inspeções)" :
         r.fonte_ultima === "dados" ? " (dados)" : "";
 
+      const ultimaInspecaoHtml = inativo
+        ? `<span class="texto-inativo">Afastado</span>`
+        : `${formatarDataBR(r.ultima_inspecao)}${labelFonte}`;
+
+      const diasHtml = inativo
+        ? `<span class="texto-inativo">Não contabiliza</span>`
+        : diasParaMostrar(r.dias_desde);
+
+      const situacaoHtml = inativo
+        ? `<span class="badge-situacao inativo"><i class="bi bi-person-dash"></i> Inativo</span>`
+        : `<span class="badge-situacao ativo"><i class="bi bi-person-check"></i> Ativo</span>`;
+
+      const btnHtml = inativo
+        ? `<button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+             <i class="bi bi-arrow-clockwise"></i> Marcar ativo
+           </button>`
+        : `<button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+             <i class="bi bi-pause-circle"></i> Marcar inativo
+           </button>`;
+
+      const rank = inativo ? "-" : (++rankVisivel);
+
       const tr = document.createElement("tr");
+      if (inativo) tr.classList.add("row-inativo");
+
       tr.innerHTML =
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (idx + 1) + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.colaborador ?? "") + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + rank + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:700;'>" + (r.colaborador ?? "") + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + situacaoHtml + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
         "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" +
-          formatarDataBR(r.ultima_inspecao) + labelFonte +
-        "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + diasParaMostrar(r.dias_desde) + "</td>" +
-       "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.qtd_inspecoes ?? 0) + "</td>" +
-"<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.insp_gestor ?? 0) + "</td>"
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + ultimaInspecaoHtml + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + diasHtml + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.qtd_inspecoes ?? 0) + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.insp_gestor ?? 0) + "</td>" +
+        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + btnHtml + "</td>";
 
       tbody.appendChild(tr);
     }
@@ -2491,8 +2489,6 @@ async function carregarRanking() {
     setStatus("Erro ao carregar ranking.", "error");
   }
 }
-
-
 
 async function carregarLideresRanking() {
   const podeGeral = podeVerTodosRanking();
@@ -2508,7 +2504,6 @@ async function carregarLideresRanking() {
 
   box.style.display = "block";
 
-  // ✅ lista DEOP = quem tem meta
   const listaFinal = Object.keys(META_MENSAL_POR_GESTOR)
     .slice()
     .sort((a, b) => normName(a).localeCompare(normName(b)));
@@ -2521,9 +2516,7 @@ async function carregarLideresRanking() {
     sel.appendChild(opt);
   });
 }
-/* ============================================================
-   ALERTA PRAZO DO LÍDER (✅ corrigido ${meses})
-============================================================ */
+
 function calcularMesesParaCobrirEquipe(qtdColab) {
   const metaMes = Math.ceil((Number(qtdColab) || 0) / 2);
   if (metaMes <= 0) return null;
@@ -2573,7 +2566,7 @@ function getByHeader(linha, ...possiveisNomes) {
   return null;
 }
 
-  function normUp(s){
+function normUp(s){
   return String(s || "").trim().toUpperCase();
 }
 
@@ -2600,7 +2593,6 @@ function isAtrasada(r){
   return String(r.status || "").trim().toUpperCase() === "ATRASADO";
 }
 
-// evita duplicar contagem do mesmo plano/ação (ajuste a chave se precisar)
 function uniqueByKey(rows){
   const seen = new Set();
   const out = [];
@@ -2618,8 +2610,8 @@ function uniqueByKey(rows){
   }
   return out;
 }
-  
-  function normalizarLinhaNC(l) {
+
+function normalizarLinhaNC(l) {
   return {
     numero_plano: getByHeader(l, "Número do plano", "Numero do plano", "Nº do Plano", "numero_plano"),
     localidade: getByHeader(l, "Localidade"),
@@ -2642,7 +2634,7 @@ function uniqueByKey(rows){
   };
 }
 
-  async function verificarNCAtrasadas() {
+async function verificarNCAtrasadas() {
   try {
     const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
     const gestor = (document.getElementById("filtroGestorNC")?.value || "").trim();
@@ -2651,7 +2643,7 @@ function uniqueByKey(rows){
     if (mes) qs.set("mes", mes);
     if (gestor) qs.set("gestor", gestor);
 
-    qs.set("status", "Atrasado"); // ✅ mesma regra da tela
+    qs.set("status", "Atrasado");
 
     const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
     const text = await res.text();
@@ -2680,9 +2672,7 @@ function uniqueByKey(rows){
   }
 }
 
-// ✅ aQUI SÃO FUNCOES PARA VERIFICAR OS GESTORES COM AÇÕES ATRASADAS
-  
-  function isAtrasada(r){
+function isAtrasada2(r){
   const st = String(r.status || "").trim().toUpperCase();
   if (st === "ATRASADO") return true;
 
@@ -2697,7 +2687,6 @@ function renderGestoresAtrasados(lista){
 
   if (!box || !body) return;
 
-  // continua oculto até clicar
   box.style.display = "none";
   
   if (!lista.length){
@@ -2719,11 +2708,8 @@ async function carregarGestoresComAtraso(){
 
   const qs = new URLSearchParams();
 
-  // se estiver filtrando por mês/gestor na tela, reaproveita aqui:
   if (mes) qs.set("mes", mes);
   if (gestor) qs.set("gestor", gestor);
-
-  // ✅ o que faz bater com a tela:
   qs.set("status", "Atrasado");
 
   const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
@@ -2735,7 +2721,6 @@ async function carregarGestoresComAtraso(){
   const rows = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
   const totalAtrasadas = Number(data.total ?? rows.length ?? 0);
 
-  // Agrupar por líder (gestores atrasados)
   const map = new Map();
   for (const r of rows){
     const lider = String(r.lider || "SEM LÍDER").trim();
@@ -2746,7 +2731,6 @@ async function carregarGestoresComAtraso(){
     .map(([lider, qtd]) => ({ lider, qtd }))
     .sort((a,b) => b.qtd - a.qtd);
 
-  // Atualizar alerta
   const alertBox = document.getElementById("alertAtraso");
   const alertTxt = document.getElementById("alertAtrasoTxt");
   const btn = document.getElementById("btnVerGestoresAtraso");
@@ -2754,7 +2738,6 @@ async function carregarGestoresComAtraso(){
   if (totalAtrasadas > 0){
     alertBox.style.display = "block";
     alertTxt.textContent = `Você tem ${totalAtrasadas} ação(ões) atrasada(s)!`;
-
     btn.style.display = (lista.length > 1) ? "inline-flex" : "none";
   } else {
     alertBox.style.display = "none";
@@ -2771,9 +2754,7 @@ async function carregarGestoresComAtraso(){
     btn.textContent = open ? "Ver gestores" : "Ocultar";
   };
 }
-/* ============================================================
-   UI INIT
-============================================================ */
+
 (function initStatsUI() {
   const perfil = localStorage.getItem("perfil") || "user";
   const box = document.getElementById("boxStatsLider");
@@ -2794,9 +2775,6 @@ async function carregarGestoresComAtraso(){
 
   box.style.display = "block";
 
-  // ============================
-  // EVENTOS DOS FILTROS
-  // ============================
   document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
 
   document.getElementById("filtroGestor")?.addEventListener("change", () => {
@@ -2807,7 +2785,6 @@ async function carregarGestoresComAtraso(){
     const meu = (sel.dataset.meuNome || "").toUpperCase();
     const atual = (sel.value || "").toUpperCase();
 
-    // mostrar botão voltar somente se mudou para outro gestor
     btn.style.display = atual && atual !== meu ? "inline-flex" : "none";
 
     carregarInspecoes();
@@ -2823,34 +2800,27 @@ async function carregarGestoresComAtraso(){
     btn.style.display = "none";
     carregarInspecoes();
   });
-})(); // ✅ FECHA O initRankingUI
-/* ============================================================
-   INIT
-============================================================ */
+})();
+
 (async function init() {
   await carregarStatsMensal();
   await carregarMedidasCache();
 
   aplicarMesAtualNoTopo();
-
   await popularGestoresTopo();
   
-  await verificarNCAtrasadas(); // 👈 AQUI!
+  await verificarNCAtrasadas();
   await carregarGestoresComAtraso();
 
-// quando trocar o mês, recarrega a lista também
-document.getElementById("filtroMesNC")?.addEventListener("change", () => {
-  verificarNCAtrasadas();
-  carregarGestoresComAtraso();
-});
+  document.getElementById("filtroMesNC")?.addEventListener("change", () => {
+    verificarNCAtrasadas();
+    carregarGestoresComAtraso();
+  });
 
+  document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
+  document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
 
-  
-document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
-document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
-
-await carregarInspecoes();
-  
+  await carregarInspecoes();
 
   if (podeVerTodosRanking()) {
     await carregarLideresRanking();
@@ -2869,7 +2839,5 @@ await carregarInspecoes();
   await carregarRanking();
 })();
 </script>
-
-
 </body>
 </html>
