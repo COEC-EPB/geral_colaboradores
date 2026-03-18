@@ -905,6 +905,7 @@ function nomesDoColaboradorNaInspecao(i){
   if (i.colaborador_1) out.push(i.colaborador_1);
   if (i.colaborador_2) out.push(i.colaborador_2);
   if (i.colaborador_3) out.push(i.colaborador_3);
+  if (i.colaborador_4) out.push(i.colaborador_4);
   splitNomesLista(i.auditados).forEach(n => out.push(n));
   if (i.colaborador) out.push(i.colaborador);
   return out.map(normName).filter(Boolean);
@@ -1887,6 +1888,7 @@ function renderTabela(dados) {
       <td>${item.colaborador_1 ?? ""}</td>
       <td>${item.colaborador_2 ?? ""}</td>
       <td>${item.colaborador_3 ?? ""}</td>
+      <td>${item.colaborador_4 ?? ""}</td>
       <td>${item.auditor_1 ?? ""}</td>
       <td>${item.auditor_2 ?? ""}</td>
       <td>${item.auditor_3 ?? ""}</td>
@@ -1991,6 +1993,7 @@ function normalizarLinha(l) {
     colaborador_1: l["COLABORADOR 1"] || null,
     colaborador_2: l["COLABORADOR 2"] || null,
     colaborador_3: l["COLABORADOR 3"] || null,
+    colaborador_4: l["COLABORADOR 4"] || null,
     auditor_1: l["AUDITOR 1"] || null,
     auditor_2: l["AUDITOR 2"] || null,
     auditor_3: l["AUDITOR 3"] || null,
