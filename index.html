@@ -1166,6 +1166,7 @@ function decodeJwtPayload(token) {
     return null;
   }
 }
+  
 
 function getNomeDoToken() {
   const lsLider = String(localStorage.getItem("lider") || "").trim();
@@ -2455,12 +2456,28 @@ async function carregarRanking() {
         : `<span class="badge-situacao ativo"><i class="bi bi-person-check"></i> Ativo</span>`;
 
       const btnHtml = inativo
-        ? `<button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
-             <i class="bi bi-arrow-clockwise"></i> Marcar ativo
-           </button>`
-        : `<button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
-             <i class="bi bi-pause-circle"></i> Marcar inativo
-           </button>`;
+  ? `
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+        <i class="bi bi-arrow-clockwise"></i> Marcar ativo
+      </button>
+      <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
+        onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
+        <i class="bi bi-person-x"></i> Excluir
+      </button>
+    </div>
+  `
+  : `
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+        <i class="bi bi-pause-circle"></i> Marcar inativo
+      </button>
+      <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
+        onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
+        <i class="bi bi-person-x"></i> Excluir
+      </button>
+    </div>
+  `;
 
       const rank = inativo ? "-" : (++rankVisivel);
 
@@ -2534,6 +2551,50 @@ function mostrarAlertaMeses(meses, qtdColab) {
   el.style.display = "block";
   el.classList.add("piscar");
 }
+
+  async function salvarStatusColaboradorAPI({ colaborador, lider, status, motivo = "" }) {
+  const res = await fetch(`${API}/colaboradores-status`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ colaborador, lider, status, motivo })
+  });
+
+  const text = await res.text();
+  let data = {};
+  try { data = JSON.parse(text); } catch {}
+
+  if (!res.ok) {
+    throw new Error(data?.erro || text || "Erro ao salvar status do colaborador");
+  }
+
+  return data;
+}
+
+  async function excluirColaboradorRanking(nomeColaborador, lider) {
+  const motivo = prompt(
+    `Informe o motivo da exclusão de "${nomeColaborador}"\n\nEx: Demitido / Saiu da empresa`,
+    "Demitido"
+  );
+
+  if (motivo === null) return;
+
+  try {
+    await salvarStatusColaboradorAPI({
+      colaborador: nomeColaborador,
+      lider,
+      status: "EXCLUIDO",
+      motivo: motivo || "Excluído pelo gestor"
+    });
+
+    setStatus(`Colaborador ${nomeColaborador} excluído do ranking.`, "success");
+    await carregarRanking();
+    await alertarPrazoDoLider();
+  } catch (e) {
+    setStatus(`Erro ao excluir colaborador: ${e.message}`, "error");
+  }
+}
+
+  
 
 async function alertarPrazoDoLider() {
   try {
@@ -2633,6 +2694,7 @@ function normalizarLinhaNC(l) {
     atraso: getByHeader(l, "Atraso")
   };
 }
+  
 
 async function verificarNCAtrasadas() {
   try {
@@ -2702,6 +2764,8 @@ function renderGestoresAtrasados(lista){
   `).join("");
 }
 
+
+  
 async function carregarGestoresComAtraso(){
   const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
   const gestor = (document.getElementById("filtroGestorNC")?.value || "").trim();
