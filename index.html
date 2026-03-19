@@ -19,6 +19,9 @@
       --card: #ffffff;
       --text: #333;
       --border: #e0e0e0;
+      --ok: #137333;
+      --warn: #b26a00;
+      --danger: #b3261e;
     }
 
     * { box-sizing: border-box; }
@@ -146,7 +149,6 @@
 
     tbody tr:hover { background: #f9fbfc; }
 
-    /* Modal */
     #modalMedida {
       display: none;
       position: fixed;
@@ -204,7 +206,6 @@
       margin-top: 6px;
     }
 
-    /* Chart */
     .chart-wrap { margin-top: 14px; overflow-x: auto; }
     .chart {
       display: grid;
@@ -378,8 +379,8 @@
       top:44px;
       left:50%;
       transform: translateX(-50%);
-      width: 320px;
-      max-width: min(92vw, 360px);
+      width: 340px;
+      max-width: min(92vw, 380px);
       background:#fff;
       border:1px solid var(--border);
       border-radius:14px;
@@ -447,7 +448,6 @@
       max-width: 520px;
     }
 
-    /* NOVO: ativo/inativo no ranking */
     .row-inativo {
       background: rgba(179,38,30,.10) !important;
     }
@@ -499,6 +499,63 @@
       color: #b3261e;
       font-weight: 700;
     }
+
+    /* METAS */
+    .metas-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap:12px;
+      margin-top:14px;
+    }
+
+    .metas-kpi {
+      padding:12px;
+      background:#f7fbfd;
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+
+    .metas-kpi .label {
+      font-size:12px;
+      color:#666;
+    }
+
+    .metas-kpi .value {
+      font-size:22px;
+      font-weight:800;
+      margin-top:4px;
+    }
+
+    .pill-meta {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      border:1px solid var(--border);
+      white-space:nowrap;
+      background:#fff;
+    }
+
+    .pill-meta.ok {
+      color: var(--ok);
+      border-color: rgba(19,115,51,.25);
+      background: rgba(19,115,51,.08);
+    }
+
+    .pill-meta.warn {
+      color: var(--warn);
+      border-color: rgba(178,106,0,.25);
+      background: rgba(178,106,0,.08);
+    }
+
+    .pill-meta.danger {
+      color: var(--danger);
+      border-color: rgba(179,38,30,.25);
+      background: rgba(179,38,30,.08);
+    }
   </style>
 </head>
 <body>
@@ -533,6 +590,9 @@
 
           <label class="admin-label" for="excelNC">Não conformidades (.xlsx)</label>
           <input type="file" id="excelNC" accept=".xlsx">
+
+          <label class="admin-label" for="excelMetas">Metas por supervisor (.xlsx)</label>
+          <input type="file" id="excelMetas" accept=".xlsx">
         </div>
       </div>
     </div>
@@ -638,6 +698,83 @@
       <button type="button" onclick="abrirModalMedida()">
         <i class="bi bi-exclamation-triangle"></i> Adicionar medida
       </button>
+    </div>
+  </div>
+
+  <!-- METAS -->
+  <div class="card" style="margin-top:16px; margin-bottom:16px; padding:16px;">
+    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <h3 style="margin:0; color:var(--primary);">Metas por Supervisor</h3>
+        <div style="font-size:13px; color:#666; margin-top:4px;">
+          Realizado acumulado até o mês versus meta acumulada.
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div>
+          <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Mês de referência</div>
+          <select id="metasMes" style="width:180px;">
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4">Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+        </div>
+
+        <div>
+          <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Supervisor</div>
+          <input id="metasNome" type="text" placeholder="Filtrar por nome" style="width:240px;">
+        </div>
+
+        <button type="button" onclick="carregarMetasSupervisores()">
+          <i class="bi bi-bullseye"></i> Atualizar metas
+        </button>
+      </div>
+    </div>
+
+    <div class="metas-grid">
+      <div class="metas-kpi">
+        <div class="label">Supervisores</div>
+        <div class="value" id="kpiMetasQtd">0</div>
+      </div>
+      <div class="metas-kpi">
+        <div class="label">Meta acumulada total</div>
+        <div class="value" id="kpiMetaAcum">0</div>
+      </div>
+      <div class="metas-kpi">
+        <div class="label">Realizado acumulado total</div>
+        <div class="value" id="kpiRealizadoAcum">0</div>
+      </div>
+      <div class="metas-kpi">
+        <div class="label">Atingimento médio</div>
+        <div class="value" id="kpiPctMedio">0%</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; overflow:auto;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead style="background:#eef7fb; color:#333;">
+          <tr>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Supervisor</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Previsto anual</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Realizado acumulado</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Meta acumulada</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Saldo</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">% Atingimento</th>
+            <th style="padding:10px; border-bottom:1px solid var(--border); text-align:left;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="metasTbody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -991,8 +1128,8 @@ function decodeTokenPayloadCompat(token) {
 }
 
 function isAdminByToken() {
-  const token = String(localStorage.getItem("token") || "").trim();
-  const payload = decodeTokenPayloadCompat(token);
+  const tk = String(localStorage.getItem("token") || "").trim();
+  const payload = decodeTokenPayloadCompat(tk);
   return String(payload?.perfil || "").toLowerCase() === "admin";
 }
 
@@ -1006,7 +1143,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const ehAdmin = isAdminByToken();
   wrap.style.display = ehAdmin ? "inline-flex" : "none";
-  console.log("[DEBUG] admin by token?", ehAdmin);
 
   if (!ehAdmin) return;
 
@@ -1055,8 +1191,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const ehAdmin = isAdminByToken();
     area.style.display = ehAdmin ? "flex" : "none";
-
-    console.log("[DEBUG] admin by token?", ehAdmin, "display:", getComputedStyle(area).display);
   });
 })();
 
@@ -1090,7 +1224,6 @@ async function popularGestoresTopo() {
   try {
     const res = await apiFetch("/lideres");
     const data = await res.json();
-    const listaApi = Array.isArray(data.results) ? data.results : [];
 
     const listaDeop = Object.keys(META_MENSAL_POR_GESTOR);
 
@@ -1119,16 +1252,6 @@ async function popularGestoresTopo() {
   }
 }
 
-function aplicarMesAtual() {
-  const el = document.getElementById("filtroMes");
-  if (!el) return;
-
-  const d = new Date();
-  const mes = d.getMonth() + 1;
-  const ano = d.getFullYear();
-  el.value = `${ano}-${String(mes).padStart(2,"0")}`;
-}
-
 function getMatriculaAtual() {
   const keys = ["matricula", "matriculaLogin", "user", "usuario", "sub", "id"];
   for (const k of keys) {
@@ -1136,10 +1259,10 @@ function getMatriculaAtual() {
     if (v) return v;
   }
 
-  const token = String(localStorage.getItem("token") || "").trim();
-  if (token && token.split(".").length === 3) {
+  const tk = String(localStorage.getItem("token") || "").trim();
+  if (tk && tk.split(".").length === 3) {
     try {
-      const payloadB64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const payloadB64 = tk.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
       const payloadJson = decodeURIComponent(
         atob(payloadB64)
           .split("")
@@ -1154,28 +1277,12 @@ function getMatriculaAtual() {
   return "";
 }
 
-function decodeJwtPayload(token) {
-  try {
-    const parts = String(token || "").split(".");
-    if (parts.length !== 3) return null;
-
-    let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    while (b64.length % 4) b64 += "=";
-
-    const json = atob(b64);
-    return JSON.parse(json);
-  } catch (e) {
-    return null;
-  }
-}
-  
-
 function getNomeDoToken() {
   const lsLider = String(localStorage.getItem("lider") || "").trim();
   if (lsLider) return lsLider;
 
-  const token = String(localStorage.getItem("token") || "").trim();
-  const payload = decodeTokenPayloadCompat(token);
+  const tk = String(localStorage.getItem("token") || "").trim();
+  const payload = decodeTokenPayloadCompat(tk);
   if (!payload) return "";
 
   return String(payload.lider || payload.nome || payload.name || "").trim();
@@ -1333,10 +1440,10 @@ function weekOfMonth(d) {
 }
 
 function podeVerTodosRanking() {
-  const perfil = localStorage.getItem("perfil") || "user";
+  const perf = localStorage.getItem("perfil") || "user";
   const matricula = String(getMatriculaAtual() || "").trim();
   const LIBERADOS_GERAL = ["6855", "3075664", "8004", "11273"];
-  return perfil === "admin" || LIBERADOS_GERAL.includes(matricula);
+  return perf === "admin" || LIBERADOS_GERAL.includes(matricula);
 }
 
 async function carregarMedidasCache() {
@@ -1479,12 +1586,8 @@ const SUPER_GESTORES_INSPECOES_RAW = [
 const SUPER_GESTORES_INSPECOES = new Set(SUPER_GESTORES_INSPECOES_RAW.map(normName));
 
 const DELEGACAO_VER_INSPECOES = {
-  [normName("WESLEY FERNANDES DE SOUZA")]: [
-    normName("GERALDO PEDRO DA SILVA JUNIOR")
-  ],
-  [normName("YURI VILMAR BATISTA MELO")]: [
-    normName("RICHARDSON SILVA DE OLIVEIRA")
-  ],
+  [normName("WESLEY FERNANDES DE SOUZA")]: [normName("GERALDO PEDRO DA SILVA JUNIOR")],
+  [normName("YURI VILMAR BATISTA MELO")]: [normName("RICHARDSON SILVA DE OLIVEIRA")],
   [normName("RENATO LINS DE VASCONCELOS NETO")]: [
     normName("FABRICIO ANDRE SILVA DE ARAUJO"),
     normName("WELLINGTON ANDRADE DE PAIVA")
@@ -1501,15 +1604,9 @@ const DELEGACAO_VER_INSPECOES = {
     normName("LEONARDO WAGNER DE SOUSA TEIXEIRA"),
     normName("FERNANDO LIMA DA SILVA")
   ],
-  [normName("ALEXANDRE BATISTA DIAS")]: [
-    normName("FRANCISCO DE ASSIS PEREIRA JUNIOR")
-  ],
-  [normName("CRISTIANO CAETANO MADEIRO")]: [
-    normName("FERNANDO ALVES PESSOA")
-  ],
-  [normName("MARCONE HENRIQUE DA CRUZ")]: [
-    normName("JORGE LUIS MARQUES DOS SANTOS")
-  ],
+  [normName("ALEXANDRE BATISTA DIAS")]: [normName("FRANCISCO DE ASSIS PEREIRA JUNIOR")],
+  [normName("CRISTIANO CAETANO MADEIRO")]: [normName("FERNANDO ALVES PESSOA")],
+  [normName("MARCONE HENRIQUE DA CRUZ")]: [normName("JORGE LUIS MARQUES DOS SANTOS")],
   [normName("JANSEN LACERDA DE OLIVEIRA JUNIOR")]: [
     normName("FRANCISCO BATISTA DE LIMA"),
     normName("GIESY LAMOUNIER DE OLIVEIRA MACIEL")
@@ -1524,20 +1621,14 @@ const DELEGACAO_VER_INSPECOES = {
     normName("ANTONIO CESAR PEREIRA ROCHA"),
     normName("IRIALLESON DA SILVA LIMA")
   ],
-  [normName("MACIEL GOMES DE AGUIAR")]: [
-    normName("JOSE LUIS ALVES DE LIMA")
-  ],
-  [normName("EDEVALDO FELICIANO DA SILVA")]: [
-    normName("YAGO ALBINO CRUZ")
-  ],
-  [normName("DAVIDSON DA SILVA GOMES")]: [
-    normName("ADRIANO PAULO DA SILVA")
-  ]
+  [normName("MACIEL GOMES DE AGUIAR")]: [normName("JOSE LUIS ALVES DE LIMA")],
+  [normName("EDEVALDO FELICIANO DA SILVA")]: [normName("YAGO ALBINO CRUZ")],
+  [normName("DAVIDSON DA SILVA GOMES")]: [normName("ADRIANO PAULO DA SILVA")]
 };
 
 function listaGestoresPermitidosParaFrequencia() {
-  const perfil = localStorage.getItem("perfil") || "user";
-  if (perfil === "admin") return null;
+  const perf = localStorage.getItem("perfil") || "user";
+  if (perf === "admin") return null;
 
   const meuNome = normName(getNomeDoToken());
   if (!meuNome) return new Set();
@@ -1546,74 +1637,14 @@ function listaGestoresPermitidosParaFrequencia() {
 
   const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
   return new Set([meuNome, ...delegados]);
-}
-
-function listaGestoresPermitidosParaInspecoes() {
-  const perfil = localStorage.getItem("perfil") || "user";
-  if (perfil === "admin") return null;
-
-  const meuNome = normName(getNomeDoToken());
-  if (!meuNome) return new Set();
-
-  if (SUPER_GESTORES_INSPECOES.has(meuNome)) return null;
-
-  const delegados = DELEGACAO_VER_INSPECOES[meuNome] || [];
-  return new Set([meuNome, ...delegados]);
-}
-
-function inspecaoPertenceA(permitidosSet, item) {
-  const nomes = [
-    item?.lider,
-    item?.auditor_1,
-    item?.auditor_2,
-    item?.auditor_3,
-    item?.auditor_4,
-    item?.auditor_5,
-    item?.auditor_6,
-    item?.cadastrante
-  ].map(normName).filter(Boolean);
-
-  return nomes.some(n => permitidosSet.has(n));
 }
 
 const LIBERADOS_FREQ_TODOS = ["6855", "3075664", "8004", "11273"];
 
 function podeVerTodosFrequencia() {
-  const perfil = localStorage.getItem("perfil") || "user";
+  const perf = localStorage.getItem("perfil") || "user";
   const matricula = String(getMatriculaAtual() || "").trim();
-  return (perfil === "admin") || LIBERADOS_FREQ_TODOS.includes(matricula);
-}
-
-function calcFrequenciaGestorNoMes(gestorNome, mesKey) {
-  const weeks = [0,0,0,0];
-  let total = 0;
-
-  const alvo = normName(gestorNome);
-
-  (dadosGlobais || []).forEach(i => {
-    const dt = parseISODateFlex(i.data_inspecao);
-    if (!dt) return;
-    if (getMonthKey(dt) !== mesKey) return;
-
-    const match =
-      normName(i.lider) === alvo ||
-      normName(i.auditor_1) === alvo ||
-      normName(i.auditor_2) === alvo ||
-      normName(i.auditor_3) === alvo ||
-      normName(i.auditor_4) === alvo ||
-      normName(i.auditor_5) === alvo ||
-      normName(i.auditor_6) === alvo ||
-      normName(i.cadastrante) === alvo;
-
-    if (!match) return;
-
-    const w = weekOfMonth(dt);
-    if (w >= 1 && w <= 5) weeks[w-1]++;
-
-    total++;
-  });
-
-  return { weeks, total };
+  return (perf === "admin") || LIBERADOS_FREQ_TODOS.includes(matricula);
 }
 
 async function popularSelectGestoresModal() {
@@ -1919,8 +1950,6 @@ async function carregarInspecoes() {
     qs.set("data_fim", `${mes}-31`);
   }
 
-  console.log("URL INSPECOES:", `/inspecoes?${qs.toString()}`);
-
   const res = await apiFetch(`/inspecoes?${qs.toString()}`);
   if (res.status === 401) return logout();
 
@@ -1933,21 +1962,6 @@ async function carregarInspecoes() {
   const dados = JSON.parse(text);
   dadosGlobais = Array.isArray(dados) ? dados : [];
   renderTabela(dadosGlobais);
-}
-
-function aplicarFiltros() {
-  const lider = document.getElementById("filtroLider")?.value.toLowerCase().trim() || "";
-  const localidade = document.getElementById("filtroLocalidade")?.value.toLowerCase().trim() || "";
-  const data = document.getElementById("filtroData")?.value || "";
-
-  const filtrado = dadosGlobais.filter(item => {
-    const okLider = !lider || (item.lider && item.lider.toLowerCase().includes(lider));
-    const okLocalidade = !localidade || (item.localidade && item.localidade.toLowerCase().includes(localidade));
-    const okData = !data || (item.data_inspecao && String(item.data_inspecao).startsWith(data));
-    return okLider && okLocalidade && okData;
-  });
-
-  renderTabela(filtrado);
 }
 
 function limparFiltros() {
@@ -2001,6 +2015,26 @@ function normalizarLinha(l) {
     auditor_4: l["AUDITOR 4"] || null,
     auditor_5: l["AUDITOR 5"] || null,
     auditor_6: l["AUDITOR 6"] || null
+  };
+}
+
+function normalizarLinhaMeta(l) {
+  return {
+    nome: String(l["Nome"] || l["nome"] || "").trim(),
+    jan: toNumMeta(l["Jan"] || l["JAN"]),
+    fev: toNumMeta(l["Fev"] || l["FEV"]),
+    mar: toNumMeta(l["Mar"] || l["MAR"]),
+    abr: toNumMeta(l["Abr"] || l["ABR"]),
+    mai: toNumMeta(l["Mai"] || l["MAI"]),
+    jun: toNumMeta(l["Jun"] || l["JUN"]),
+    jul: toNumMeta(l["Jul"] || l["JUL"]),
+    ago: toNumMeta(l["Ago"] || l["AGO"]),
+    set: toNumMeta(l["Set"] || l["SET"]),
+    out: toNumMeta(l["Out"] || l["OUT"]),
+    nov: toNumMeta(l["Nov"] || l["NOV"]),
+    dez: toNumMeta(l["Dez"] || l["DEZ"]),
+    previsto: toNumMeta(l["Previsto"] || l["PREVISTO"]),
+    realizado: toNumMeta(l["Realizado"] || l["REALIZADO"])
   };
 }
 
@@ -2098,6 +2132,53 @@ if (excelNC && perfil === "admin") {
     }
 
     setStatus("Importação de Não Conformidades concluída ✔", "success");
+  });
+}
+
+const excelMetas = document.getElementById("excelMetas");
+if (excelMetas && perfil === "admin") {
+  excelMetas.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setStatus("Lendo Excel de metas...");
+
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
+
+    const normalizado = raw.map(normalizarLinhaMeta).filter(r => r.nome);
+
+    if (!normalizado.length) {
+      setStatus("Nenhuma linha válida encontrada na base de metas.", "error");
+      return;
+    }
+
+    const chunks = chunkArray(normalizado, 50);
+
+    for (let i = 0; i < chunks.length; i++) {
+      const resp = await fetch(`${API}/importar-metas`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(chunks[i])
+      });
+
+      const text = await resp.text();
+
+      if (!resp.ok) {
+        setStatus(`Erro no lote metas ${i + 1}: ${text}`, "error");
+        return;
+      }
+
+      setStatus(
+        `Importando metas ${Math.min((i + 1) * 50, normalizado.length)} / ${normalizado.length}`,
+        "success"
+      );
+    }
+
+    setStatus("Importação de metas concluída ✔", "success");
+    await carregarMetasSupervisores();
   });
 }
 
@@ -2225,8 +2306,8 @@ async function carregarStatsMensal() {
     if (anoEl && !anoEl.value) anoEl.value = new Date().getFullYear();
 
     const ano = String(anoEl?.value || new Date().getFullYear());
-    const perfil = localStorage.getItem("perfil") || "user";
-    const lider = (perfil === "admin" && liderEl) ? (liderEl.value || "").trim() : "";
+    const perf = localStorage.getItem("perfil") || "user";
+    const lider = (perf === "admin" && liderEl) ? (liderEl.value || "").trim() : "";
 
     const qs = new URLSearchParams({ ano });
     if (lider) qs.set("lider", lider);
@@ -2303,7 +2384,6 @@ function renderChart(porMes) {
   });
 }
 
-/* NOVO: status ativo/inativo do colaborador */
 function getChaveStatusColaborador() {
   const gestor = normName(getNomeDoToken() || "SEM_GESTOR");
   return `status_colaboradores_inspecoes__${gestor}`;
@@ -2460,28 +2540,28 @@ async function carregarRanking() {
         : `<span class="badge-situacao ativo"><i class="bi bi-person-check"></i> Ativo</span>`;
 
       const btnHtml = inativo
-  ? `
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
-        <i class="bi bi-arrow-clockwise"></i> Marcar ativo
-      </button>
-      <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
-        onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
-        <i class="bi bi-person-x"></i> Excluir
-      </button>
-    </div>
-  `
-  : `
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
-        <i class="bi bi-pause-circle"></i> Marcar inativo
-      </button>
-      <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
-        onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
-        <i class="bi bi-person-x"></i> Excluir
-      </button>
-    </div>
-  `;
+        ? `
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+              <i class="bi bi-arrow-clockwise"></i> Marcar ativo
+            </button>
+            <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
+              onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
+              <i class="bi bi-person-x"></i> Excluir
+            </button>
+          </div>
+        `
+        : `
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+              <i class="bi bi-pause-circle"></i> Marcar inativo
+            </button>
+            <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
+              onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
+              <i class="bi bi-person-x"></i> Excluir
+            </button>
+          </div>
+        `;
 
       const rank = inativo ? "-" : (++rankVisivel);
 
@@ -2556,7 +2636,7 @@ function mostrarAlertaMeses(meses, qtdColab) {
   el.classList.add("piscar");
 }
 
-  async function salvarStatusColaboradorAPI({ colaborador, lider, status, motivo = "" }) {
+async function salvarStatusColaboradorAPI({ colaborador, lider, status, motivo = "" }) {
   const res = await fetch(`${API}/colaboradores-status`, {
     method: "PUT",
     headers: authHeaders(),
@@ -2574,7 +2654,7 @@ function mostrarAlertaMeses(meses, qtdColab) {
   return data;
 }
 
-  async function excluirColaboradorRanking(nomeColaborador, lider) {
+async function excluirColaboradorRanking(nomeColaborador, lider) {
   const motivo = prompt(
     `Informe o motivo da exclusão de "${nomeColaborador}"\n\nEx: Demitido / Saiu da empresa`,
     "Demitido"
@@ -2597,8 +2677,6 @@ function mostrarAlertaMeses(meses, qtdColab) {
     setStatus(`Erro ao excluir colaborador: ${e.message}`, "error");
   }
 }
-
-  
 
 async function alertarPrazoDoLider() {
   try {
@@ -2631,51 +2709,6 @@ function getByHeader(linha, ...possiveisNomes) {
   return null;
 }
 
-function normUp(s){
-  return String(s || "").trim().toUpperCase();
-}
-
-function isConcluida(r){
-  const st = normUp(r.status);
-  return (
-    st === "CONCLUIDO" ||
-    st === "CONCLUÍDO" ||
-    st === "FINALIZADO" ||
-    st === "FINALIZADA" ||
-    st === "ENCERRADO" ||
-    st === "ENCERRADA"
-  );
-}
-
-function atrasoNumero(r){
-  const at = String(r.atraso ?? "").trim();
-  if (!at) return 0;
-  const n = Number(at.replace(",", "."));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function isAtrasada(r){
-  return String(r.status || "").trim().toUpperCase() === "ATRASADO";
-}
-
-function uniqueByKey(rows){
-  const seen = new Set();
-  const out = [];
-  for (const r of (rows || [])){
-    const key = [
-      String(r.numero_plano ?? "").trim(),
-      String(r.acao ?? "").trim(),
-      String(r.descricao ?? "").trim(),
-      String(r.lider ?? "").trim()
-    ].join("|");
-
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    out.push(r);
-  }
-  return out;
-}
-
 function normalizarLinhaNC(l) {
   return {
     numero_plano: getByHeader(l, "Número do plano", "Numero do plano", "Nº do Plano", "numero_plano"),
@@ -2698,7 +2731,6 @@ function normalizarLinhaNC(l) {
     atraso: getByHeader(l, "Atraso")
   };
 }
-  
 
 async function verificarNCAtrasadas() {
   try {
@@ -2738,15 +2770,6 @@ async function verificarNCAtrasadas() {
   }
 }
 
-function isAtrasada2(r){
-  const st = String(r.status || "").trim().toUpperCase();
-  if (st === "ATRASADO") return true;
-
-  const at = String(r.atraso ?? "").trim();
-  const n = Number(at.replace(",", "."));
-  return Number.isFinite(n) && n > 0;
-}
-
 function renderGestoresAtrasados(lista){
   const box = document.getElementById("listaGestoresAtraso");
   const body = document.getElementById("listaGestoresAtrasoBody");
@@ -2768,8 +2791,6 @@ function renderGestoresAtrasados(lista){
   `).join("");
 }
 
-
-  
 async function carregarGestoresComAtraso(){
   const mes = (document.getElementById("filtroMesNC")?.value || "").trim();
   const gestor = (document.getElementById("filtroGestorNC")?.value || "").trim();
@@ -2823,10 +2844,106 @@ async function carregarGestoresComAtraso(){
   };
 }
 
+/* METAS */
+function toNumMeta(v) {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function mesAtualNumero() {
+  return new Date().getMonth() + 1;
+}
+
+function formatBR(n) {
+  return Number(n || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function getClasseStatusMeta(pct) {
+  if (pct >= 100) return "ok";
+  if (pct >= 90) return "warn";
+  return "danger";
+}
+
+function getTextoStatusMeta(pct) {
+  if (pct >= 100) return "No alvo";
+  if (pct >= 90) return "Atenção";
+  return "Abaixo";
+}
+
+async function carregarMetasSupervisores() {
+  try {
+    const mes = Number(document.getElementById("metasMes")?.value || mesAtualNumero());
+    const nome = String(document.getElementById("metasNome")?.value || "").trim();
+
+    const qs = new URLSearchParams();
+    qs.set("mes", String(mes));
+    if (nome) qs.set("nome", nome);
+
+    const res = await fetch(`${API}/metas-supervisores?${qs.toString()}`, {
+      method: "GET",
+      headers: authHeaders()
+    });
+
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch {}
+
+    if (!res.ok) {
+      setStatus(`Erro ao carregar metas: ${text}`, "error");
+      return;
+    }
+
+    const rows = Array.isArray(data.results) ? data.results : [];
+    const tbody = document.getElementById("metasTbody");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    let somaMeta = 0;
+    let somaRealizado = 0;
+    let somaPct = 0;
+
+    rows.forEach(r => {
+      somaMeta += Number(r.meta_acumulada || 0);
+      somaRealizado += Number(r.realizado_acumulado || 0);
+      somaPct += Number(r.pct_atingimento || 0);
+
+      const classe = getClasseStatusMeta(Number(r.pct_atingimento || 0));
+      const textoStatus = getTextoStatusMeta(Number(r.pct_atingimento || 0));
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${r.nome ?? ""}</b></td>
+        <td>${formatBR(r.previsto)}</td>
+        <td>${formatBR(r.realizado_acumulado)}</td>
+        <td>${formatBR(r.meta_acumulada)}</td>
+        <td>${formatBR(r.saldo)}</td>
+        <td>${formatBR(r.pct_atingimento)}%</td>
+        <td><span class="pill-meta ${classe}">${textoStatus}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("kpiMetasQtd").textContent = rows.length;
+    document.getElementById("kpiMetaAcum").textContent = formatBR(somaMeta);
+    document.getElementById("kpiRealizadoAcum").textContent = formatBR(somaRealizado);
+    document.getElementById("kpiPctMedio").textContent =
+      rows.length ? `${formatBR(somaPct / rows.length)}%` : "0%";
+
+    setStatus("Metas carregadas ✔", "success");
+  } catch (e) {
+    console.error(e);
+    setStatus("Erro ao carregar metas.", "error");
+  }
+}
+
 (function initStatsUI() {
-  const perfil = localStorage.getItem("perfil") || "user";
+  const perf = localStorage.getItem("perfil") || "user";
   const box = document.getElementById("boxStatsLider");
-  if (box && perfil === "admin") box.style.display = "block";
+  if (box && perf === "admin") box.style.display = "block";
 
   const anoEl = document.getElementById("statsAno");
   if (anoEl) anoEl.value = new Date().getFullYear();
@@ -2888,7 +3005,17 @@ async function carregarGestoresComAtraso(){
   document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
   document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
 
+  const metasMesEl = document.getElementById("metasMes");
+  if (metasMesEl) metasMesEl.value = String(mesAtualNumero());
+
+  document.getElementById("metasMes")?.addEventListener("change", carregarMetasSupervisores);
+  document.getElementById("metasNome")?.addEventListener("input", () => {
+    clearTimeout(window._tmMetas);
+    window._tmMetas = setTimeout(carregarMetasSupervisores, 300);
+  });
+
   await carregarInspecoes();
+  await carregarMetasSupervisores();
 
   if (podeVerTodosRanking()) {
     await carregarLideresRanking();
