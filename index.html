@@ -5,10 +5,7 @@
   <title>Controle de Inspeções</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- XLSX -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
-  <!-- Ícones -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
@@ -166,7 +163,8 @@
       border-radius: 12px;
       padding: 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.2);
-      max-height: 90vh; overflow: auto; 
+      max-height: 90vh;
+      overflow: auto; 
     }
 
     .modal-head {
@@ -207,6 +205,7 @@
     }
 
     .chart-wrap { margin-top: 14px; overflow-x: auto; }
+
     .chart {
       display: grid;
       grid-template-columns: 54px repeat(12, 1fr);
@@ -293,6 +292,7 @@
       margin-right: 6px;
       vertical-align: middle;
     }
+
     .dot.inspecoes { background: rgba(0,151,206,.25); border-color: rgba(0,151,206,.35); }
     .dot.naoConforme { background: rgba(255,99,71,.25); border-color: rgba(255,99,71,.35); }
 
@@ -334,6 +334,7 @@
     .piscar{
       animation: piscar 0.85s linear infinite;
     }
+
     @keyframes piscar{
       0%, 100% { opacity: 1; }
       50% { opacity: .25; }
@@ -500,61 +501,52 @@
       font-weight: 700;
     }
 
-    /* METAS */
-    .metas-grid {
+    .meta-resumo-grid{
       display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
       gap:12px;
       margin-top:14px;
     }
 
-    .metas-kpi {
-      padding:12px;
+    .meta-box{
+      padding:14px;
       background:#f7fbfd;
       border:1px solid var(--border);
       border-radius:12px;
     }
 
-    .metas-kpi .label {
+    .meta-box .label{
       font-size:12px;
       color:#666;
+      font-weight:600;
     }
 
-    .metas-kpi .value {
-      font-size:22px;
+    .meta-box .value{
+      font-size:24px;
       font-weight:800;
-      margin-top:4px;
+      margin-top:6px;
     }
 
-    .pill-meta {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:6px 10px;
-      border-radius:999px;
+    .meta-box .sub{
       font-size:12px;
-      font-weight:700;
-      border:1px solid var(--border);
-      white-space:nowrap;
-      background:#fff;
+      color:#777;
+      margin-top:6px;
     }
 
-    .pill-meta.ok {
-      color: var(--ok);
-      border-color: rgba(19,115,51,.25);
-      background: rgba(19,115,51,.08);
+    .meta-box.ok .value{ color:var(--ok); }
+    .meta-box.warn .value{ color:var(--warn); }
+    .meta-box.danger .value{ color:var(--danger); }
+
+    @media (max-width: 900px){
+      .meta-resumo-grid{
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+      }
     }
 
-    .pill-meta.warn {
-      color: var(--warn);
-      border-color: rgba(178,106,0,.25);
-      background: rgba(178,106,0,.08);
-    }
-
-    .pill-meta.danger {
-      color: var(--danger);
-      border-color: rgba(179,38,30,.25);
-      background: rgba(179,38,30,.08);
+    @media (max-width: 520px){
+      .meta-resumo-grid{
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -701,7 +693,45 @@
     </div>
   </div>
 
-    <div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
+  <!-- RESUMO DE META DO GESTOR LOGADO -->
+  <div class="card" style="margin-top:16px; margin-bottom:16px; padding:16px;">
+    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <h3 style="margin:0; color:var(--primary);">Resumo da Meta do Gestor</h3>
+        <div style="font-size:13px; color:#666; margin-top:4px;">
+          Mostra apenas a meta do gestor que está logado.
+        </div>
+      </div>
+    </div>
+
+    <div class="meta-resumo-grid">
+      <div class="meta-box" id="metaBoxMensal">
+        <div class="label">Previsto mensal</div>
+        <div class="value" id="metaPrevistoMensal">0,00</div>
+        <div class="sub" id="metaNomeGestor1">—</div>
+      </div>
+
+      <div class="meta-box" id="metaBoxAnual">
+        <div class="label">Previsto anual</div>
+        <div class="value" id="metaPrevistoAnual">0,00</div>
+        <div class="sub" id="metaNomeGestor2">—</div>
+      </div>
+
+      <div class="meta-box" id="metaBoxRealizado">
+        <div class="label">Realizado</div>
+        <div class="value" id="metaRealizado">0,00</div>
+        <div class="sub" id="metaMesReferencia">—</div>
+      </div>
+
+      <div class="meta-box" id="metaBoxPercentual">
+        <div class="label">% concluída da meta anual</div>
+        <div class="value" id="metaPercentualAnual">0,00%</div>
+        <div class="sub" id="metaStatusTexto">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
     <div class="modal-box" style="width:min(980px, 100%);">
       <div class="modal-head">
         <h3 style="margin:0; color:var(--primary); font-size:16px;">
@@ -899,7 +929,6 @@
       </table>
     </div>
   </div>
-
 </main>
 
 <script>
@@ -933,10 +962,7 @@ async function garantirCacheInspecoes2026(liderFiltro = "") {
 function splitNomesLista(v){
   const s = String(v || "").trim();
   if (!s) return [];
-  return s
-    .split(/[\n;|,]+/g)
-    .map(x => x.trim())
-    .filter(Boolean);
+  return s.split(/[\n;|,]+/g).map(x => x.trim()).filter(Boolean);
 }
 
 function pessoaIgual(a, b){
@@ -1107,16 +1133,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-(function controleDeAcessoAdmin(){
-  document.addEventListener("DOMContentLoaded", () => {
-    const area = document.getElementById("areaAdmin");
-    if (!area) return;
-
-    const ehAdmin = isAdminByToken();
-    area.style.display = ehAdmin ? "flex" : "none";
-  });
-})();
-
 function norm(s){
   return String(s || "").trim().toUpperCase();
 }
@@ -1131,10 +1147,6 @@ function aplicarMesAtualNoTopo() {
   if (mesEl && !mesEl.value) mesEl.value = mesAtualYYYYMM();
 }
 
-function gestorPadraoDoUsuario() {
-  return String(getNomeDoToken() || "").trim();
-}
-
 async function popularGestoresTopo() {
   const sel = document.getElementById("filtroGestor");
   if (!sel) return;
@@ -1145,12 +1157,7 @@ async function popularGestoresTopo() {
   sel.innerHTML = `<option value="">Carregando...</option>`;
 
   try {
-    const res = await apiFetch("/lideres");
-    const data = await res.json();
-
-    const listaDeop = Object.keys(META_MENSAL_POR_GESTOR);
-
-    const listaFinal = listaDeop
+    const listaFinal = Object.keys(META_MENSAL_POR_GESTOR)
       .slice()
       .sort((a, b) => normName(a).localeCompare(normName(b)));
 
@@ -1162,16 +1169,7 @@ async function popularGestoresTopo() {
     if (meu) sel.value = meu;
 
   } catch (e) {
-    const listaFinal = Object.keys(META_MENSAL_POR_GESTOR)
-      .slice()
-      .sort((a, b) => normName(a).localeCompare(normName(b)));
-
-    sel.innerHTML =
-      `<option value="">Selecione…</option>` +
-      listaFinal.map(n => `<option value="${n}">${n}</option>`).join("");
-
-    const meu = listaFinal.find(x => normName(x) === normName(meuNome));
-    if (meu) sel.value = meu;
+    console.error(e);
   }
 }
 
@@ -1608,7 +1606,6 @@ async function popularSelectGestoresModal() {
 
 function drawFreqChart(canvas, weeks, metaPorSemana = 2.5) {
   const ctx = canvas.getContext("2d");
-
   const W = canvas.clientWidth;
   const H = canvas.clientHeight || 280;
   if (!W) return;
@@ -1941,6 +1938,11 @@ function normalizarLinha(l) {
   };
 }
 
+function toNumMeta(v) {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function normalizarLinhaMeta(l) {
   return {
     nome: String(l["Nome"] || l["nome"] || "").trim(),
@@ -2005,7 +2007,6 @@ if (excelInput && perfil === "admin") {
     }
 
     setStatus("Importação concluída ✔", "success");
-
     await carregarMedidasCache();
     await carregarInspecoes();
   });
@@ -2101,7 +2102,7 @@ if (excelMetas && perfil === "admin") {
     }
 
     setStatus("Importação de metas concluída ✔", "success");
-    await carregarMetasSupervisores();
+    await carregarResumoMetaGestorLogado();
   });
 }
 
@@ -2663,7 +2664,6 @@ async function verificarNCAtrasadas() {
     const qs = new URLSearchParams();
     if (mes) qs.set("mes", mes);
     if (gestor) qs.set("gestor", gestor);
-
     qs.set("status", "Atrasado");
 
     const res = await apiFetch(`/nao-conformidades?${qs.toString()}`);
@@ -2767,16 +2767,7 @@ async function carregarGestoresComAtraso(){
   };
 }
 
-/* METAS */
-function toNumMeta(v) {
-  const n = Number(v ?? 0);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function mesAtualNumero() {
-  return new Date().getMonth() + 1;
-}
-
+/* RESUMO META GESTOR LOGADO */
 function formatBR(n) {
   return Number(n || 0).toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
@@ -2784,28 +2775,47 @@ function formatBR(n) {
   });
 }
 
-function getClasseStatusMeta(pct) {
+function setMetaClasse(boxId, classe) {
+  const el = document.getElementById(boxId);
+  if (!el) return;
+  el.classList.remove("ok", "warn", "danger");
+  if (classe) el.classList.add(classe);
+}
+
+function calcularPrevistoMensalAPartirDoAnual(previstoAnual) {
+  return Number(previstoAnual || 0) / 12;
+}
+
+function getClasseMetaPercentual(pct) {
   if (pct >= 100) return "ok";
-  if (pct >= 90) return "warn";
+  if (pct >= 80) return "warn";
   return "danger";
 }
 
-function getTextoStatusMeta(pct) {
-  if (pct >= 100) return "No alvo";
-  if (pct >= 90) return "Atenção";
-  return "Abaixo";
+function getTextoMetaPercentual(pct) {
+  if (pct >= 100) return "Meta anual atingida";
+  if (pct >= 80) return "Em atenção";
+  return "Abaixo da meta anual";
 }
 
-async function carregarMetasSupervisores() {
+async function carregarResumoMetaGestorLogado() {
   try {
-    const mes = Number(document.getElementById("metasMes")?.value || mesAtualNumero());
-    const nome = String(document.getElementById("metasNome")?.value || "").trim();
+    const nomeGestor = String(getNomeDoToken() || "").trim();
 
-    const qs = new URLSearchParams();
-    qs.set("mes", String(mes));
-    if (nome) qs.set("nome", nome);
+    document.getElementById("metaNomeGestor1").textContent = nomeGestor || "Gestor não identificado";
+    document.getElementById("metaNomeGestor2").textContent = nomeGestor || "Gestor não identificado";
 
-    const res = await fetch(`${API}/metas-supervisores?${qs.toString()}`, {
+    if (!nomeGestor) {
+      document.getElementById("metaPrevistoMensal").textContent = "0,00";
+      document.getElementById("metaPrevistoAnual").textContent = "0,00";
+      document.getElementById("metaRealizado").textContent = "0,00";
+      document.getElementById("metaPercentualAnual").textContent = "0,00%";
+      document.getElementById("metaMesReferencia").textContent = "Gestor não identificado";
+      document.getElementById("metaStatusTexto").textContent = "Sem dados";
+      return;
+    }
+
+    const res = await fetch(`${API}/metas-supervisores?nome=${encodeURIComponent(nomeGestor)}`, {
       method: "GET",
       headers: authHeaders()
     });
@@ -2815,51 +2825,50 @@ async function carregarMetasSupervisores() {
     try { data = JSON.parse(text); } catch {}
 
     if (!res.ok) {
-      setStatus(`Erro ao carregar metas: ${text}`, "error");
+      setStatus(`Erro ao carregar resumo de meta: ${text}`, "error");
       return;
     }
 
     const rows = Array.isArray(data.results) ? data.results : [];
-    const tbody = document.getElementById("metasTbody");
-    if (!tbody) return;
+    const row = rows.find(r => normName(r.nome) === normName(nomeGestor)) || rows[0];
 
-    tbody.innerHTML = "";
+    if (!row) {
+      document.getElementById("metaPrevistoMensal").textContent = "0,00";
+      document.getElementById("metaPrevistoAnual").textContent = "0,00";
+      document.getElementById("metaRealizado").textContent = "0,00";
+      document.getElementById("metaPercentualAnual").textContent = "0,00%";
+      document.getElementById("metaMesReferencia").textContent = "Sem meta importada";
+      document.getElementById("metaStatusTexto").textContent = "Sem dados";
+      setMetaClasse("metaBoxMensal", "");
+      setMetaClasse("metaBoxAnual", "");
+      setMetaClasse("metaBoxRealizado", "");
+      setMetaClasse("metaBoxPercentual", "");
+      return;
+    }
 
-    let somaMeta = 0;
-    let somaRealizado = 0;
-    let somaPct = 0;
+    const previstoAnual = Number(row.previsto || 0);
+    const previstoMensal = calcularPrevistoMensalAPartirDoAnual(previstoAnual);
+    const realizado = Number(row.realizado || row.realizado_acumulado || 0);
+    const pctAnual = previstoAnual > 0 ? (realizado / previstoAnual) * 100 : 0;
 
-    rows.forEach(r => {
-      somaMeta += Number(r.meta_acumulada || 0);
-      somaRealizado += Number(r.realizado_acumulado || 0);
-      somaPct += Number(r.pct_atingimento || 0);
+    const classe = getClasseMetaPercentual(pctAnual);
+    const texto = getTextoMetaPercentual(pctAnual);
 
-      const classe = getClasseStatusMeta(Number(r.pct_atingimento || 0));
-      const textoStatus = getTextoStatusMeta(Number(r.pct_atingimento || 0));
+    document.getElementById("metaPrevistoMensal").textContent = formatBR(previstoMensal);
+    document.getElementById("metaPrevistoAnual").textContent = formatBR(previstoAnual);
+    document.getElementById("metaRealizado").textContent = formatBR(realizado);
+    document.getElementById("metaPercentualAnual").textContent = `${formatBR(pctAnual)}%`;
+    document.getElementById("metaMesReferencia").textContent = "Realizado da meta anual";
+    document.getElementById("metaStatusTexto").textContent = texto;
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><b>${r.nome ?? ""}</b></td>
-        <td>${formatBR(r.previsto)}</td>
-        <td>${formatBR(r.realizado_acumulado)}</td>
-        <td>${formatBR(r.meta_acumulada)}</td>
-        <td>${formatBR(r.saldo)}</td>
-        <td>${formatBR(r.pct_atingimento)}%</td>
-        <td><span class="pill-meta ${classe}">${textoStatus}</span></td>
-      `;
-      tbody.appendChild(tr);
-    });
+    setMetaClasse("metaBoxMensal", "");
+    setMetaClasse("metaBoxAnual", "");
+    setMetaClasse("metaBoxRealizado", classe);
+    setMetaClasse("metaBoxPercentual", classe);
 
-    document.getElementById("kpiMetasQtd").textContent = rows.length;
-    document.getElementById("kpiMetaAcum").textContent = formatBR(somaMeta);
-    document.getElementById("kpiRealizadoAcum").textContent = formatBR(somaRealizado);
-    document.getElementById("kpiPctMedio").textContent =
-      rows.length ? `${formatBR(somaPct / rows.length)}%` : "0%";
-
-    setStatus("Metas carregadas ✔", "success");
   } catch (e) {
     console.error(e);
-    setStatus("Erro ao carregar metas.", "error");
+    setStatus("Erro ao carregar resumo da meta do gestor.", "error");
   }
 }
 
@@ -2894,7 +2903,6 @@ async function carregarMetasSupervisores() {
     const atual = (sel.value || "").toUpperCase();
 
     btn.style.display = atual && atual !== meu ? "inline-flex" : "none";
-
     carregarInspecoes();
   });
 
@@ -2928,17 +2936,8 @@ async function carregarMetasSupervisores() {
   document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
   document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
 
-  const metasMesEl = document.getElementById("metasMes");
-  if (metasMesEl) metasMesEl.value = String(mesAtualNumero());
-
-  document.getElementById("metasMes")?.addEventListener("change", carregarMetasSupervisores);
-  document.getElementById("metasNome")?.addEventListener("input", () => {
-    clearTimeout(window._tmMetas);
-    window._tmMetas = setTimeout(carregarMetasSupervisores, 300);
-  });
-
   await carregarInspecoes();
-  await carregarMetasSupervisores();
+  await carregarResumoMetaGestorLogado();
 
   if (podeVerTodosRanking()) {
     await carregarLideresRanking();
