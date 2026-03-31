@@ -705,30 +705,30 @@
     </div>
 
     <div class="meta-resumo-grid">
-      <div class="meta-box" id="metaBoxMensal">
-        <div class="label">Meta Mensal</div>
-        <div class="value" id="metaPrevistoMensal">0</div>
-        <div class="sub" id="metaNomeGestor1">—</div>
-      </div>
+  <div class="meta-box" id="metaBoxMensal">
+    <div class="label">Meta mensal</div>
+    <div class="value" id="metaPrevistoMensal">0</div>
+    <div class="sub" id="metaNomeGestor1">—</div>
+  </div>
 
-      <div class="meta-box" id="metaBoxAnual">
-        <div class="label">Meta acumulado</div>
-        <div class="value" id="metaPrevistoAnual">0</div>
-        <div class="sub" id="metaNomeGestor2">—</div>
-      </div>
+  <div class="meta-box" id="metaBoxAnual">
+    <div class="label">Meta esperada até o mês</div>
+    <div class="value" id="metaPrevistoAnual">0</div>
+    <div class="sub" id="metaNomeGestor2">—</div>
+  </div>
 
-      <div class="meta-box" id="metaBoxRealizado">
-        <div class="label">Acumulado</div>
-        <div class="value" id="metaRealizado">0</div>
-        <div class="sub" id="metaMesReferencia">—</div>
-      </div>
+  <div class="meta-box" id="metaBoxRealizado">
+    <div class="label">Realizado acumulado</div>
+    <div class="value" id="metaRealizado">0</div>
+    <div class="sub" id="metaMesReferencia">—</div>
+  </div>
 
-      <div class="meta-box" id="metaBoxPercentual">
-        <div class="label">% concluída da meta anual</div>
-        <div class="value" id="metaPercentualAnual">0,00%</div>
-        <div class="sub" id="metaStatusTexto">—</div>
-      </div>
-    </div>
+  <div class="meta-box" id="metaBoxPercentual">
+    <div class="label">% concluída da meta anual</div>
+    <div class="value" id="metaPercentualAnual">0,00%</div>
+    <div class="sub" id="metaStatusTexto">—</div>
+  </div>
+</div>
   </div>
 
   <div id="modalFreq" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:16px; z-index:9999;">
@@ -2793,14 +2793,104 @@ function getClasseMetaPercentual(pct) {
 }
 
 function getTextoMetaPercentual(pct) {
-  if (pct >= 100) return "Meta anual atingida";
+  if (pct >= 100) return "Acima da meta esperada";
   if (pct >= 80) return "Em atenção";
-  return "Abaixo da meta anual";
+  return "Abaixo da meta esperada";
+}
+
+function getMesRefResumoMeta() {
+  const filtroMes = String(document.getElementById("filtroMes")?.value || "").trim();
+  if (/^\d{4}-\d{2}$/.test(filtroMes)) return filtroMes;
+  return mesAtualYYYYMM();
+}
+
+function getMesNumeroResumoMeta(mesRef) {
+  return Number(String(mesRef || "").slice(5, 7)) || 0;
+}
+
+function ultimoDiaDoMes(yyyyMM) {
+  const [y, m] = String(yyyyMM || "").split("-");
+  if (!y || !m) return "";
+  const ultimo = new Date(Number(y), Number(m), 0).getDate();
+  return `${y}-${m}-${String(ultimo).padStart(2, "0")}`;
+}
+
+function somarMesesMeta(row) {
+  return (
+    Number(row.jan || 0) +
+    Number(row.fev || 0) +
+    Number(row.mar || 0) +
+    Number(row.abr || 0) +
+    Number(row.mai || 0) +
+    Number(row.jun || 0) +
+    Number(row.jul || 0) +
+    Number(row.ago || 0) +
+    Number(row.set || 0) +
+    Number(row.out || 0) +
+    Number(row.nov || 0) +
+    Number(row.dez || 0)
+  );
+}
+
+function getMetaMensalImportada(row, mesNumero) {
+  const mapa = {
+    1: Number(row.jan || 0),
+    2: Number(row.fev || 0),
+    3: Number(row.mar || 0),
+    4: Number(row.abr || 0),
+    5: Number(row.mai || 0),
+    6: Number(row.jun || 0),
+    7: Number(row.jul || 0),
+    8: Number(row.ago || 0),
+    9: Number(row.set || 0),
+    10: Number(row.out || 0),
+    11: Number(row.nov || 0),
+    12: Number(row.dez || 0)
+  };
+  return Number(mapa[mesNumero] || 0);
+}
+
+function calcularMetaEsperadaAteMes(previstoAnual, mesNumero) {
+  const anual = Number(previstoAnual || 0);
+  const mes = Number(mesNumero || 0);
+  if (!anual || !mes) return 0;
+  return (anual / 12) * mes;
+}
+
+async function buscarRealizadoAcumuladoGestor(nomeGestor, mesRef) {
+  const fim = ultimoDiaDoMes(mesRef);
+  const ano = String(mesRef).slice(0, 4);
+  const ini = `${ano}-01-01`;
+
+  const qs = new URLSearchParams();
+  qs.set("lider", nomeGestor);
+  qs.set("data_ini", ini);
+  qs.set("data_fim", fim);
+
+  const res = await apiFetch(`/inspecoes?${qs.toString()}`);
+  const text = await res.text();
+
+  if (!res.ok) {
+    console.error("Erro ao buscar realizado acumulado:", text);
+    return 0;
+  }
+
+  let data = [];
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = [];
+  }
+
+  const lista = Array.isArray(data) ? data : (data.results || []);
+  return lista.length;
 }
 
 async function carregarResumoMetaGestorLogado() {
   try {
     const nomeGestor = String(getNomeDoToken() || "").trim();
+    const mesRef = getMesRefResumoMeta();
+    const mesNumero = getMesNumeroResumoMeta(mesRef);
 
     document.getElementById("metaNomeGestor1").textContent = nomeGestor || "Gestor não identificado";
     document.getElementById("metaNomeGestor2").textContent = nomeGestor || "Gestor não identificado";
@@ -2812,6 +2902,10 @@ async function carregarResumoMetaGestorLogado() {
       document.getElementById("metaPercentualAnual").textContent = "0,00%";
       document.getElementById("metaMesReferencia").textContent = "Gestor não identificado";
       document.getElementById("metaStatusTexto").textContent = "Sem dados";
+      setMetaClasse("metaBoxMensal", "");
+      setMetaClasse("metaBoxAnual", "");
+      setMetaClasse("metaBoxRealizado", "");
+      setMetaClasse("metaBoxPercentual", "");
       return;
     }
 
@@ -2846,23 +2940,37 @@ async function carregarResumoMetaGestorLogado() {
       return;
     }
 
-    const previstoAnual = Number(row.previsto || 0);
-    const previstoMensal = calcularPrevistoMensalAPartirDoAnual(previstoAnual);
-    const realizado = Number(row.realizado || row.realizado_acumulado || 0);
-    const pctAnual = previstoAnual > 0 ? (realizado / previstoAnual) * 100 : 0;
+    let previstoAnual = Number(row.previsto || 0);
+    if (!previstoAnual || previstoAnual <= 0) {
+      previstoAnual = somarMesesMeta(row);
+    }
+
+    let previstoMensal = getMetaMensalImportada(row, mesNumero);
+    if (!previstoMensal || previstoMensal <= 0) {
+      previstoMensal = calcularPrevistoMensalAPartirDoAnual(previstoAnual);
+    }
+
+    const metaEsperadaAteMes = calcularMetaEsperadaAteMes(previstoAnual, mesNumero);
+    const realizado = await buscarRealizadoAcumuladoGestor(nomeGestor, mesRef);
+
+    const pctAnual = metaEsperadaAteMes > 0
+      ? (realizado / metaEsperadaAteMes) * 100
+      : 0;
 
     const classe = getClasseMetaPercentual(pctAnual);
     const texto = getTextoMetaPercentual(pctAnual);
 
     document.getElementById("metaPrevistoMensal").textContent = formatBR(previstoMensal);
-    document.getElementById("metaPrevistoAnual").textContent = formatBR(previstoAnual);
+    document.getElementById("metaPrevistoAnual").textContent = formatBR(metaEsperadaAteMes);
     document.getElementById("metaRealizado").textContent = formatBR(realizado);
     document.getElementById("metaPercentualAnual").textContent = `${formatBR(pctAnual)}%`;
-    document.getElementById("metaMesReferencia").textContent = "Realizado da meta anual";
-    document.getElementById("metaStatusTexto").textContent = texto;
+    document.getElementById("metaMesReferencia").textContent =
+      `Meta esperada até ${nomeMes(String(mesRef).slice(5, 7))}/${String(mesRef).slice(2, 4)}: ${formatBR(metaEsperadaAteMes)}`;
+    document.getElementById("metaStatusTexto").textContent =
+      `${texto} • Realizado: ${formatBR(realizado)} / Esperado: ${formatBR(metaEsperadaAteMes)}`;
 
     setMetaClasse("metaBoxMensal", "");
-    setMetaClasse("metaBoxAnual", "");
+    setMetaClasse("metaBoxAnual", classe);
     setMetaClasse("metaBoxRealizado", classe);
     setMetaClasse("metaBoxPercentual", classe);
 
@@ -2933,8 +3041,15 @@ async function carregarResumoMetaGestorLogado() {
     carregarGestoresComAtraso();
   });
 
-  document.getElementById("filtroGestor")?.addEventListener("change", carregarInspecoes);
-  document.getElementById("filtroMes")?.addEventListener("change", carregarInspecoes);
+  document.getElementById("filtroGestor")?.addEventListener("change", async () => {
+  await carregarInspecoes();
+  await carregarResumoMetaGestorLogado();
+});
+
+document.getElementById("filtroMes")?.addEventListener("change", async () => {
+  await carregarInspecoes();
+  await carregarResumoMetaGestorLogado();
+});
 
   await carregarInspecoes();
   await carregarResumoMetaGestorLogado();
