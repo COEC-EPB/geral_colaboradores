@@ -2343,7 +2343,7 @@ function setStatusColaborador(nomeColaborador, status) {
   salvarMapaStatusColaboradores(map);
 }
 
-async function alternarStatusColaborador(nomeColaborador) {
+async function alternarStatusColaborador(nomeColaborador, lider) {
   const atual = getStatusColaborador(nomeColaborador);
   const novo = atual === "ATIVO" ? "INATIVO" : "ATIVO";
 
@@ -2354,16 +2354,29 @@ async function alternarStatusColaborador(nomeColaborador) {
 
   if (!confirm(msg)) return;
 
-  setStatusColaborador(nomeColaborador, novo);
+  try {
+    await salvarStatusColaboradorAPI({
+      colaborador: nomeColaborador,
+      lider,
+      status: novo,
+      motivo:
+        novo === "INATIVO"
+          ? "Colaborador afastado"
+          : "Reativado"
+    });
 
-  setStatus(
-    novo === "INATIVO"
-      ? `Colaborador ${nomeColaborador} marcado como inativo.`
-      : `Colaborador ${nomeColaborador} marcado como ativo novamente.`,
-    "success"
-  );
+    setStatus(
+      novo === "INATIVO"
+        ? `Colaborador ${nomeColaborador} marcado como inativo.`
+        : `Colaborador ${nomeColaborador} marcado como ativo novamente.`,
+      "success"
+    );
 
-  await carregarRanking();
+    await carregarRanking();
+
+  } catch (e) {
+    setStatus(e.message, "error");
+  }
 }
 
 async function carregarRanking() {
@@ -2466,7 +2479,10 @@ async function carregarRanking() {
       const btnHtml = inativo
         ? `
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+            <button type="button" class="btn-status" onclick='alternarStatusColaborador(
+  ${JSON.stringify(r.colaborador)},
+  ${JSON.stringify(r.lider)}
+)'>
               <i class="bi bi-arrow-clockwise"></i> Marcar ativo
             </button>
             <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
@@ -2477,7 +2493,10 @@ async function carregarRanking() {
         `
         : `
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" class="btn-status" onclick='alternarStatusColaborador(${JSON.stringify(r.colaborador)})'>
+            <button type="button" class="btn-status" onclick='alternarStatusColaborador(
+  ${JSON.stringify(r.colaborador)},
+  ${JSON.stringify(r.lider)}
+)'>
               <i class="bi bi-pause-circle"></i> Marcar inativo
             </button>
             <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
