@@ -2313,43 +2313,30 @@ function getChaveStatusColaborador() {
   return `status_colaboradores_inspecoes__${gestor}`;
 }
 
-function getMapaStatusColaboradores() {
-  try {
-    const raw = localStorage.getItem(getChaveStatusColaborador());
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function salvarMapaStatusColaboradores(map) {
-  localStorage.setItem(getChaveStatusColaborador(), JSON.stringify(map || {}));
-}
-
-function getStatusColaborador(nomeColaborador) {
-  const map = getMapaStatusColaboradores();
-  const key = normName(nomeColaborador);
-  return map[key] || "ATIVO";
-}
-
-function isColaboradorInativo(nomeColaborador) {
-  return getStatusColaborador(nomeColaborador) === "INATIVO";
-}
-
-function setStatusColaborador(nomeColaborador, status) {
-  const map = getMapaStatusColaboradores();
-  const key = normName(nomeColaborador);
-  map[key] = status === "INATIVO" ? "INATIVO" : "ATIVO";
-  salvarMapaStatusColaboradores(map);
-}
-
 async function alternarStatusColaborador(nomeColaborador, lider) {
-  const atual = getStatusColaborador(nomeColaborador);
+  const statusAtual = String(
+    dadosGlobais?.find(x => normName(x.colaborador) === normName(nomeColaborador))?.status_colaborador || ""
+  ).toUpperCase();
+
+  // Como o ranking não usa dadosGlobais, vamos buscar pela linha da tabela renderizada via própria chamada.
+  // O ideal é usar o estado vindo do botão:
+  let atual = "ATIVO";
+
+  const rows = Array.from(document.querySelectorAll("#rankingTbody tr"));
+  for (const tr of rows) {
+    const nomeTd = tr.children?.[1]?.textContent || "";
+    if (normName(nomeTd) === normName(nomeColaborador)) {
+      const txtSituacao = tr.children?.[2]?.textContent || "";
+      atual = txtSituacao.toUpperCase().includes("INATIVO") ? "INATIVO" : "ATIVO";
+      break;
+    }
+  }
+
   const novo = atual === "ATIVO" ? "INATIVO" : "ATIVO";
 
   const msg =
     novo === "INATIVO"
-      ? `Deseja marcar "${nomeColaborador}" como INATIVO (afastado)?`
+      ? `Deseja marcar "${nomeColaborador}" como INATIVO/AFASTADO?`
       : `Deseja marcar "${nomeColaborador}" como ATIVO novamente?`;
 
   if (!confirm(msg)) return;
@@ -2359,10 +2346,7 @@ async function alternarStatusColaborador(nomeColaborador, lider) {
       colaborador: nomeColaborador,
       lider,
       status: novo,
-      motivo:
-        novo === "INATIVO"
-          ? "Colaborador afastado"
-          : "Reativado"
+      motivo: novo === "INATIVO" ? "Colaborador afastado" : "Colaborador reativado"
     });
 
     setStatus(
@@ -2373,22 +2357,31 @@ async function alternarStatusColaborador(nomeColaborador, lider) {
     );
 
     await carregarRanking();
+    await alertarPrazoDoLider();
 
   } catch (e) {
-    setStatus(e.message, "error");
+    console.error(e);
+    setStatus(`Erro ao alterar status: ${e.message}`, "error");
   }
 }
 
 async function carregarRanking() {
-  setStatus("⏳ Aguarde… carregando ranking...", "info");
+  setStatus("⏳ Aguarde... carregando ranking...", "info");
 
   try {
     const podeGeral = podeVerTodosRanking();
     const liderEl = document.getElementById("rankingLider");
+
     const qs = new URLSearchParams();
 
-    const liderFiltro = (podeGeral && liderEl && liderEl.value) ? liderEl.value.trim() : "";
-    if (liderFiltro) qs.set("lider", liderFiltro);
+    const liderFiltro =
+      (podeGeral && liderEl && liderEl.value)
+        ? liderEl.value.trim()
+        : "";
+
+    if (liderFiltro) {
+      qs.set("lider", liderFiltro);
+    }
 
     const res = await fetch(`${API}/ranking-colaboradores?${qs.toString()}`, {
       method: "GET",
@@ -2396,47 +2389,54 @@ async function carregarRanking() {
     });
 
     const text = await res.text();
+
     let data = {};
-    try { data = JSON.parse(text); } catch {}
+    try {
+      data = JSON.parse(text);
+    } catch {}
 
     if (!res.ok) {
       setStatus(`Erro ao carregar ranking: ${text}`, "error");
       return;
     }
 
-    const rows = data.results || [];
+    const rows = Array.isArray(data.results)
+      ? data.results
+      : [];
+
     const tbody = document.getElementById("rankingTbody");
     if (!tbody) return;
 
     tbody.innerHTML = "";
 
     const diasParaOrdenar = (v) => {
-      const s = String(v ?? "").trim();
-      if (!s || s === "-" || s === "999999" || s === "99999") return 999999;
-      const n = Number(s.replace(",", "."));
+      if (v === null || v === undefined) return 999999;
+      const n = Number(v);
       return Number.isFinite(n) ? n : 999999;
     };
 
-    const diasParaMostrar = (v) => {
-      const s = String(v ?? "").trim();
-      if (!s || s === "-" || s === "999999" || s === "99999") return 0;
-      const n = Number(s.replace(",", "."));
-      return Number.isFinite(n) ? n : 0;
-    };
-
-    const computed = rows.slice();
+    const computed = [...rows];
 
     computed.sort((a, b) => {
-      const aInativo = isColaboradorInativo(a.colaborador);
-      const bInativo = isColaboradorInativo(b.colaborador);
-      if (aInativo !== bInativo) return aInativo ? 1 : -1;
+      const aInativo =
+        String(a.status_colaborador || "ATIVO").toUpperCase() === "INATIVO";
+
+      const bInativo =
+        String(b.status_colaborador || "ATIVO").toUpperCase() === "INATIVO";
+
+      if (aInativo !== bInativo) {
+        return aInativo ? 1 : -1;
+      }
 
       const aTot = Number(a.qtd_inspecoes || 0);
       const bTot = Number(b.qtd_inspecoes || 0);
 
       const aSem = aTot === 0;
       const bSem = bTot === 0;
-      if (aSem !== bSem) return aSem ? -1 : 1;
+
+      if (aSem !== bSem) {
+        return aSem ? -1 : 1;
+      }
 
       if (!aSem && !bSem) {
         const aG = Number(a.insp_gestor || 0);
@@ -2444,25 +2444,44 @@ async function carregarRanking() {
 
         const aNaoTeveGestor = aG === 0;
         const bNaoTeveGestor = bG === 0;
-        if (aNaoTeveGestor !== bNaoTeveGestor) return aNaoTeveGestor ? -1 : 1;
+
+        if (aNaoTeveGestor !== bNaoTeveGestor) {
+          return aNaoTeveGestor ? -1 : 1;
+        }
       }
 
       const da = diasParaOrdenar(a.dias_desde);
       const db = diasParaOrdenar(b.dias_desde);
-      if (da !== db) return db - da;
 
-      return normName(a.colaborador).localeCompare(normName(b.colaborador));
+      if (da !== db) {
+        return db - da;
+      }
+
+      return normName(a.colaborador)
+        .localeCompare(normName(b.colaborador));
     });
 
     let rankVisivel = 0;
 
-    for (let idx = 0; idx < computed.length; idx++) {
-      const r = computed[idx];
-      const inativo = isColaboradorInativo(r.colaborador);
+    for (const r of computed) {
+
+      const statusBanco =
+        String(r.status_colaborador || "ATIVO")
+          .trim()
+          .toUpperCase();
+
+      const inativo = statusBanco === "INATIVO";
 
       const labelFonte =
-        r.fonte_ultima === "inspecoes" ? " (inspeções)" :
-        r.fonte_ultima === "dados" ? " (dados)" : "";
+        r.fonte_ultima === "inspecoes"
+          ? " (inspeções)"
+          : r.fonte_ultima === "dados"
+          ? " (dados)"
+          : r.fonte_ultima === "data_inspecao"
+          ? " (dados)"
+          : r.fonte_ultima === "ultima_auditoria"
+          ? " (dados)"
+          : "";
 
       const ultimaInspecaoHtml = inativo
         ? `<span class="texto-inativo">Afastado</span>`
@@ -2470,38 +2489,72 @@ async function carregarRanking() {
 
       const diasHtml = inativo
         ? `<span class="texto-inativo">Não contabiliza</span>`
-        : diasParaMostrar(r.dias_desde);
+        : (r.dias_desde ?? 0);
 
       const situacaoHtml = inativo
-        ? `<span class="badge-situacao inativo"><i class="bi bi-person-dash"></i> Inativo</span>`
-        : `<span class="badge-situacao ativo"><i class="bi bi-person-check"></i> Ativo</span>`;
+        ? `
+          <span class="badge-situacao inativo">
+            <i class="bi bi-person-dash"></i>
+            Inativo
+          </span>
+        `
+        : `
+          <span class="badge-situacao ativo">
+            <i class="bi bi-person-check"></i>
+            Ativo
+          </span>
+        `;
 
       const btnHtml = inativo
         ? `
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" class="btn-status" onclick='alternarStatusColaborador(
-  ${JSON.stringify(r.colaborador)},
-  ${JSON.stringify(r.lider)}
-)'>
-              <i class="bi bi-arrow-clockwise"></i> Marcar ativo
+            <button
+              type="button"
+              class="btn-status"
+              onclick='alternarStatusColaborador(
+                ${JSON.stringify(r.colaborador)},
+                ${JSON.stringify(r.lider)}
+              )'>
+              <i class="bi bi-arrow-clockwise"></i>
+              Marcar ativo
             </button>
-            <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
-              onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
-              <i class="bi bi-person-x"></i> Excluir
+
+            <button
+              type="button"
+              class="btn-status"
+              style="color:#b3261e;border-color:rgba(179,38,30,.25);"
+              onclick='excluirColaboradorRanking(
+                ${JSON.stringify(r.colaborador)},
+                ${JSON.stringify(r.lider)}
+              )'>
+              <i class="bi bi-person-x"></i>
+              Excluir
             </button>
           </div>
         `
         : `
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" class="btn-status" onclick='alternarStatusColaborador(
-  ${JSON.stringify(r.colaborador)},
-  ${JSON.stringify(r.lider)}
-)'>
-              <i class="bi bi-pause-circle"></i> Marcar inativo
+            <button
+              type="button"
+              class="btn-status"
+              onclick='alternarStatusColaborador(
+                ${JSON.stringify(r.colaborador)},
+                ${JSON.stringify(r.lider)}
+              )'>
+              <i class="bi bi-pause-circle"></i>
+              Marcar inativo
             </button>
-            <button type="button" class="btn-status" style="color:#b3261e; border-color:rgba(179,38,30,.25);"
-              onclick='excluirColaboradorRanking(${JSON.stringify(r.colaborador)}, ${JSON.stringify(r.lider)})'>
-              <i class="bi bi-person-x"></i> Excluir
+
+            <button
+              type="button"
+              class="btn-status"
+              style="color:#b3261e;border-color:rgba(179,38,30,.25);"
+              onclick='excluirColaboradorRanking(
+                ${JSON.stringify(r.colaborador)},
+                ${JSON.stringify(r.lider)}
+              )'>
+              <i class="bi bi-person-x"></i>
+              Excluir
             </button>
           </div>
         `;
@@ -2509,25 +2562,65 @@ async function carregarRanking() {
       const rank = inativo ? "-" : (++rankVisivel);
 
       const tr = document.createElement("tr");
-      if (inativo) tr.classList.add("row-inativo");
 
-      tr.innerHTML =
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + rank + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:700;'>" + (r.colaborador ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + situacaoHtml + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.base ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.polo ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.lider ?? "") + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + ultimaInspecaoHtml + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + diasHtml + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + (r.qtd_inspecoes ?? 0) + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border); font-weight:800;'>" + (r.insp_gestor ?? 0) + "</td>" +
-        "<td style='padding:10px; border-bottom:1px solid var(--border);'>" + btnHtml + "</td>";
+      if (inativo) {
+        tr.classList.add("row-inativo");
+      }
+
+      tr.innerHTML = `
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${rank}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);font-weight:700;">
+          ${r.colaborador || ""}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${situacaoHtml}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${r.base || ""}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${r.polo || ""}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${r.lider || ""}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${ultimaInspecaoHtml}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${diasHtml}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${r.qtd_inspecoes || 0}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);font-weight:800;">
+          ${r.insp_gestor || 0}
+        </td>
+
+        <td style="padding:10px;border-bottom:1px solid var(--border);">
+          ${btnHtml}
+        </td>
+      `;
 
       tbody.appendChild(tr);
     }
 
-    setStatus(`Ranking carregado: ${computed.length} colaboradores`, "success");
+    setStatus(
+      `Ranking carregado: ${computed.length} colaboradores`,
+      "success"
+    );
+
   } catch (e) {
     console.error(e);
     setStatus("Erro ao carregar ranking.", "error");
@@ -2614,9 +2707,12 @@ async function excluirColaboradorRanking(nomeColaborador, lider) {
     });
 
     setStatus(`Colaborador ${nomeColaborador} excluído do ranking.`, "success");
+
     await carregarRanking();
     await alertarPrazoDoLider();
+
   } catch (e) {
+    console.error(e);
     setStatus(`Erro ao excluir colaborador: ${e.message}`, "error");
   }
 }
