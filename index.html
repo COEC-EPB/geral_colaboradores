@@ -2313,58 +2313,6 @@ function getChaveStatusColaborador() {
   return `status_colaboradores_inspecoes__${gestor}`;
 }
 
-async function alternarStatusColaborador(nomeColaborador, lider) {
-  const statusAtual = String(
-    dadosGlobais?.find(x => normName(x.colaborador) === normName(nomeColaborador))?.status_colaborador || ""
-  ).toUpperCase();
-
-  // Como o ranking não usa dadosGlobais, vamos buscar pela linha da tabela renderizada via própria chamada.
-  // O ideal é usar o estado vindo do botão:
-  let atual = "ATIVO";
-
-  const rows = Array.from(document.querySelectorAll("#rankingTbody tr"));
-  for (const tr of rows) {
-    const nomeTd = tr.children?.[1]?.textContent || "";
-    if (normName(nomeTd) === normName(nomeColaborador)) {
-      const txtSituacao = tr.children?.[2]?.textContent || "";
-      atual = txtSituacao.toUpperCase().includes("INATIVO") ? "INATIVO" : "ATIVO";
-      break;
-    }
-  }
-
-  const novo = atual === "ATIVO" ? "INATIVO" : "ATIVO";
-
-  const msg =
-    novo === "INATIVO"
-      ? `Deseja marcar "${nomeColaborador}" como INATIVO/AFASTADO?`
-      : `Deseja marcar "${nomeColaborador}" como ATIVO novamente?`;
-
-  if (!confirm(msg)) return;
-
-  try {
-    await salvarStatusColaboradorAPI({
-      colaborador: nomeColaborador,
-      lider,
-      status: novo,
-      motivo: novo === "INATIVO" ? "Colaborador afastado" : "Colaborador reativado"
-    });
-
-    setStatus(
-      novo === "INATIVO"
-        ? `Colaborador ${nomeColaborador} marcado como inativo.`
-        : `Colaborador ${nomeColaborador} marcado como ativo novamente.`,
-      "success"
-    );
-
-    await carregarRanking();
-    await alertarPrazoDoLider();
-
-  } catch (e) {
-    console.error(e);
-    setStatus(`Erro ao alterar status: ${e.message}`, "error");
-  }
-}
-
 async function carregarRanking() {
   setStatus("⏳ Aguarde... carregando ranking...", "info");
 
@@ -2513,23 +2461,24 @@ async function carregarRanking() {
               class="btn-status"
               onclick='alternarStatusColaborador(
                 ${JSON.stringify(r.colaborador)},
-                ${JSON.stringify(r.lider)}
+                ${JSON.stringify(r.lider)},
+                ${JSON.stringify(statusBanco)}
               )'>
               <i class="bi bi-arrow-clockwise"></i>
               Marcar ativo
             </button>
 
             <button
-              type="button"
-              class="btn-status"
-              style="color:#b3261e;border-color:rgba(179,38,30,.25);"
-              onclick='excluirColaboradorRanking(
-                ${JSON.stringify(r.colaborador)},
-                ${JSON.stringify(r.lider)}
-              )'>
-              <i class="bi bi-person-x"></i>
-              Excluir
-            </button>
+            type="button"
+            class="btn-status"
+            onclick='alternarStatusColaborador(
+              ${JSON.stringify(r.colaborador)},
+              ${JSON.stringify(r.lider)},
+              ${JSON.stringify(statusBanco)}
+            )'>
+            <i class="bi bi-pause-circle"></i>
+            Marcar inativo
+          </button>
           </div>
         `
         : `
@@ -2673,47 +2622,113 @@ function mostrarAlertaMeses(meses, qtdColab) {
 }
 
 async function salvarStatusColaboradorAPI({ colaborador, lider, status, motivo = "" }) {
+  console.log("[salvarStatusColaboradorAPI] Enviando:", {
+    colaborador,
+    lider,
+    status,
+    motivo
+  });
+
   const res = await fetch(`${API}/colaboradores-status`, {
     method: "PUT",
     headers: authHeaders(),
-    body: JSON.stringify({ colaborador, lider, status, motivo })
+    body: JSON.stringify({
+      colaborador,
+      lider,
+      status,
+      motivo
+    })
   });
 
   const text = await res.text();
+
   let data = {};
-  try { data = JSON.parse(text); } catch {}
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = { erro: text };
+  }
+
+  console.log("[salvarStatusColaboradorAPI] Retorno:", {
+    statusHttp: res.status,
+    ok: res.ok,
+    data
+  });
 
   if (!res.ok) {
-    throw new Error(data?.erro || text || "Erro ao salvar status do colaborador");
+    const msg = data?.erro || text || "Erro ao salvar status do colaborador";
+    throw new Error(msg);
   }
 
   return data;
 }
 
-async function excluirColaboradorRanking(nomeColaborador, lider) {
-  const motivo = prompt(
-    `Informe o motivo da exclusão de "${nomeColaborador}"\n\nEx: Demitido / Saiu da empresa`,
-    "Demitido"
-  );
+async function alternarStatusColaborador(nomeColaborador, lider, statusAtualParam = "ATIVO") {
+  console.log("[alternarStatusColaborador] Clique:", {
+    nomeColaborador,
+    lider,
+    statusAtualParam
+  });
 
-  if (motivo === null) return;
+  const atual = String(statusAtualParam || "ATIVO").trim().toUpperCase();
+  const novo = atual === "INATIVO" ? "ATIVO" : "INATIVO";
+
+  if (!nomeColaborador) {
+    alert("Erro: colaborador não identificado.");
+    return;
+  }
+
+  if (!lider) {
+    alert("Erro: líder/gestor não identificado para este colaborador.");
+    return;
+  }
+
+  const msg =
+    novo === "INATIVO"
+      ? `Deseja marcar "${nomeColaborador}" como INATIVO/AFASTADO?`
+      : `Deseja marcar "${nomeColaborador}" como ATIVO novamente?`;
+
+  if (!confirm(msg)) return;
 
   try {
-    await salvarStatusColaboradorAPI({
+    setStatus(
+      novo === "INATIVO"
+        ? "Marcando colaborador como inativo..."
+        : "Marcando colaborador como ativo...",
+      "success"
+    );
+
+    const retorno = await salvarStatusColaboradorAPI({
       colaborador: nomeColaborador,
       lider,
-      status: "EXCLUIDO",
-      motivo: motivo || "Excluído pelo gestor"
+      status: novo,
+      motivo: novo === "INATIVO" ? "Colaborador afastado" : "Colaborador reativado"
     });
 
-    setStatus(`Colaborador ${nomeColaborador} excluído do ranking.`, "success");
+    console.log("[alternarStatusColaborador] Salvo com sucesso:", retorno);
+
+    alert(
+      novo === "INATIVO"
+        ? `Colaborador ${nomeColaborador} marcado como INATIVO.`
+        : `Colaborador ${nomeColaborador} marcado como ATIVO.`
+    );
+
+    setStatus(
+      novo === "INATIVO"
+        ? `Colaborador ${nomeColaborador} marcado como inativo.`
+        : `Colaborador ${nomeColaborador} marcado como ativo novamente.`,
+      "success"
+    );
 
     await carregarRanking();
     await alertarPrazoDoLider();
 
   } catch (e) {
-    console.error(e);
-    setStatus(`Erro ao excluir colaborador: ${e.message}`, "error");
+    console.error("[alternarStatusColaborador] Erro:", e);
+
+    alert(`Erro ao alterar status:\n\n${e.message}`);
+
+    setStatus(`Erro ao alterar status: ${e.message}`, "error");
   }
 }
 
