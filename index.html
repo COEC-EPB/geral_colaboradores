@@ -2019,21 +2019,42 @@ function toNumMeta(v) {
 
 function normalizarLinhaMeta(l) {
   return {
-    nome: String(l["Nome"] || l["nome"] || "").trim(),
-    jan: toNumMeta(l["Jan"] || l["JAN"]),
-    fev: toNumMeta(l["Fev"] || l["FEV"]),
-    mar: toNumMeta(l["Mar"] || l["MAR"]),
-    abr: toNumMeta(l["Abr"] || l["ABR"]),
-    mai: toNumMeta(l["Mai"] || l["MAI"]),
-    jun: toNumMeta(l["Jun"] || l["JUN"]),
-    jul: toNumMeta(l["Jul"] || l["JUL"]),
-    ago: toNumMeta(l["Ago"] || l["AGO"]),
-    set: toNumMeta(l["Set"] || l["SET"]),
-    out: toNumMeta(l["Out"] || l["OUT"]),
-    nov: toNumMeta(l["Nov"] || l["NOV"]),
-    dez: toNumMeta(l["Dez"] || l["DEZ"]),
-    previsto: toNumMeta(l["Previsto"] || l["PREVISTO"]),
-    realizado: toNumMeta(l["Realizado"] || l["REALIZADO"])
+    nome: String(
+      l["Nome"] ??
+      l["NOME"] ??
+      l["nome"] ??
+      ""
+    ).trim(),
+
+    jan: toNumMeta(l["Jan"] ?? l["JAN"]),
+    fev: toNumMeta(l["Fev"] ?? l["FEV"]),
+    mar: toNumMeta(l["Mar"] ?? l["MAR"]),
+    abr: toNumMeta(l["Abr"] ?? l["ABR"]),
+    mai: toNumMeta(l["Mai"] ?? l["MAI"]),
+    jun: toNumMeta(l["Jun"] ?? l["JUN"]),
+    jul: toNumMeta(l["Jul"] ?? l["JUL"]),
+    ago: toNumMeta(l["Ago"] ?? l["AGO"]),
+
+    setembro: toNumMeta(
+      l["Setembro"] ??
+      l["SETEMBRO"] ??
+      l["Set"] ??
+      l["SET"]
+    ),
+
+    out: toNumMeta(l["Out"] ?? l["OUT"]),
+    nov: toNumMeta(l["Nov"] ?? l["NOV"]),
+    dez: toNumMeta(l["Dez"] ?? l["DEZ"]),
+
+    previsto: toNumMeta(
+      l["Previsto"] ??
+      l["PREVISTO"]
+    ),
+
+    realizado: toNumMeta(
+      l["Realizado"] ??
+      l["REALIZADO"]
+    )
   };
 }
 
@@ -2149,7 +2170,135 @@ if (excelInput && perfil === "admin") {
       excelInput.disabled = false;
     }
   });
+  const excelMetas = document.getElementById("excelMetas");
+
+if (excelMetas && perfil === "admin") {
+  excelMetas.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    excelMetas.disabled = true;
+
+    try {
+      setStatus("Lendo e validando a base de metas...");
+
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+
+      const nomeAba = wb.SheetNames[0];
+      const ws = wb.Sheets[nomeAba];
+
+      const raw = XLSX.utils.sheet_to_json(ws, {
+        defval: null,
+        raw: true
+      });
+
+      console.log("[METAS] Aba:", nomeAba);
+      console.log("[METAS] Cabeçalhos:", raw[0] ? Object.keys(raw[0]) : []);
+      console.log("[METAS] Primeira linha:", raw[0]);
+
+      const normalizado = raw
+        .map(normalizarLinhaMeta)
+        .filter(row => row.nome);
+
+      console.log("[METAS] Normalizado:", normalizado);
+
+      if (!normalizado.length) {
+        throw new Error(
+          "Nenhuma linha válida encontrada. Verifique se existe a coluna Nome."
+        );
+      }
+
+      const TAMANHO_LOTE_METAS = 10;
+      const lotes = chunkArray(normalizado, TAMANHO_LOTE_METAS);
+
+      let processados = 0;
+
+      for (let i = 0; i < lotes.length; i++) {
+        const lote = lotes[i];
+
+        setStatus(
+          `Importando metas: lote ${i + 1} de ${lotes.length}. ` +
+          `${processados} de ${normalizado.length} processados...`
+        );
+
+        const resp = await fetch(`${API}/importar-metas`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify(lote)
+        });
+
+        const text = await resp.text();
+
+        let retorno = {};
+        try {
+          retorno = JSON.parse(text);
+        } catch {
+          retorno = { erro: text };
+        }
+
+        console.log(`[METAS] Retorno lote ${i + 1}:`, retorno);
+
+        if (resp.status === 401) {
+          logout();
+          return;
+        }
+
+        if (!resp.ok) {
+          throw new Error(
+            retorno?.erro ||
+            text ||
+            `Erro no lote ${i + 1}`
+          );
+        }
+
+        processados += lote.length;
+
+        setStatus(
+          `Importando metas: ${processados} de ${normalizado.length} registros...`,
+          "success"
+        );
+
+        if (i < lotes.length - 1) {
+          await aguardar(300);
+        }
+      }
+
+      setStatus(
+        `Base de metas importada com sucesso. ${processados} registros processados.`,
+        "success"
+      );
+
+      alert(
+        `Base de metas importada com sucesso!\n\n` +
+        `${processados} registros processados.`
+      );
+
+      excelMetas.value = "";
+
+      await carregarResumoMetaGestorLogado();
+
+    } catch (e) {
+      console.error("[IMPORTAÇÃO METAS]", e);
+
+      const mensagem = e?.message || String(e);
+
+      setStatus(
+        `Erro ao importar metas: ${mensagem}`,
+        "error"
+      );
+
+      alert(
+        `Não foi possível importar a base de metas.\n\n${mensagem}`
+      );
+
+    } finally {
+      excelMetas.disabled = false;
+    }
+  });
 }
+}
+  
 
 function abrirModalMedida() {
   const modal = document.getElementById("modalMedida");
