@@ -1273,14 +1273,60 @@ function getMatriculaAtual() {
 }
 
 function getNomeDoToken() {
-  const lsLider = String(localStorage.getItem("lider") || "").trim();
-  if (lsLider) return lsLider;
+  const camposLocalStorage = [
+    "lider",
+    "nome",
+    "name",
+    "usuarioNome",
+    "nomeUsuario",
+    "gestor"
+  ];
 
-  const tk = String(localStorage.getItem("token") || "").trim();
+  for (const campo of camposLocalStorage) {
+    const valor = String(
+      localStorage.getItem(campo) || ""
+    ).trim();
+
+    if (valor) {
+      return valor;
+    }
+  }
+
+  const tk = String(
+    localStorage.getItem("token") || ""
+  ).trim();
+
   const payload = decodeTokenPayloadCompat(tk);
-  if (!payload) return "";
 
-  return String(payload.lider || payload.nome || payload.name || "").trim();
+  if (!payload) {
+    console.warn(
+      "[TOKEN] Não foi possível identificar o payload."
+    );
+    return "";
+  }
+
+  console.log("[TOKEN] Payload identificado:", payload);
+
+  const nome = String(
+    payload.lider ||
+    payload.nome ||
+    payload.name ||
+    payload.nome_completo ||
+    payload.nomeCompleto ||
+    payload.gestor ||
+    payload.usuario ||
+    payload.user ||
+    ""
+  ).trim();
+
+  if (!nome) {
+    console.warn(
+      "[TOKEN] Nenhum campo de nome foi encontrado:",
+      payload
+    );
+  }
+
+  return nome;
 }
 
 const API = "https://inspecoes.pedro-fillype.workers.dev";
@@ -2137,15 +2183,29 @@ if (excelInput && perfil === "admin") {
       }
 
       setStatus(
-        `Importação concluída com sucesso. ${processados} registros processados.`,
-        "success"
-      );
+  `Importação concluída com sucesso. ${processados} registros processados.`,
+  "success"
+);
 
-      /*
-       * Atualiza a tela apenas depois de terminar todos os lotes.
-       */
-      await carregarMedidasCache();
-      await carregarInspecoes();
+/*
+ * Limpa o cache para considerar as inspeções recém-importadas.
+ */
+_cacheInspecoes2026 = null;
+_cache2026PorLider.clear();
+
+/*
+ * Atualiza todas as informações da tela.
+ */
+await carregarMedidasCache();
+await carregarInspecoes();
+await carregarRanking();
+await carregarStatsMensal();
+await carregarResumoMetaGestorLogado();
+
+setStatus(
+  `Importação concluída com sucesso. ${processados} registros processados.`,
+  "success"
+);
 
       /*
        * Limpa o input para permitir selecionar novamente o mesmo arquivo.
