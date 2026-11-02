@@ -548,6 +548,53 @@
         grid-template-columns: 1fr;
       }
     }
+    .import-resumo {
+  display: none;
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: #f7fbfd;
+  border: 1px solid #d7eaf2;
+  border-left: 4px solid var(--primary);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.import-resumo-titulo {
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.import-resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.import-resumo-item {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.import-resumo-item span {
+  display: block;
+  color: #777;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.import-resumo-item strong {
+  font-size: 15px;
+  color: #333;
+}
+
+@media (max-width: 600px) {
+  .import-resumo-grid {
+    grid-template-columns: 1fr;
+  }
+}
   </style>
 </head>
 <body>
@@ -633,6 +680,34 @@
     </button>
 
     <div id="status" class="status"></div>
+
+    <div id="importResumo" class="import-resumo">
+
+  <div class="import-resumo-titulo">
+    <i class="bi bi-file-earmark-spreadsheet"></i>
+    Resumo da importação
+  </div>
+
+  <div class="import-resumo-grid">
+
+    <div class="import-resumo-item">
+      <span>Arquivo</span>
+      <strong id="importTotalArquivo">0 registros</strong>
+    </div>
+
+    <div class="import-resumo-item">
+      <span>Período selecionado</span>
+      <strong id="importPeriodo">—</strong>
+    </div>
+
+    <div class="import-resumo-item">
+      <span>Registros para importar</span>
+      <strong id="importTotalFiltrado">0 registros</strong>
+    </div>
+
+  </div>
+
+</div>
   </div>
 
   <div class="card table-wrap">
@@ -976,6 +1051,48 @@ function getGestoresMetaArray() {
     return Object.keys(META_MENSAL_POR_GESTOR);
   }
   return Array.isArray(META_MENSAL_POR_GESTOR) ? META_MENSAL_POR_GESTOR : [];
+}
+
+  function nomeMesCompleto(numeroMes) {
+  const meses = [
+    "Jan", "Fev", "Mar", "Abr",
+    "Mai", "Jun", "Jul", "Ago",
+    "Set", "Out", "Nov", "Dez"
+  ];
+
+  return meses[numeroMes] || "";
+}
+
+function formatarQuantidade(n) {
+  return Number(n || 0).toLocaleString("pt-BR");
+}
+
+function mostrarResumoImportacao(
+  totalArquivo,
+  totalFiltrado,
+  inicioMesAnterior,
+  inicioMesAtual
+) {
+  const box = document.getElementById("importResumo");
+
+  if (!box) return;
+
+  const periodoAnterior =
+    `${nomeMesCompleto(inicioMesAnterior.getMonth())}/${inicioMesAnterior.getFullYear()}`;
+
+  const periodoAtual =
+    `${nomeMesCompleto(inicioMesAtual.getMonth())}/${inicioMesAtual.getFullYear()}`;
+
+  document.getElementById("importTotalArquivo").textContent =
+    `${formatarQuantidade(totalArquivo)} registros`;
+
+  document.getElementById("importPeriodo").textContent =
+    `${periodoAnterior} + ${periodoAtual}`;
+
+  document.getElementById("importTotalFiltrado").textContent =
+    `${formatarQuantidade(totalFiltrado)} registros`;
+
+  box.style.display = "block";
 }
 
 function getGestoresMetaSet() {
@@ -2130,9 +2247,64 @@ if (excelInput && perfil === "admin") {
         defval: null
       });
 
-      const normalizado = raw
-        .map(normalizarLinha)
-        .filter(linha => linha.numero);
+      const todasLinhas = raw
+  .map(normalizarLinha)
+  .filter(linha => linha.numero);
+
+// ======================================================
+// MANTÉM SOMENTE MÊS ATUAL + MÊS ANTERIOR
+// ======================================================
+
+const hoje = new Date();
+
+const inicioMesAtual = new Date(
+  hoje.getFullYear(),
+  hoje.getMonth(),
+  1
+);
+
+const inicioMesAnterior = new Date(
+  hoje.getFullYear(),
+  hoje.getMonth() - 1,
+  1
+);
+
+const inicioProximoMes = new Date(
+  hoje.getFullYear(),
+  hoje.getMonth() + 1,
+  1
+);
+
+const normalizado = todasLinhas.filter(linha => {
+
+  const data = parseISODateFlex(linha.data_inspecao);
+
+  if (!data) {
+    return false;
+  }
+
+  return (
+    data >= inicioMesAnterior &&
+    data < inicioProximoMes
+  );
+});
+
+console.log(
+  `[IMPORTAÇÃO] Excel completo: ${todasLinhas.length} registros`
+);
+
+console.log(
+  `[IMPORTAÇÃO] Mês atual + anterior: ${normalizado.length} registros`
+);
+
+if (!normalizado.length) {
+  setStatus(
+    "Nenhuma inspeção encontrada no mês atual ou no mês anterior.",
+    "error"
+  );
+
+  return;
+}
 
       if (!normalizado.length) {
         setStatus(
@@ -2146,7 +2318,7 @@ if (excelInput && perfil === "admin") {
        * Reduzido de 50 para 10.
        * Isso diminui bastante o consumo de CPU por requisição no D1.
        */
-      const TAMANHO_LOTE = 10;
+      const TAMANHO_LOTE = 20;
       const chunks = chunkArray(normalizado, TAMANHO_LOTE);
 
       let processados = 0;
@@ -2177,9 +2349,9 @@ if (excelInput && perfil === "admin") {
          * Pequeno intervalo entre os lotes para evitar requisições
          * seguidas pressionando o D1.
          */
-        if (i < chunks.length - 1) {
-          await aguardar(300);
-        }
+        //if (i < chunks.length - 1) {
+         // await aguardar(300);
+       // }
       }
 
       setStatus(
@@ -2258,17 +2430,90 @@ if (excelMetas && perfil === "admin") {
       console.log("[METAS] Cabeçalhos:", raw[0] ? Object.keys(raw[0]) : []);
       console.log("[METAS] Primeira linha:", raw[0]);
 
-      const normalizado = raw
-        .map(normalizarLinhaMeta)
-        .filter(row => row.nome);
+      // ======================================================
+// NORMALIZA O EXCEL
+// ======================================================
 
-      console.log("[METAS] Normalizado:", normalizado);
+const todasLinhas = raw
+  .map(normalizarLinha)
+  .filter(linha => linha.numero);
 
-      if (!normalizado.length) {
-        throw new Error(
-          "Nenhuma linha válida encontrada. Verifique se existe a coluna Nome."
-        );
-      }
+// ======================================================
+// DEFINE MÊS ATUAL + MÊS ANTERIOR
+// ======================================================
+
+const hoje = new Date();
+
+const inicioMesAtual = new Date(
+  hoje.getFullYear(),
+  hoje.getMonth(),
+  1
+);
+
+const inicioMesAnterior = new Date(
+  hoje.getFullYear(),
+  hoje.getMonth() - 1,
+  1
+);
+
+const inicioProximoMes = new Date(
+  hoje.getFullYear(),
+  hoje.getMonth() + 1,
+  1
+);
+
+// ======================================================
+// FILTRA SOMENTE OS DOIS MESES
+// ======================================================
+
+const normalizado = todasLinhas.filter(linha => {
+
+  const data = parseISODateFlex(
+    linha.data_inspecao
+  );
+
+  if (!data) return false;
+
+  return (
+    data >= inicioMesAnterior &&
+    data < inicioProximoMes
+  );
+});
+
+// ======================================================
+// MOSTRA RESUMO
+// ======================================================
+
+mostrarResumoImportacao(
+  todasLinhas.length,
+  normalizado.length,
+  inicioMesAnterior,
+  inicioMesAtual
+);
+
+console.log(
+  "[IMPORTAÇÃO] Total do arquivo:",
+  todasLinhas.length
+);
+
+console.log(
+  "[IMPORTAÇÃO] Registros selecionados:",
+  normalizado.length
+);
+
+// ======================================================
+// VALIDA
+// ======================================================
+
+if (!normalizado.length) {
+
+  setStatus(
+    "Nenhuma inspeção encontrada no mês atual ou no mês anterior.",
+    "error"
+  );
+
+  return;
+}
 
       const TAMANHO_LOTE_METAS = 10;
       const lotes = chunkArray(normalizado, TAMANHO_LOTE_METAS);
