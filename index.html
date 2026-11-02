@@ -1053,12 +1053,15 @@
       <table style="width:100%;">
 
         <thead>
-          <tr>
-            <th>Matrícula</th>
-            <th>Nome</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
+  <tr>
+    <th>Matrícula</th>
+    <th>Nome</th>
+    <th>Polo</th>
+    <th>Base</th>
+    <th>Regional</th>
+    <th>Ações</th>
+  </tr>
+</thead>
 
         <tbody id="tbodyUsuarios"></tbody>
 
@@ -1079,7 +1082,7 @@
   z-index:100000;
 ">
 
-  <div class="modal-box" style="width:min(500px,100%);">
+ <div class="modal-box" style="width:min(1100px, 100%);">
 
     <div class="modal-head">
 
@@ -1255,53 +1258,60 @@ function fecharModalUsuarios() {
 
 
 async function carregarUsuarios() {
+  const tbody = document.getElementById("tbodyUsuarios");
 
-  const tbody =
-    document.getElementById("tbodyUsuarios");
+  if (!tbody) return;
 
   tbody.innerHTML = `
     <tr>
-      <td colspan="3" style="padding:20px;text-align:center;">
+      <td colspan="6" style="padding:20px;text-align:center;">
         Carregando...
       </td>
     </tr>
   `;
 
   try {
-
-    const res =
-      await apiFetch("/usuarios");
-
-    const text =
-      await res.text();
+    const res = await apiFetch("/usuarios");
+    const text = await res.text();
 
     let data = {};
 
     try {
       data = JSON.parse(text);
-    } catch {}
+    } catch {
+      data = {};
+    }
+
+    if (res.status === 401) {
+      logout();
+      return;
+    }
 
     if (!res.ok) {
       throw new Error(
         data.erro ||
         text ||
-        "Erro ao carregar usuários"
+        "Erro ao carregar usuários."
       );
     }
 
-    const usuarios =
-      Array.isArray(data.results)
-        ? data.results
-        : [];
+    const usuarios = Array.isArray(data.results)
+      ? data.results
+      : [];
 
     tbody.innerHTML = "";
 
     if (!usuarios.length) {
-
       tbody.innerHTML = `
         <tr>
-          <td colspan="3"
-              style="padding:20px;text-align:center;color:#666;">
+          <td
+            colspan="6"
+            style="
+              padding:20px;
+              text-align:center;
+              color:#666;
+            "
+          >
             Nenhum usuário encontrado.
           </td>
         </tr>
@@ -1311,15 +1321,13 @@ async function carregarUsuarios() {
     }
 
     usuarios.forEach(usuario => {
+      const tr = document.createElement("tr");
 
-      const tr =
-        document.createElement("tr");
-
-      const matricula =
-        String(usuario.matricula || "");
-
-      const nome =
-        String(usuario.nome || "");
+      const matricula = String(usuario.matricula || "");
+      const nome = String(usuario.nome || "");
+      const polo = String(usuario.polo || "");
+      const base = String(usuario.base || "");
+      const regional = String(usuario.regional || "");
 
       tr.innerHTML = `
         <td>${matricula}</td>
@@ -1327,6 +1335,12 @@ async function carregarUsuarios() {
         <td>
           <b>${nome}</b>
         </td>
+
+        <td>${polo || "-"}</td>
+
+        <td>${base || "-"}</td>
+
+        <td>${regional || "-"}</td>
 
         <td>
           <button
@@ -1339,175 +1353,115 @@ async function carregarUsuarios() {
         </td>
       `;
 
-      tr.querySelector(
-        ".btn-editar-usuario"
-      ).addEventListener(
-        "click",
-        () => editarUsuario(usuario)
-      );
+      tr.querySelector(".btn-editar-usuario")
+        ?.addEventListener("click", () => {
+          editarUsuario(usuario);
+        });
 
       tbody.appendChild(tr);
-
     });
 
   } catch (e) {
-
-    console.error(e);
+    console.error("[USUÁRIOS] Erro ao carregar:", e);
 
     tbody.innerHTML = `
       <tr>
-        <td colspan="3"
-            style="padding:20px;text-align:center;color:#b3261e;">
-          ${e.message}
+        <td
+          colspan="6"
+          style="
+            padding:20px;
+            text-align:center;
+            color:#b3261e;
+          "
+        >
+          ${e.message || e}
         </td>
       </tr>
     `;
-
   }
-
 }
 
-  function novoUsuario() {
-
+function novoUsuario() {
   usuarioEmEdicao = null;
 
-  document.getElementById(
-    "tituloUsuario"
-  ).textContent = "Novo usuário";
+  document.getElementById("tituloUsuario").textContent =
+    "Novo usuário";
 
   const matriculaEl =
-    document.getElementById(
-      "usuarioMatricula"
-    );
+    document.getElementById("usuarioMatricula");
 
   matriculaEl.value = "";
   matriculaEl.disabled = false;
 
-  document.getElementById(
-    "usuarioNome"
-  ).value = "";
+  document.getElementById("usuarioNome").value = "";
+  document.getElementById("usuarioPolo").value = "";
+  document.getElementById("usuarioBase").value = "";
+  document.getElementById("usuarioRegional").value = "";
+  document.getElementById("usuarioSenha").value = "";
 
-    document.getElementById(
-  "usuarioBase"
-).value = "";
-
-    document.getElementById(
-  "usuarioPolo"
-).value = "";
-
-document.getElementById(
-  "usuarioRegional"
-).value = "";
-
-  document.getElementById(
-    "usuarioSenha"
-  ).value = "";
-
-  document.getElementById(
-    "usuarioSenhaHint"
-  ).textContent =
+  document.getElementById("usuarioSenhaHint").textContent =
     "Informe uma senha para o novo usuário.";
 
-  document.getElementById(
-    "modalEditarUsuario"
-  ).style.display = "flex";
-
+  document.getElementById("modalEditarUsuario").style.display =
+    "flex";
 }
 
   function editarUsuario(usuario) {
+  usuarioEmEdicao = String(usuario.matricula || "");
 
-  usuarioEmEdicao =
-    String(usuario.matricula);
-
-  document.getElementById(
-    "tituloUsuario"
-  ).textContent = "Editar usuário";
+  document.getElementById("tituloUsuario").textContent =
+    "Editar usuário";
 
   const matriculaEl =
-    document.getElementById(
-      "usuarioMatricula"
-    );
+    document.getElementById("usuarioMatricula");
 
-  matriculaEl.value =
-    usuario.matricula || "";
-
-    
-
-  /*
-   * Não deixa alterar a matrícula,
-   * porque ela é usada para localizar
-   * o usuário.
-   */
+  matriculaEl.value = usuario.matricula || "";
   matriculaEl.disabled = true;
 
-  document.getElementById(
-    "usuarioNome"
-  ).value =
+  document.getElementById("usuarioNome").value =
     usuario.nome || "";
 
-    document.getElementById(
-    "usuarioPolo"
-  ).value =
+  document.getElementById("usuarioPolo").value =
     usuario.polo || "";
-    
-    document.getElementById(
-    "usuarioBase"
-  ).value =
+
+  document.getElementById("usuarioBase").value =
     usuario.base || "";
 
-  document.getElementById(
-    "usuarioRegional"
-  ).value =
+  document.getElementById("usuarioRegional").value =
     usuario.regional || "";
 
-  document.getElementById(
-    "usuarioSenha"
-  ).value = "";
+  document.getElementById("usuarioSenha").value = "";
 
-  document.getElementById(
-    "usuarioSenhaHint"
-  ).textContent =
+  document.getElementById("usuarioSenhaHint").textContent =
     "Deixe em branco para manter a senha atual.";
 
-  document.getElementById(
-    "modalEditarUsuario"
-  ).style.display = "flex";
-
-    
-
+  document.getElementById("modalEditarUsuario").style.display =
+    "flex";
 }
-
   async function salvarUsuario() {
+  const matricula = String(
+    document.getElementById("usuarioMatricula")?.value || ""
+  ).trim();
 
-  const matricula =
-    document.getElementById(
-      "usuarioMatricula"
-    ).value.trim();
+  const nome = String(
+    document.getElementById("usuarioNome")?.value || ""
+  ).trim();
 
-  const nome =
-    document.getElementById(
-      "usuarioNome"
-    ).value.trim();
+  const polo = String(
+    document.getElementById("usuarioPolo")?.value || ""
+  ).trim();
 
-    const base =
-  document.getElementById(
-    "usuarioBase"
-  ).value.trim();
+  const base = String(
+    document.getElementById("usuarioBase")?.value || ""
+  ).trim();
 
-    const base =
-  document.getElementById(
-    "usuarioPolo"
-  ).value.trim();
+  const regional = String(
+    document.getElementById("usuarioRegional")?.value || ""
+  ).trim();
 
-const regional =
-  document.getElementById(
-    "usuarioRegional"
-  ).value.trim();
-
-  const senha =
-    document.getElementById(
-      "usuarioSenha"
-    ).value.trim();
+  const senha = String(
+    document.getElementById("usuarioSenha")?.value || ""
+  ).trim();
 
   if (!matricula) {
     alert("Informe a matrícula.");
@@ -1524,55 +1478,51 @@ const regional =
     return;
   }
 
-
-  const editando =
-    !!usuarioEmEdicao;
+  const editando = Boolean(usuarioEmEdicao);
 
   const body = {
-  matricula,
-  nome,
-  polo,
-  base,
-  regional
-};
+    matricula,
+    nome,
+    polo,
+    base,
+    regional
+  };
 
   /*
-   * Senha vazia durante edição:
-   * não altera a senha existente.
+   * Na edição, senha vazia mantém a senha atual.
    */
   if (senha) {
     body.senha = senha;
   }
 
-
   try {
-
     const res = await apiFetch(
       editando
         ? `/usuarios/${encodeURIComponent(usuarioEmEdicao)}`
         : "/usuarios",
       {
-        method:
-          editando ? "PUT" : "POST",
-
+        method: editando ? "PUT" : "POST",
         headers: {
-          "Content-Type":
-            "application/json"
+          "Content-Type": "application/json"
         },
-
-        body:
-          JSON.stringify(body)
+        body: JSON.stringify(body)
       }
     );
 
-    const text =
-      await res.text();
+    const text = await res.text();
 
     let data = {};
 
     try {
       data = JSON.parse(text);
-    } catch {}
+    } catch {
+      data = {};
+    }
+
+    if (res.status === 401) {
+      logout();
+      return;
+    }
 
     if (!res.ok) {
       throw new Error(
@@ -1583,7 +1533,6 @@ const regional =
     }
 
     fecharModalEditarUsuario();
-
     await carregarUsuarios();
 
     setStatus(
@@ -1594,15 +1543,12 @@ const regional =
     );
 
   } catch (e) {
-
-    console.error(e);
+    console.error("[USUÁRIOS] Erro ao salvar:", e);
 
     alert(
-      `Erro ao salvar usuário:\n\n${e.message}`
+      `Erro ao salvar usuário:\n\n${e.message || e}`
     );
-
   }
-
 }
 
 
@@ -3088,6 +3034,17 @@ const normalizado = todasLinhas.filter(linha => {
 // ======================================================
 // MOSTRA RESUMO
 // ======================================================
+
+const normalizado = todasLinhas.filter(linha => {
+  const data = parseISODateFlex(linha.data_inspecao);
+
+  if (!data) return false;
+
+  return (
+    data >= inicioMesAnterior &&
+    data < inicioProximoMes
+  );
+});
 
 mostrarResumoImportacao(
   todasLinhas.length,
