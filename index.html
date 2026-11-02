@@ -2954,186 +2954,199 @@ setStatus(
     }
   });
 }// FECHA O IMPORTADOR DE INSPEÇÕES
-  const excelMetas = document.getElementById("excelMetas");
+  
+const excelMetas = document.getElementById("excelMetas");
 
 if (excelMetas && perfil === "admin") {
+
   excelMetas.addEventListener("change", async (e) => {
+
     const file = e.target.files?.[0];
+
     if (!file) return;
 
     excelMetas.disabled = true;
 
     try {
-      setStatus("Lendo e validando a base de metas...");
+
+      setStatus(
+        "Lendo e validando a base de metas..."
+      );
+
+      // =========================================
+      // 1. LÊ O EXCEL
+      // =========================================
 
       const data = await file.arrayBuffer();
+
       const wb = XLSX.read(data);
 
       const nomeAba = wb.SheetNames[0];
+
       const ws = wb.Sheets[nomeAba];
 
-      const raw = XLSX.utils.sheet_to_json(ws, {
-        defval: null,
-        raw: true
-      });
+      const raw = XLSX.utils.sheet_to_json(
+        ws,
+        {
+          defval: null,
+          raw: true
+        }
+      );
 
-      console.log("[METAS] Aba:", nomeAba);
-      console.log("[METAS] Cabeçalhos:", raw[0] ? Object.keys(raw[0]) : []);
-      console.log("[METAS] Primeira linha:", raw[0]);
+      console.log(
+        "[METAS] Aba:",
+        nomeAba
+      );
 
-      // ======================================================
-// NORMALIZA O EXCEL
-// ======================================================
+      console.log(
+        "[METAS] Total de linhas:",
+        raw.length
+      );
 
-const todasLinhas = raw
-  .map(normalizarLinha)
-  .filter(linha => linha.numero);
+      console.log(
+        "[METAS] Cabeçalhos:",
+        raw[0]
+          ? Object.keys(raw[0])
+          : []
+      );
 
-// ======================================================
-// DEFINE MÊS ATUAL + MÊS ANTERIOR
-// ======================================================
+      // =========================================
+      // 2. NORMALIZA
+      // =========================================
 
-const hoje = new Date();
+      const metasNormalizadas = raw
+        .map(normalizarLinhaMeta)
+        .filter(row => row.nome);
 
-const inicioMesAtual = new Date(
-  hoje.getFullYear(),
-  hoje.getMonth(),
-  1
-);
+      console.log(
+        "[METAS] Normalizadas:",
+        metasNormalizadas
+      );
 
-const inicioMesAnterior = new Date(
-  hoje.getFullYear(),
-  hoje.getMonth() - 1,
-  1
-);
+      if (!metasNormalizadas.length) {
 
-const inicioProximoMes = new Date(
-  hoje.getFullYear(),
-  hoje.getMonth() + 1,
-  1
-);
+        throw new Error(
+          "Nenhuma linha válida encontrada. Verifique se existe a coluna Nome."
+        );
 
-// ======================================================
-// FILTRA SOMENTE OS DOIS MESES
-// ======================================================
+      }
 
-const normalizado = todasLinhas.filter(linha => {
-
-  const data = parseISODateFlex(
-    linha.data_inspecao
-  );
-
-  if (!data) return false;
-
-  return (
-    data >= inicioMesAnterior &&
-    data < inicioProximoMes
-  );
-});
-
-// ======================================================
-// MOSTRA RESUMO
-// ======================================================
-
-const normalizado = todasLinhas.filter(linha => {
-  const data = parseISODateFlex(linha.data_inspecao);
-
-  if (!data) return false;
-
-  return (
-    data >= inicioMesAnterior &&
-    data < inicioProximoMes
-  );
-});
-
-mostrarResumoImportacao(
-  todasLinhas.length,
-  normalizado.length,
-  inicioMesAnterior,
-  inicioMesAtual
-);
-
-console.log(
-  "[IMPORTAÇÃO] Total do arquivo:",
-  todasLinhas.length
-);
-
-console.log(
-  "[IMPORTAÇÃO] Registros selecionados:",
-  normalizado.length
-);
-
-// ======================================================
-// VALIDA
-// ======================================================
-
-if (!normalizado.length) {
-
-  setStatus(
-    "Nenhuma inspeção encontrada no mês atual ou no mês anterior.",
-    "error"
-  );
-
-  return;
-}
+      // =========================================
+      // 3. CRIA LOTES
+      // =========================================
 
       const TAMANHO_LOTE_METAS = 10;
-      const lotes = chunkArray(normalizado, TAMANHO_LOTE_METAS);
+
+      const lotes = chunkArray(
+        metasNormalizadas,
+        TAMANHO_LOTE_METAS
+      );
 
       let processados = 0;
 
-      for (let i = 0; i < lotes.length; i++) {
+      // =========================================
+      // 4. IMPORTA
+      // =========================================
+
+      for (
+        let i = 0;
+        i < lotes.length;
+        i++
+      ) {
+
         const lote = lotes[i];
 
         setStatus(
           `Importando metas: lote ${i + 1} de ${lotes.length}. ` +
-          `${processados} de ${normalizado.length} processados...`
+          `${processados} de ${metasNormalizadas.length} processados...`
         );
 
-        const resp = await fetch(`${API}/importar-metas`, {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify(lote)
-        });
+        const resp = await fetch(
+          `${API}/importar-metas`,
+          {
+            method: "POST",
 
-        const text = await resp.text();
+            headers: authHeaders(),
+
+            body: JSON.stringify(
+              lote
+            )
+          }
+        );
+
+        const text =
+          await resp.text();
 
         let retorno = {};
+
         try {
-          retorno = JSON.parse(text);
+
+          retorno =
+            JSON.parse(text);
+
         } catch {
-          retorno = { erro: text };
+
+          retorno = {
+            erro: text
+          };
+
         }
 
-        console.log(`[METAS] Retorno lote ${i + 1}:`, retorno);
+        console.log(
+          `[METAS] Retorno lote ${i + 1}:`,
+          retorno
+        );
 
         if (resp.status === 401) {
+
           logout();
+
           return;
+
         }
 
         if (!resp.ok) {
+
           throw new Error(
             retorno?.erro ||
             text ||
             `Erro no lote ${i + 1}`
           );
+
         }
 
-        processados += lote.length;
+        processados +=
+          lote.length;
 
         setStatus(
-          `Importando metas: ${processados} de ${normalizado.length} registros...`,
+          `Importando metas: ` +
+          `${processados} de ` +
+          `${metasNormalizadas.length} registros...`,
           "success"
         );
 
-        if (i < lotes.length - 1) {
+        /*
+         * Pequeno intervalo para não pressionar
+         * o D1 com requisições consecutivas.
+         */
+        if (
+          i <
+          lotes.length - 1
+        ) {
+
           await aguardar(300);
+
         }
+
       }
 
+      // =========================================
+      // 5. FINALIZA
+      // =========================================
+
       setStatus(
-        `Base de metas importada com sucesso. ${processados} registros processados.`,
+        `Base de metas importada com sucesso. ` +
+        `${processados} registros processados.`,
         "success"
       );
 
@@ -3142,14 +3155,27 @@ if (!normalizado.length) {
         `${processados} registros processados.`
       );
 
+      /*
+       * Permite selecionar novamente
+       * o mesmo arquivo.
+       */
       excelMetas.value = "";
 
+      /*
+       * Atualiza os cartões.
+       */
       await carregarResumoMetaGestorLogado();
 
     } catch (e) {
-      console.error("[IMPORTAÇÃO METAS]", e);
 
-      const mensagem = e?.message || String(e);
+      console.error(
+        "[IMPORTAÇÃO METAS]",
+        e
+      );
+
+      const mensagem =
+        e?.message ||
+        String(e);
 
       setStatus(
         `Erro ao importar metas: ${mensagem}`,
@@ -3157,15 +3183,19 @@ if (!normalizado.length) {
       );
 
       alert(
-        `Não foi possível importar a base de metas.\n\n${mensagem}`
+        `Não foi possível importar a base de metas.\n\n` +
+        mensagem
       );
 
     } finally {
-      excelMetas.disabled = false;
-    }
-  });
-}
 
+      excelMetas.disabled = false;
+
+    }
+
+  });
+
+}
   
 
 function abrirModalMedida() {
