@@ -2318,7 +2318,7 @@ if (!normalizado.length) {
        * Reduzido de 50 para 10.
        * Isso diminui bastante o consumo de CPU por requisição no D1.
        */
-      const TAMANHO_LOTE = 20;
+      const TAMANHO_LOTE = 10;
       const chunks = chunkArray(normalizado, TAMANHO_LOTE);
 
       let processados = 0;
@@ -2349,9 +2349,9 @@ if (!normalizado.length) {
          * Pequeno intervalo entre os lotes para evitar requisições
          * seguidas pressionando o D1.
          */
-        //if (i < chunks.length - 1) {
-         // await aguardar(300);
-       // }
+        if (i < chunks.length - 1) {
+          await aguardar(300);
+       }
       }
 
       setStatus(
@@ -2368,11 +2368,36 @@ _cache2026PorLider.clear();
 /*
  * Atualiza todas as informações da tela.
  */
-await carregarMedidasCache();
+/*
+ * Limpa os caches após a importação.
+ */
+_cacheInspecoes2026 = null;
+_cache2026PorLider.clear();
+
+/*
+ * Atualiza primeiro somente os dados essenciais.
+ * Não chama /medidas aqui, pois essa rota é pesada.
+ */
 await carregarInspecoes();
-await carregarRanking();
-await carregarStatsMensal();
-await carregarResumoMetaGestorLogado();
+
+/*
+ * As demais atualizações não devem fazer a importação
+ * ser considerada como falha.
+ */
+const atualizacoes = await Promise.allSettled([
+  carregarRanking(),
+  carregarStatsMensal(),
+  carregarResumoMetaGestorLogado()
+]);
+
+atualizacoes.forEach((resultado, index) => {
+  if (resultado.status === "rejected") {
+    console.warn(
+      `[PÓS-IMPORTAÇÃO] Atualização ${index + 1} falhou:`,
+      resultado.reason
+    );
+  }
+});
 
 setStatus(
   `Importação concluída com sucesso. ${processados} registros processados.`,
