@@ -1126,6 +1126,39 @@
       </div>
 
       <div>
+  <label>Base</label>
+
+  <input
+    id="usuarioBase"
+    type="text"
+    style="width:100%;"
+    placeholder="Ex: JOÃO PESSOA"
+  >
+</div>
+
+      <div>
+  <label>Polo</label>
+
+  <input
+    id="usuarioPolo"
+    type="text"
+    style="width:100%;"
+    placeholder="Ex: JOÃO PESSOA"
+  >
+</div>
+
+<div>
+  <label>Regional</label>
+
+  <input
+    id="usuarioRegional"
+    type="text"
+    style="width:100%;"
+    placeholder="Ex: LESTE"
+  >
+</div>
+
+      <div>
         <label>Senha</label>
 
         <input
@@ -1354,6 +1387,18 @@ async function carregarUsuarios() {
     "usuarioNome"
   ).value = "";
 
+    document.getElementById(
+  "usuarioBase"
+).value = "";
+
+    document.getElementById(
+  "usuarioPolo"
+).value = "";
+
+document.getElementById(
+  "usuarioRegional"
+).value = "";
+
   document.getElementById(
     "usuarioSenha"
   ).value = "";
@@ -1386,6 +1431,8 @@ async function carregarUsuarios() {
   matriculaEl.value =
     usuario.matricula || "";
 
+    
+
   /*
    * Não deixa alterar a matrícula,
    * porque ela é usada para localizar
@@ -1397,6 +1444,21 @@ async function carregarUsuarios() {
     "usuarioNome"
   ).value =
     usuario.nome || "";
+
+    document.getElementById(
+    "usuarioPolo"
+  ).value =
+    usuario.polo || "";
+    
+    document.getElementById(
+    "usuarioBase"
+  ).value =
+    usuario.base || "";
+
+  document.getElementById(
+    "usuarioRegional"
+  ).value =
+    usuario.regional || "";
 
   document.getElementById(
     "usuarioSenha"
@@ -1411,6 +1473,8 @@ async function carregarUsuarios() {
     "modalEditarUsuario"
   ).style.display = "flex";
 
+    
+
 }
 
   async function salvarUsuario() {
@@ -1424,6 +1488,21 @@ async function carregarUsuarios() {
     document.getElementById(
       "usuarioNome"
     ).value.trim();
+
+    const base =
+  document.getElementById(
+    "usuarioBase"
+  ).value.trim();
+
+    const base =
+  document.getElementById(
+    "usuarioPolo"
+  ).value.trim();
+
+const regional =
+  document.getElementById(
+    "usuarioRegional"
+  ).value.trim();
 
   const senha =
     document.getElementById(
@@ -1450,9 +1529,12 @@ async function carregarUsuarios() {
     !!usuarioEmEdicao;
 
   const body = {
-    matricula,
-    nome
-  };
+  matricula,
+  nome,
+  polo,
+  base,
+  regional
+};
 
   /*
    * Senha vazia durante edição:
