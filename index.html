@@ -615,6 +615,11 @@
         <i class="bi bi-upload"></i> Importar
       </button>
 
+      <button type="button" class="secondary" onclick="abrirModalUsuarios()">
+  <i class="bi bi-people"></i>
+  Usuários
+</button>
+
       <div class="admin-pop" id="adminPop" style="display:none;">
         <div class="admin-pop-head">
           <b>Importações (admin)</b>
@@ -1004,6 +1009,166 @@
       </table>
     </div>
   </div>
+
+  <div id="modalUsuarios" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:99999;
+">
+
+  <div class="modal-box" style="width:min(850px, 100%);">
+
+    <div class="modal-head">
+      <h3>
+        <i class="bi bi-people"></i>
+        Gerenciar usuários
+      </h3>
+
+      <button
+        type="button"
+        class="secondary"
+        onclick="fecharModalUsuarios()"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div style="
+      display:flex;
+      justify-content:flex-end;
+      margin-top:16px;
+    ">
+      <button type="button" onclick="novoUsuario()">
+        <i class="bi bi-person-plus"></i>
+        Novo usuário
+      </button>
+    </div>
+
+    <div style="overflow:auto; margin-top:16px;">
+      <table style="width:100%;">
+
+        <thead>
+          <tr>
+            <th>Matrícula</th>
+            <th>Nome</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+
+        <tbody id="tbodyUsuarios"></tbody>
+
+      </table>
+    </div>
+
+  </div>
+</div>
+
+  <div id="modalEditarUsuario" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:100000;
+">
+
+  <div class="modal-box" style="width:min(500px,100%);">
+
+    <div class="modal-head">
+
+      <h3 id="tituloUsuario">
+        Novo usuário
+      </h3>
+
+      <button
+        type="button"
+        class="secondary"
+        onclick="fecharModalEditarUsuario()"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+
+    </div>
+
+    <div style="
+      display:grid;
+      gap:14px;
+      margin-top:18px;
+    ">
+
+      <div>
+        <label>Matrícula</label>
+
+        <input
+          id="usuarioMatricula"
+          type="text"
+          style="width:100%;"
+          placeholder="Ex: 123456"
+        >
+      </div>
+
+      <div>
+        <label>Nome completo</label>
+
+        <input
+          id="usuarioNome"
+          type="text"
+          style="width:100%;"
+          placeholder="Nome do usuário"
+        >
+      </div>
+
+      <div>
+        <label>Senha</label>
+
+        <input
+          id="usuarioSenha"
+          type="password"
+          style="width:100%;"
+          placeholder="Digite a senha"
+        >
+
+        <div class="hint" id="usuarioSenhaHint">
+          Informe uma senha para o novo usuário.
+        </div>
+      </div>
+
+      <div style="
+        display:flex;
+        justify-content:flex-end;
+        gap:10px;
+        flex-wrap:wrap;
+      ">
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="fecharModalEditarUsuario()"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          onclick="salvarUsuario()"
+        >
+          <i class="bi bi-check2-circle"></i>
+          Salvar
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
 </main>
 
 <script>
@@ -1032,6 +1197,339 @@ async function garantirCacheInspecoes2026(liderFiltro = "") {
   const arr = Array.isArray(data) ? data : (data.results || []);
   _cache2026PorLider.set(key, arr);
   return arr;
+}
+
+  let usuarioEmEdicao = null;
+
+async function abrirModalUsuarios() {
+
+  const modal =
+    document.getElementById("modalUsuarios");
+
+  modal.style.display = "flex";
+
+  await carregarUsuarios();
+}
+
+
+function fecharModalUsuarios() {
+
+  document.getElementById(
+    "modalUsuarios"
+  ).style.display = "none";
+
+}
+
+
+async function carregarUsuarios() {
+
+  const tbody =
+    document.getElementById("tbodyUsuarios");
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="3" style="padding:20px;text-align:center;">
+        Carregando...
+      </td>
+    </tr>
+  `;
+
+  try {
+
+    const res =
+      await apiFetch("/usuarios");
+
+    const text =
+      await res.text();
+
+    let data = {};
+
+    try {
+      data = JSON.parse(text);
+    } catch {}
+
+    if (!res.ok) {
+      throw new Error(
+        data.erro ||
+        text ||
+        "Erro ao carregar usuários"
+      );
+    }
+
+    const usuarios =
+      Array.isArray(data.results)
+        ? data.results
+        : [];
+
+    tbody.innerHTML = "";
+
+    if (!usuarios.length) {
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3"
+              style="padding:20px;text-align:center;color:#666;">
+            Nenhum usuário encontrado.
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+    usuarios.forEach(usuario => {
+
+      const tr =
+        document.createElement("tr");
+
+      const matricula =
+        String(usuario.matricula || "");
+
+      const nome =
+        String(usuario.nome || "");
+
+      tr.innerHTML = `
+        <td>${matricula}</td>
+
+        <td>
+          <b>${nome}</b>
+        </td>
+
+        <td>
+          <button
+            type="button"
+            class="secondary btn-editar-usuario"
+          >
+            <i class="bi bi-pencil"></i>
+            Editar
+          </button>
+        </td>
+      `;
+
+      tr.querySelector(
+        ".btn-editar-usuario"
+      ).addEventListener(
+        "click",
+        () => editarUsuario(usuario)
+      );
+
+      tbody.appendChild(tr);
+
+    });
+
+  } catch (e) {
+
+    console.error(e);
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3"
+            style="padding:20px;text-align:center;color:#b3261e;">
+          ${e.message}
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
+
+  function novoUsuario() {
+
+  usuarioEmEdicao = null;
+
+  document.getElementById(
+    "tituloUsuario"
+  ).textContent = "Novo usuário";
+
+  const matriculaEl =
+    document.getElementById(
+      "usuarioMatricula"
+    );
+
+  matriculaEl.value = "";
+  matriculaEl.disabled = false;
+
+  document.getElementById(
+    "usuarioNome"
+  ).value = "";
+
+  document.getElementById(
+    "usuarioSenha"
+  ).value = "";
+
+  document.getElementById(
+    "usuarioSenhaHint"
+  ).textContent =
+    "Informe uma senha para o novo usuário.";
+
+  document.getElementById(
+    "modalEditarUsuario"
+  ).style.display = "flex";
+
+}
+
+  function editarUsuario(usuario) {
+
+  usuarioEmEdicao =
+    String(usuario.matricula);
+
+  document.getElementById(
+    "tituloUsuario"
+  ).textContent = "Editar usuário";
+
+  const matriculaEl =
+    document.getElementById(
+      "usuarioMatricula"
+    );
+
+  matriculaEl.value =
+    usuario.matricula || "";
+
+  /*
+   * Não deixa alterar a matrícula,
+   * porque ela é usada para localizar
+   * o usuário.
+   */
+  matriculaEl.disabled = true;
+
+  document.getElementById(
+    "usuarioNome"
+  ).value =
+    usuario.nome || "";
+
+  document.getElementById(
+    "usuarioSenha"
+  ).value = "";
+
+  document.getElementById(
+    "usuarioSenhaHint"
+  ).textContent =
+    "Deixe em branco para manter a senha atual.";
+
+  document.getElementById(
+    "modalEditarUsuario"
+  ).style.display = "flex";
+
+}
+
+  async function salvarUsuario() {
+
+  const matricula =
+    document.getElementById(
+      "usuarioMatricula"
+    ).value.trim();
+
+  const nome =
+    document.getElementById(
+      "usuarioNome"
+    ).value.trim();
+
+  const senha =
+    document.getElementById(
+      "usuarioSenha"
+    ).value.trim();
+
+  if (!matricula) {
+    alert("Informe a matrícula.");
+    return;
+  }
+
+  if (!nome) {
+    alert("Informe o nome.");
+    return;
+  }
+
+  if (!usuarioEmEdicao && !senha) {
+    alert("Informe a senha.");
+    return;
+  }
+
+
+  const editando =
+    !!usuarioEmEdicao;
+
+  const body = {
+    matricula,
+    nome
+  };
+
+  /*
+   * Senha vazia durante edição:
+   * não altera a senha existente.
+   */
+  if (senha) {
+    body.senha = senha;
+  }
+
+
+  try {
+
+    const res = await apiFetch(
+      editando
+        ? `/usuarios/${encodeURIComponent(usuarioEmEdicao)}`
+        : "/usuarios",
+      {
+        method:
+          editando ? "PUT" : "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body:
+          JSON.stringify(body)
+      }
+    );
+
+    const text =
+      await res.text();
+
+    let data = {};
+
+    try {
+      data = JSON.parse(text);
+    } catch {}
+
+    if (!res.ok) {
+      throw new Error(
+        data.erro ||
+        text ||
+        "Erro ao salvar usuário."
+      );
+    }
+
+    fecharModalEditarUsuario();
+
+    await carregarUsuarios();
+
+    setStatus(
+      editando
+        ? "Usuário atualizado com sucesso ✔"
+        : "Usuário cadastrado com sucesso ✔",
+      "success"
+    );
+
+  } catch (e) {
+
+    console.error(e);
+
+    alert(
+      `Erro ao salvar usuário:\n\n${e.message}`
+    );
+
+  }
+
+}
+
+
+function fecharModalEditarUsuario() {
+
+  document.getElementById(
+    "modalEditarUsuario"
+  ).style.display = "none";
+
 }
 
 function splitNomesLista(v){
