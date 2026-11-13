@@ -1648,71 +1648,63 @@ async function enviarLoteInspecoes(lote, numeroLote, maxTentativas = 4) {
   let ultimaResposta = "";
 
   for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
-    try {
-      const resp = await apiFetch("/importar-excel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(lote)
-      });
 
-      ultimaResposta = await resp.text();
+    const resp = await apiFetch("/importar-excel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(lote)
+    });
 
-      if (resp.status === 401) {
-        logout();
-        throw new Error("Sessão expirada.");
-      }
+    ultimaResposta = await resp.text();
 
-      if (resp.ok) {
-        return {
-          ok: true,
-          resposta: ultimaResposta
-        };
-      }
+    console.log(
+      `[IMPORTAR] Lote ${numeroLote} | tentativa ${tentativa} | HTTP ${resp.status}`
+    );
 
-      const erroTemporario =
-        resp.status >= 500 &&
-        (
-          ultimaResposta.includes("CPU time limit") ||
-          ultimaResposta.includes("was reset") ||
-          ultimaResposta.includes("D1_ERROR")
-        );
+    console.log("[IMPORTAR] Resposta Worker:", ultimaResposta);
 
-      if (!erroTemporario || tentativa === maxTentativas) {
-        throw new Error(ultimaResposta || `Erro HTTP ${resp.status}`);
-      }
-
-      setStatus(
-        `Lote ${numeroLote} sobrecarregou o D1. Repetindo, tentativa ${tentativa + 1}/${maxTentativas}...`,
-        "error"
-      );
-
-      await aguardar(1000 * tentativa);
-
-    } catch (e) {
-      ultimaResposta = e.message || String(e);
-
-      const erroTemporario =
-        ultimaResposta.includes("CPU time limit") ||
-        ultimaResposta.includes("was reset") ||
-        ultimaResposta.includes("Failed to fetch") ||
-        ultimaResposta.includes("D1_ERROR");
-
-      if (!erroTemporario || tentativa === maxTentativas) {
-        throw new Error(ultimaResposta);
-      }
-
-      setStatus(
-        `Falha temporária no lote ${numeroLote}. Repetindo, tentativa ${tentativa + 1}/${maxTentativas}...`,
-        "error"
-      );
-
-      await aguardar(1000 * tentativa);
+    if (resp.status === 401) {
+      logout();
+      throw new Error("Sessão expirada.");
     }
+
+    if (resp.ok) {
+      return {
+        ok: true,
+        resposta: ultimaResposta
+      };
+    }
+
+    const erroCpu =
+      ultimaResposta.includes("CPU time limit") ||
+      ultimaResposta.includes("was reset");
+
+    if (!erroCpu) {
+      throw new Error(
+        `Erro no lote ${numeroLote}: ${ultimaResposta}`
+      );
+    }
+
+    if (tentativa === maxTentativas) {
+      throw new Error(
+        `D1 excedeu o limite de CPU após ${maxTentativas} tentativas.\n\n${ultimaResposta}`
+      );
+    }
+
+    setStatus(
+      `D1 sobrecarregado no lote ${numeroLote}. ` +
+      `Nova tentativa ${tentativa + 1}/${maxTentativas}...`,
+      "error"
+    );
+
+    await aguardar(tentativa * 1500);
   }
 
-  throw new Error(ultimaResposta || "Não foi possível importar o lote.");
+  throw new Error(
+    ultimaResposta || "Erro desconhecido ao importar."
+  );
 }
 
 function nomesDeQuemFez(i){
@@ -2844,7 +2836,7 @@ if (!normalizado.length) {
        * Reduzido de 50 para 10.
        * Isso diminui bastante o consumo de CPU por requisição no D1.
        */
-      const TAMANHO_LOTE = 10;
+      const TAMANHO_LOTE = 5;
       const chunks = chunkArray(normalizado, TAMANHO_LOTE);
 
       let processados = 0;
@@ -2904,7 +2896,11 @@ _cache2026PorLider.clear();
  * Atualiza primeiro somente os dados essenciais.
  * Não chama /medidas aqui, pois essa rota é pesada.
  */
+await carregarMedidasCache();
 await carregarInspecoes();
+await carregarRanking();
+
+      excelInput.value = "";
 
 /*
  * As demais atualizações não devem fazer a importação
