@@ -1644,66 +1644,128 @@ function nomesDoColaboradorNaInspecao(i){
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function enviarLoteInspecoes(lote, numeroLote, maxTentativas = 4) {
+async function enviarLoteInspecoes(
+  lote,
+  numeroLote,
+  maxTentativas = 5
+) {
   let ultimaResposta = "";
 
-  for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
+  for (
+    let tentativa = 1;
+    tentativa <= maxTentativas;
+    tentativa++
+  ) {
+    try {
+      const resp = await apiFetch("/importar-excel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(lote)
+      });
 
-    const resp = await apiFetch("/importar-excel", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(lote)
-    });
+      ultimaResposta = await resp.text();
 
-    ultimaResposta = await resp.text();
-
-    console.log(
-      `[IMPORTAR] Lote ${numeroLote} | tentativa ${tentativa} | HTTP ${resp.status}`
-    );
-
-    console.log("[IMPORTAR] Resposta Worker:", ultimaResposta);
-
-    if (resp.status === 401) {
-      logout();
-      throw new Error("Sessão expirada.");
-    }
-
-    if (resp.ok) {
-      return {
-        ok: true,
-        resposta: ultimaResposta
-      };
-    }
-
-    const erroCpu =
-      ultimaResposta.includes("CPU time limit") ||
-      ultimaResposta.includes("was reset");
-
-    if (!erroCpu) {
-      throw new Error(
-        `Erro no lote ${numeroLote}: ${ultimaResposta}`
+      console.log(
+        `[IMPORTAÇÃO] Lote ${numeroLote} | ` +
+        `tentativa ${tentativa}/${maxTentativas} | ` +
+        `HTTP ${resp.status}`
       );
-    }
 
-    if (tentativa === maxTentativas) {
-      throw new Error(
-        `D1 excedeu o limite de CPU após ${maxTentativas} tentativas.\n\n${ultimaResposta}`
+      console.log(
+        "[IMPORTAÇÃO] Resposta do Worker:",
+        ultimaResposta
       );
+
+      if (resp.status === 401) {
+        logout();
+        throw new Error("Sessão expirada.");
+      }
+
+      if (resp.ok) {
+        return {
+          ok: true,
+          resposta: ultimaResposta
+        };
+      }
+
+      const respostaNormalizada =
+        String(ultimaResposta || "").toLowerCase();
+
+      const erroTemporario =
+        respostaNormalizada.includes("d1 db is overloaded") ||
+        respostaNormalizada.includes("too many resources") ||
+        respostaNormalizada.includes("cpu time limit") ||
+        respostaNormalizada.includes("was reset") ||
+        respostaNormalizada.includes("internal server error");
+
+      if (!erroTemporario) {
+        throw new Error(
+          `Erro definitivo no lote ${numeroLote}: ` +
+          `${ultimaResposta || `HTTP ${resp.status}`}`
+        );
+      }
+
+      if (tentativa === maxTentativas) {
+        throw new Error(
+          `O D1 permaneceu sobrecarregado após ` +
+          `${maxTentativas} tentativas.\n\n` +
+          `${ultimaResposta}`
+        );
+      }
+
+      const esperaMs = tentativa * 3000;
+      const esperaSegundos = esperaMs / 1000;
+
+      setStatus(
+        `D1 sobrecarregado no lote ${numeroLote}. ` +
+        `Aguardando ${esperaSegundos} segundos antes da ` +
+        `tentativa ${tentativa + 1}/${maxTentativas}...`,
+        "error"
+      );
+
+      await aguardar(esperaMs);
+
+    } catch (e) {
+      const mensagem = String(
+        e?.message || e || ""
+      );
+
+      const mensagemNormalizada =
+        mensagem.toLowerCase();
+
+      const erroTemporario =
+        mensagemNormalizada.includes("d1 db is overloaded") ||
+        mensagemNormalizada.includes("too many resources") ||
+        mensagemNormalizada.includes("cpu time limit") ||
+        mensagemNormalizada.includes("was reset") ||
+        mensagemNormalizada.includes("failed to fetch") ||
+        mensagemNormalizada.includes("networkerror");
+
+      if (
+        !erroTemporario ||
+        tentativa === maxTentativas
+      ) {
+        throw new Error(mensagem);
+      }
+
+      const esperaMs = tentativa * 3000;
+      const esperaSegundos = esperaMs / 1000;
+
+      setStatus(
+        `Falha temporária no lote ${numeroLote}. ` +
+        `Aguardando ${esperaSegundos} segundos antes de tentar novamente...`,
+        "error"
+      );
+
+      await aguardar(esperaMs);
     }
-
-    setStatus(
-      `D1 sobrecarregado no lote ${numeroLote}. ` +
-      `Nova tentativa ${tentativa + 1}/${maxTentativas}...`,
-      "error"
-    );
-
-    await aguardar(tentativa * 1500);
   }
 
   throw new Error(
-    ultimaResposta || "Erro desconhecido ao importar."
+    ultimaResposta ||
+    "Não foi possível importar o lote."
   );
 }
 
@@ -2836,41 +2898,54 @@ if (!normalizado.length) {
        * Reduzido de 50 para 10.
        * Isso diminui bastante o consumo de CPU por requisição no D1.
        */
-      const TAMANHO_LOTE = 5;
+      const TAMANHO_LOTE = 2;
       const chunks = chunkArray(normalizado, TAMANHO_LOTE);
 
       let processados = 0;
 
-      for (let i = 0; i < chunks.length; i++) {
-        const lote = chunks[i];
-        const numeroLote = i + 1;
+      /*
+ * O D1 considera o consumo acumulado em uma janela
+ * de aproximadamente 10 segundos. Por isso usamos
+ * somente 2 registros por requisição e aguardamos
+ * entre os lotes.
+ */
+const TAMANHO_LOTE = 2;
+const INTERVALO_ENTRE_LOTES = 1500;
 
-        setStatus(
-          `Importando lote ${numeroLote} de ${chunks.length}. ` +
-          `${processados} de ${normalizado.length} processados...`
-        );
+const chunks = chunkArray(
+  normalizado,
+  TAMANHO_LOTE
+);
 
-        await enviarLoteInspecoes(
-          lote,
-          numeroLote,
-          4
-        );
+let processados = 0;
 
-        processados += lote.length;
+for (let i = 0; i < chunks.length; i++) {
+  const lote = chunks[i];
+  const numeroLote = i + 1;
 
-        setStatus(
-          `Importando ${processados} de ${normalizado.length} registros...`,
-          "success"
-        );
+  setStatus(
+    `Importando lote ${numeroLote} de ${chunks.length}. ` +
+    `${processados} de ${normalizado.length} processados...`
+  );
 
-        /*
-         * Pequeno intervalo entre os lotes para evitar requisições
-         * seguidas pressionando o D1.
-         */
-        if (i < chunks.length - 1) {
-          await aguardar(300);
-       }
-      }
+  await enviarLoteInspecoes(
+    lote,
+    numeroLote,
+    5
+  );
+
+  processados += lote.length;
+
+  setStatus(
+    `Importação em andamento: ` +
+    `${processados} de ${normalizado.length} registros processados.`,
+    "success"
+  );
+
+  if (i < chunks.length - 1) {
+    await aguardar(INTERVALO_ENTRE_LOTES);
+  }
+}
 
       setStatus(
   `Importação concluída com sucesso. ${processados} registros processados.`,
@@ -2889,18 +2964,35 @@ _cache2026PorLider.clear();
 /*
  * Limpa os caches após a importação.
  */
+/*
+ * Limpa os dados de 2026 que estavam em memória
+ * antes da importação.
+ */
 _cacheInspecoes2026 = null;
 _cache2026PorLider.clear();
 
 /*
- * Atualiza primeiro somente os dados essenciais.
- * Não chama /medidas aqui, pois essa rota é pesada.
+ * Recarrega a tela somente depois de todos os
+ * registros terem sido processados.
  */
 await carregarMedidasCache();
 await carregarInspecoes();
 await carregarRanking();
+await carregarStatsMensal();
+await carregarResumoMetaGestorLogado();
 
-      excelInput.value = "";
+excelInput.value = "";
+
+setStatus(
+  `✅ Importação concluída com sucesso. ` +
+  `${processados} registros processados.`,
+  "success"
+);
+
+alert(
+  `✅ Importação concluída com sucesso!\n\n` +
+  `${processados} registros processados.`
+);
 
 /*
  * As demais atualizações não devem fazer a importação
