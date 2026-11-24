@@ -2895,14 +2895,6 @@ if (!normalizado.length) {
       }
 
       /*
-       * Reduzido de 50 para 10.
-       * Isso diminui bastante o consumo de CPU por requisição no D1.
-       */
-      const TAMANHO_LOTE = 2;
-      const chunks = chunkArray(normalizado, TAMANHO_LOTE);
-
-      let processados = 0;
-
       /*
  * O D1 considera o consumo acumulado em uma janela
  * de aproximadamente 10 segundos. Por isso usamos
